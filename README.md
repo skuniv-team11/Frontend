@@ -1,6 +1,6 @@
-# Co-op 레이더 — 프론트엔드
+# 현장뛰자 — 프론트엔드
 
-현장실습 공고를 AI로 구조화해 학생에게 자격 판정·적합도 추천과 근거를 보여주는 서비스의 웹 화면입니다. 2026 소웨X전컴 공모전 11조 '나중에 고치조'. 백엔드·API 계약: [skuniv-team11/Backend](https://github.com/skuniv-team11/Backend) (`docs/api/`)
+현장실습 공고를 AI로 구조화해 학생에게는 지원할 수 있는 자리와 이유·1~3지망 몰림 경고를, 현장실습지원센터에는 모집 중 현황판을 보여주는 서비스의 웹 화면입니다. 2026 소웨X전컴 공모전 11조 '나중에 고치조'. 백엔드·API 계약: [skuniv-team11/Backend](https://github.com/skuniv-team11/Backend) (`docs/api/`)
 
 React 19 · Vite · React Router 7 · TypeScript → Vercel
 

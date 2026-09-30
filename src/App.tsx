@@ -19,7 +19,7 @@ function HealthPage() {
 
   return (
     <main className="page">
-      <h1>Co-op 레이더</h1>
+      <h1>현장뛰자</h1>
       <p className="muted">배포 연결 확인</p>
       <dl>
         <dt>API 주소</dt>
