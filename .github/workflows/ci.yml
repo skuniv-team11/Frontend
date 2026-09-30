@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, release]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: 비밀·원본 파일 검사
+        run: scripts/check-secrets.sh --all
+      - name: 하네스 규칙 자체 테스트
+        run: scripts/test-harness.sh
+
+  # 커밋 작성자가 GitHub 계정에 연결된 팀원인지, 공동 작성자·도구 표기 줄이 없는지(ADR-0006)
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: 커밋 작성자·메시지 검사
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            scripts/check-commits.sh "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}"
+          else
+            scripts/check-commits.sh "${{ github.event.before }}" "${{ github.sha }}"
+          fi
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  # 브랜치 보호에는 이 job 하나만 필수로 건다.
+  ci-ok:
+    if: always()
+    needs: [secrets, commits, web]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | grep -qE '"result": "(failure|cancelled)"' && { echo "실패한 검사가 있습니다"; exit 1; } || echo "모든 검사 통과"
