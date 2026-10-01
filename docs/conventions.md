@@ -12,7 +12,7 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 | 브랜치 | 용도 | 규칙 |
 |---|---|---|
 | `develop` | 개발 기준(기본 브랜치) | 직접 push 금지. PR + CI(`ci-ok`) 통과 후 squash merge(커밋 메시지는 PR 제목) |
-| `main` | 배포(Vercel·Render) | `develop`에서 fast-forward push로만 올린다: `git push origin origin/develop:refs/heads/main`. PR로 올리면 squash 때문에 갈라진다 |
+| `main` | 배포(Vercel·Render) | `develop`에서 fast-forward push로만 올린다: `git push origin origin/develop:refs/heads/main`. PR로 올리면 squash 때문에 갈라진다. 백엔드 Render 빌드 시간(월 500분) 때문에 하루 1~2번 |
 | `feat/<영역>-<주제>` | 작업 | 예: `feat/be-eligibility`, `feat/fe-profile`, `fix/fe-cors` |
 
 ## 커밋
@@ -34,4 +34,5 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 | `CORS_ORIGINS` | Render | Vercel 운영·미리보기 주소 패턴 |
 | `ANTHROPIC_API_KEY` | Render, 로컬 | 절대 커밋·로그 금지 |
 | `VITE_API_BASE_URL` | Vercel, 프론트 `.env.local` | 브라우저에 노출됨. 주소만 |
-| `VOYAGE_API_KEY`, `NTS_SERVICE_KEY`, `NCS_SERVICE_KEY`, `ODSAY_API_KEY` | 로컬(`pipeline/`) | 공공데이터포털은 Decoding 키 |
+| `KAKAO_REST_API_KEY` | Render, 로컬 | 카카오 디벨로퍼스 REST API 키. 통근 조회(백엔드 ADR-0007). 절대 커밋·로그 금지 |
+| `VOYAGE_API_KEY`, `NTS_SERVICE_KEY`, `NCS_SERVICE_KEY`, `JUSO_COORD_API_KEY` | 로컬(`pipeline/`) | 공공데이터포털은 Decoding 키. `JUSO_COORD_API_KEY`는 도로명주소 좌표제공 API 승인키. `ODSAY_API_KEY`는 더 쓰지 않는다(백엔드 ADR-0002 개정) |
