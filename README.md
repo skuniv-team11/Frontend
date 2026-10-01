@@ -12,19 +12,26 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 ```
 작업 규칙은 [AGENTS.md](AGENTS.md), 브랜치·커밋 규칙은 [docs/conventions.md](docs/conventions.md)에 있습니다. 작업을 마치면 `scripts/verify.sh`를 돌립니다(CI와 같은 검사).
 
-## 로컬 실행
+## 테스트는 배포 주소에서
+화면 확인은 로컬이 아니라 **Vercel 배포 주소**에서 합니다(10/2 결정). 백엔드는 Render 한 곳만 씁니다.
+- **PR 미리보기:** 브랜치를 push하고 PR을 열면 Vercel이 PR에 미리보기 주소를 답니다. 거기서 확인한 뒤 병합합니다.
+- **develop 미리보기:** `https://coop-radar-git-develop-<계정>.vercel.app`(develop의 최신 상태)
+- **운영:** `https://coop-radar.vercel.app`(`main`). 평가·시연용이라 `develop` → `main` 승격 때만 바뀝니다.
+- 백엔드 API가 바뀌었는데 화면에서 안 보이면, 백엔드 `main`이 아직 승격 전인지 확인합니다(Render는 `main`만 배포).
+
+로컬에서 띄우고 싶으면(선택) `.env.local`에 Render 주소를 넣습니다.
 ```
-cp .env.example .env.local     # VITE_API_BASE_URL=http://localhost:8080 (백엔드 로컬 실행 시)
+cp .env.example .env.local     # VITE_API_BASE_URL=https://<백엔드>.onrender.com 으로 고친다
 npm install
-npm run dev                    # http://localhost:5173
+npm run dev                    # http://localhost:5173 (백엔드 CORS_ORIGINS에 이 주소가 있어야 함)
 ```
-첫 화면에 "✓ ok"가 뜨면 프론트 → 백엔드 → CORS가 모두 통과한 것입니다.
 
 ## 배포 (Vercel)
 1. Vercel → New Project → 이 저장소를 고릅니다(Framework: Vite 자동 인식). **Project Name은 `coop-radar`로 바꿉니다.** 저장소 이름을 그대로 쓰면 주소가 `frontend-xxxx.vercel.app`처럼 알아보기 어려워지고, 백엔드 `CORS_ORIGINS` 예시도 `coop-radar` 기준입니다.
-2. Environment Variables에 `VITE_API_BASE_URL=https://<백엔드>.onrender.com`을 넣습니다.
-3. 배포 주소를 백엔드 Render의 `CORS_ORIGINS`에 넣습니다.
-4. 배포 주소에서 두 가지를 확인합니다.
+2. Environment Variables에 `VITE_API_BASE_URL=https://<백엔드>.onrender.com`을 넣습니다. **Production과 Preview 둘 다** 체크합니다(미리보기도 Render를 부름). 값을 바꾸면 다시 배포해야 반영됩니다(빌드 때 들어감).
+3. Settings → Deployment Protection → **Vercel Authentication을 끕니다.** 켜 두면 미리보기 주소가 Vercel 로그인을 요구하고, Hobby 플랜은 외부 사용자를 1명만 허용해서 팀원이 미리보기를 못 봅니다. 공개 저장소·공개 시연 화면이라 가릴 것이 없습니다.
+4. 백엔드 Render `CORS_ORIGINS`는 `https://coop-radar.vercel.app,https://coop-radar-*.vercel.app`(운영 + 미리보기)입니다. 운영 주소가 `coop-radar.vercel.app`이 아니게 나오면 백엔드 값을 그 주소로 고칩니다.
+5. 배포 주소에서 두 가지를 확인합니다.
     - 첫 화면에 "✓ ok"가 뜨는지
     - `/jobs/sample`에서 새로고침해도 404가 안 나는지(`vercel.json` rewrite)
 
