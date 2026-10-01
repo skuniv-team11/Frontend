@@ -13,18 +13,11 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 작업 규칙은 [AGENTS.md](AGENTS.md), 브랜치·커밋 규칙은 [docs/conventions.md](docs/conventions.md)에 있습니다. 작업을 마치면 `scripts/verify.sh`를 돌립니다(CI와 같은 검사).
 
 ## 테스트는 배포 주소에서
-화면 확인은 로컬이 아니라 **Vercel 배포 주소**에서 합니다(10/2 결정). 백엔드는 Render 한 곳만 씁니다.
+화면 확인은 **Vercel 배포 주소**에서 합니다(10/2 결정, 로컬에서 띄우지 않음). 백엔드는 Render 한 곳만 씁니다(https://coop-radar-api.onrender.com · [Swagger](https://coop-radar-api.onrender.com/swagger-ui.html)).
 - **PR 미리보기:** 브랜치를 push하고 PR을 열면 Vercel이 PR에 미리보기 주소를 답니다. 거기서 확인한 뒤 병합합니다.
 - **develop 미리보기:** `https://coop-radar-git-develop-<계정>.vercel.app`(develop의 최신 상태)
 - **운영:** `https://coop-radar.vercel.app`(`main`). 평가·시연용이라 `develop` → `main` 승격 때만 바뀝니다.
 - 백엔드 API가 바뀌었는데 화면에서 안 보이면, 백엔드 `main`이 아직 승격 전인지 확인합니다(Render는 `main`만 배포).
-
-로컬에서 띄우고 싶으면(선택) `.env.local`에 Render 주소를 넣습니다.
-```
-cp .env.example .env.local     # VITE_API_BASE_URL=https://<백엔드>.onrender.com 으로 고친다
-npm install
-npm run dev                    # http://localhost:5173 (백엔드 CORS_ORIGINS에 이 주소가 있어야 함)
-```
 
 ## 배포 (Vercel)
 1. Vercel → New Project → 이 저장소를 고릅니다(Framework: Vite 자동 인식). **Project Name은 `coop-radar`로 바꿉니다.** 저장소 이름을 그대로 쓰면 주소가 `frontend-xxxx.vercel.app`처럼 알아보기 어려워지고, 백엔드 `CORS_ORIGINS` 예시도 `coop-radar` 기준입니다.
