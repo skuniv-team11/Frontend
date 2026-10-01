@@ -32,9 +32,9 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 | 이름 | 어디 | 비고 |
 |---|---|---|
 | `CORS_ORIGINS` | Render | Vercel 운영·미리보기 주소 패턴 |
-| `ANTHROPIC_API_KEY` | Render, 로컬 | 절대 커밋·로그 금지 |
-| `JWT_SECRET` | Render, 로컬 | 로그인 토큰 서명 키(HS256, 백엔드 ADR-0008). 32바이트 이상 무작위 값. 절대 커밋·로그 금지 |
-| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Render | 백엔드 DB 연결(`jdbc:postgresql://HOST:PORT/DB`). 로컬은 백엔드 docker compose 기본값(백엔드 ADR-0010) |
-| `VITE_API_BASE_URL` | Vercel, 프론트 `.env.local` | 브라우저에 노출됨. 주소만 |
-| `KAKAO_REST_API_KEY` | Render, 로컬 | 카카오 디벨로퍼스 REST API 키. 통근 조회(백엔드 ADR-0007). 절대 커밋·로그 금지 |
+| `ANTHROPIC_API_KEY` | Render, 백엔드 `pipeline/`(추출) | 절대 커밋·로그 금지 |
+| `JWT_SECRET` | Render | 로그인 토큰 서명 키(HS256, 백엔드 ADR-0008). Blueprint가 무작위 값을 만든다. 절대 커밋·로그 금지 |
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Render | 백엔드 DB 연결(`jdbc:postgresql://HOST:PORT/DB`, 백엔드 README 'DB') |
+| `VITE_API_BASE_URL` | Vercel(Production·Preview) | `https://coop-radar-api.onrender.com`. 브라우저에 노출됨. 주소만 |
+| `KAKAO_REST_API_KEY` | Render | 카카오 디벨로퍼스 REST API 키. 통근 조회(백엔드 ADR-0007). 절대 커밋·로그 금지 |
 | `VOYAGE_API_KEY`, `NTS_SERVICE_KEY`, `NCS_SERVICE_KEY`, `JUSO_COORD_API_KEY` | 로컬(`pipeline/`) | 공공데이터포털은 Decoding 키. `JUSO_COORD_API_KEY`는 도로명주소 좌표제공 API 승인키(10/1 대기. 재개 때 도로명주소 검색 API 승인키도 함께 받는다). `ODSAY_API_KEY`는 더 쓰지 않는다(백엔드 ADR-0002 개정) |

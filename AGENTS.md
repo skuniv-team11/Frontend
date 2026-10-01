@@ -11,9 +11,9 @@ React 19 · Vite · React Router 7 · TypeScript. Vercel 배포.
 npm ci
 npm run lint       # oxlint — 통과해야 끝
 npm run build      # tsc -b + vite build — 통과해야 끝
-npm run dev        # 선택. 화면 확인은 PR의 Vercel 미리보기 주소에서 한다(10/2). 로컬이면 .env.local 에 Render 주소
 scripts/verify.sh  # 위 두 개 + 비밀 검사. CI와 같은 검사
 ```
+화면은 로컬에서 띄우지 않는다(10/2). PR을 열면 Vercel이 다는 미리보기 주소에서 확인한다.
 
 ## 화면과 라우트 (10/1 기능 명세·화면 설계 기준)
 학생 화면과 센터 현황판 모두 PC 웹 1280px 기준이고 모바일 대응은 하지 않는다(10/1 회의). 로그인이 있고(백엔드 ADR-0008), [예시 프로필로 시작]·[센터 담당자로 보기]는 가입 없는 체험 계정을 만든다. 체험 계정도 가입 계정과 같은 화면을 쓴다.
