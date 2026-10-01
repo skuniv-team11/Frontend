@@ -11,7 +11,7 @@ React 19 · Vite · React Router 7 · TypeScript. Vercel 배포.
 npm ci
 npm run lint       # oxlint — 통과해야 끝
 npm run build      # tsc -b + vite build — 통과해야 끝
-npm run dev        # :5173, .env.local 의 VITE_API_BASE_URL 로 백엔드 호출
+npm run dev        # 선택. 화면 확인은 PR의 Vercel 미리보기 주소에서 한다(10/2). 로컬이면 .env.local 에 Render 주소
 scripts/verify.sh  # 위 두 개 + 비밀 검사. CI와 같은 검사
 ```
 
