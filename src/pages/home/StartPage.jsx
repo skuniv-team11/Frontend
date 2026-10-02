@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import processMascot from '../../assets/images/process-mascot.png'
+import jobAnimation from '../../assets/images/job-animation.mp4'
 import { jobs } from '../../mock/jobs'
 import './StartPage.css'
 import './StartPageProcess.css'
@@ -216,14 +218,14 @@ export function StartPage() {
             <Link className="button primary process-action" to="/login">지금 시작하기</Link>
           </div>
         </div>
-        <div className="process-image"><img src="/images/process-mascot.png" alt="책상 앞에서 현장실습을 준비하는 마스코트" /></div>
+        <div className="process-image"><img src={processMascot} alt="책상 앞에서 현장실습을 준비하는 마스코트" /></div>
       </div>
     </section>
     <section className={`home-jobs ${isJobsVisible ? 'is-visible' : ''}`} ref={jobsSectionRef}>
       <div className="home-jobs-layout">
         <div className="job-animation-slot" onClick={playGreeting} role="button" tabIndex={0} aria-label="클릭하면 마스코트가 인사합니다">
           <video ref={animationVideoRef} muted playsInline preload="auto" aria-hidden="true">
-            <source src="/images/job-animation.mp4" type="video/mp4" />
+            <source src={jobAnimation} type="video/mp4" />
           </video>
         </div>
         <div className="home-jobs-content">
