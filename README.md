@@ -2,7 +2,7 @@
 
 현장실습 공고를 AI로 구조화해 학생에게는 지원할 수 있는 자리와 이유·1~3지망 빈 자리 제안을, 현장실습지원센터에는 모집 중 현황판을 보여주는 서비스의 웹 화면입니다. 2026 소웨X전컴 공모전 11조 '나중에 고치조'. 백엔드·API 계약: [skuniv-team11/Backend](https://github.com/skuniv-team11/Backend) (`docs/api/`)
 
-React 19 · Vite · React Router 7 · TypeScript → Vercel
+React 19 · Vite · React Router 7 · JavaScript(JSX) · styled-components → Vercel
 
 ## 처음 받은 뒤 한 번
 ```
