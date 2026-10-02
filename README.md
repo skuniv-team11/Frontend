@@ -13,7 +13,8 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 작업 규칙은 [AGENTS.md](AGENTS.md), 브랜치·커밋 규칙은 [docs/conventions.md](docs/conventions.md)에 있습니다. 작업을 마치면 `scripts/verify.sh`를 돌립니다(CI와 같은 검사).
 
 ## 테스트는 배포 주소에서
-화면 확인은 **Vercel 배포 주소**에서 합니다(10/2 결정, 로컬에서 띄우지 않음). 백엔드는 Render 한 곳만 씁니다(https://coop-radar-api.onrender.com · [Swagger](https://coop-radar-api.onrender.com/swagger-ui.html)).
+작업 중에는 로컬에서 바로 확인하고, 병합 전 최종 확인은 **Vercel 배포 주소**에서 합니다. 백엔드는 Render 한 곳만 씁니다(https://coop-radar-api.onrender.com · [Swagger](https://coop-radar-api.onrender.com/swagger-ui.html)).
+- **로컬:** `npm ci` 후 `npm run dev` → http://localhost:5173, 또는 `npm run build` 후 `npm run preview` → http://localhost:4173. 둘 다 `.env` 없이 Render API를 부릅니다(백엔드 `CORS_ORIGINS`가 localhost도 허용). 포트(5173·4173)가 쓰이고 있으면 다른 포트로 넘어가지 않고 멈추니 켜 둔 서버를 끄고 다시 실행합니다.
 - **PR 미리보기:** 브랜치를 push하고 PR을 열면 Vercel이 PR에 미리보기 주소를 답니다. 거기서 확인한 뒤 병합합니다.
 - **develop 미리보기:** `https://coop-radar-git-develop-<계정>.vercel.app`(develop의 최신 상태)
 - **운영:** `https://coop-radar.vercel.app`(`main`). 평가·시연용이라 `develop` → `main` 승격 때만 바뀝니다.
