@@ -1,0 +1,109 @@
+.home-process .process-heading {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.home-process .process-intro {
+  max-width: 640px;
+  padding-left: 16px;
+  border-left: 2px solid #c7d2ff;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+
+.home-process .process-kicker {
+  margin: 0 0 8px;
+  color: #5574e9;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.home-process .process-intro h2 {
+  margin: 0;
+  color: #202124;
+  font-size: clamp(36px, 3.15vw, 50px);
+  line-height: 1.18;
+  letter-spacing: -2.6px;
+}
+
+.home-process .process-intro > p:last-child {
+  max-width: 600px;
+  margin: 0;
+  color: #4b4f55;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+.home-process .process-guide {
+  margin-top: 78px;
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity .8s ease .18s, transform .8s ease .18s;
+}
+
+.home-process .process-heading h3 {
+  margin: 0;
+  color: #202124;
+  font-size: 18px;
+  letter-spacing: -1.3px;
+}
+
+.home-process .steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.home-process .steps > .process-step {
+  min-height: 0;
+  padding: 0 0 10px;
+  border: 0;
+  border-bottom: 1px solid rgb(32 33 36 / 16%);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-process .process-step b {
+  display: block;
+  margin: 0 0 4px;
+  font-size: 12px;
+}
+
+.home-process .process-step h4 { margin: 0 0 3px; color: #202124; font-size: 16px; }
+.home-process .process-step p { margin: 0; color: var(--muted); font-size: 12px; }
+
+.home-process .process-action {
+  align-self: flex-start;
+  margin-top: 22px;
+}
+
+.home-process {
+  min-height: 80vh;
+  margin-top: -18px;
+  padding-top: 94px;
+  padding-bottom: 76px;
+}
+
+.home-process .process-image {
+  height: 430px;
+}
+
+.home-process.is-visible .process-intro,
+.home-process.is-visible .process-guide {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-process .process-intro,
+  .home-process .process-guide {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

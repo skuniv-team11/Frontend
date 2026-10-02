@@ -1,0 +1,43 @@
+.topbar nav a,
+.topbar nav a.active {
+  border-bottom: 0;
+}
+
+.topbar {
+  background: #fff;
+  transition: background-color .35s ease, border-color .35s ease, color .35s ease;
+}
+
+.shell .topbar.home-topbar {
+  background: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+.topbar.home-topbar .brand,
+.topbar.home-topbar nav a,
+.topbar.home-topbar .top-action {
+  color: #fff;
+  text-shadow: 0 1px 10px rgb(0 0 0 / 32%);
+}
+
+.topbar.home-topbar .brand span,
+.topbar.home-topbar nav a.active {
+  color: #a9baff;
+}
+
+html {
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+.shell > main {
+  animation: page-fade .48s ease both !important;
+}
+
+@keyframes page-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
