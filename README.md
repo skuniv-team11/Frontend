@@ -31,3 +31,48 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 ## 규칙
 - **환경변수:** `VITE_`로 시작하는 값은 브라우저에 그대로 보입니다. 백엔드 주소만 넣고, 키는 넣지 않습니다.
 - **원문 표시:** 원문 PDF는 띄우지 않고, 근거는 문서명·쪽·인용문으로만 보여줍니다.
+
+
+## 🎯 Git Convention
+
+- 🎉 **Start** : Start New Project `[:tada:]`
+- ✨ **Feat** : 새로운 기능 추가 `[:sparkles:]`
+- 🐛 **Fix** : 버그 수정 `[:bug:]`
+- 🎨 **Design** : CSS 등 사용자 UI 디자인 변경 `[:art:]`
+- ♻️ **Refactor** : 코드 리팩토링 `[:recycle:]`
+- 🔧 **Settings** : 설정 파일 수정 `[:wrench:]`
+- 🗃️ **Comment** : 필요한 주석 추가 및 변경 `[:card_file_box:]`
+- ➕ **Dependency/Plugin** : 라이브러리 추가 `[:heavy_plus_sign:]`
+- 📝 **Docs** : 문서 수정 `[:memo:]`
+- 🔀 **Merge** : 브랜치 병합 `[:twisted_rightwards_arrows:]`
+- 🚀 **Deploy** : 배포 관련 작업 `[:rocket:]`
+- 🚚 **Rename** : 파일 및 폴더 이름 수정 `[:truck:]`
+- 🔥 **Remove** : 파일 삭제 `[:fire:]`
+- ⏪️ **Revert** : 이전 버전으로 롤백 `[:rewind:]`
+
+## 🌲 Branch Convention
+
+- `main` : 배포 가능한 브랜치
+- `develop` : 개발 브랜치
+- `feat/#이슈번호/명칭` : 새로운 기능 개발 브랜치
+  - 예시 : `feat/#12/temperature`
+- `fix/#이슈번호/명칭` : 버그 수정 브랜치
+  - 예시 : `fix/#12/temperature-chart`
+- `ui/#이슈번호/명칭` : UI 작업 브랜치
+  - 예시 : `ui/#12/home`
+- `docs/#이슈번호/명칭` : 문서 작성 및 수정 브랜치
+  - 예시 : `docs/#12/readme`
+- `api/#이슈번호/명칭` : API 연동 작업 브랜치
+  - 예시 : `api/#12/hospital`
+- `refactor/#이슈번호/명칭` : 리팩토링 작업 브랜치
+  - 예시 : `refactor/#12/component-structure`
+
+## 🌊 Flow
+
+1. Issue 생성
+2. 최신 `develop` 브랜치에서 작업 브랜치 생성
+3. 기능 개발 및 커밋 진행
+4. `develop` 브랜치로 Pull Request 생성
+5. 코드 리뷰 진행
+6. 리뷰 완료 후 `develop` 브랜치로 병합
+7. 병합 완료 후 작업 브랜치 삭제
