@@ -1,6 +1,6 @@
 // 백엔드 주소는 빌드할 때 들어간다. VITE_로 시작하는 값은 브라우저 번들에 그대로 보이므로 키를 넣지 않는다.
-// 값이 없으면(로컬) 같은 주소의 /api로 보내고 vite.config.js 프록시가 Render로 넘긴다.
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+// 값이 없으면(로컬) Render를 바로 부른다. 백엔드 CORS_ORIGINS가 localhost도 허용한다.
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'https://coop-radar-api.onrender.com').replace(/\/$/, '')
 
 // 토큰만 저장한다. 프로필 값·통근 결과는 localStorage에 두지 않는다(AGENTS.md).
 const TOKEN_KEY = 'accessToken'
