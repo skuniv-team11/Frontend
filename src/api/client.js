@@ -33,6 +33,11 @@ export async function request(path, { method = 'GET', body, signal } = {}) {
     throw new ApiError(0, { code: 'NETWORK', message: '서버에 연결하지 못했어요' })
   }
   const data = res.status === 204 ? null : await res.json().catch(() => null)
-  if (!res.ok) throw new ApiError(res.status, data)
+  if (!res.ok) {
+    const error = new ApiError(res.status, data)
+    // 토큰이 잘못됐거나 만료됐으면(체험 계정은 계정도 지워짐) 버린다. 로그인 실패(LOGIN_FAILED)는 토큰과 상관없다.
+    if (error.code === 'AUTH_REQUIRED' || error.code === 'TOKEN_EXPIRED') clearToken()
+    throw error
+  }
   return data
 }
