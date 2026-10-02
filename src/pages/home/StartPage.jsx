@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import processMascot from '../../assets/images/process-mascot.png'
 import jobAnimation from '../../assets/images/job-animation.mp4'
+import { useGuestStart } from '../../hooks/useGuestStart'
 import { jobs } from '../../mock/jobs'
 import './StartPage.css'
 import './StartPageProcess.css'
@@ -48,6 +49,7 @@ const jobSummaries = {
 }
 
 export function StartPage() {
+  const { start: startGuest, loadingRole, error: guestError } = useGuestStart()
   const processSectionRef = useRef(null)
   const jobsSectionRef = useRef(null)
   const storiesSectionRef = useRef(null)
@@ -204,7 +206,7 @@ export function StartPage() {
   }, [hasStoriesAutoFinished, isStoriesDragging, isStoriesHovered, isStoriesVisible])
 
   return <main className="landing home-landing">
-    <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row"><Link className="button primary" to="/profile">예시 프로필로 시작</Link><Link className="button glass-button" to="/login">로그인·가입으로 시작</Link></div></div></div><Link className="center-link" to="/center">센터 담당자료 보기 →</Link><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
+    <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row"><button type="button" className="button primary" disabled={loadingRole!==null} onClick={() => startGuest('STUDENT')}>{loadingRole==='STUDENT' ? '체험 계정 만드는 중…' : '예시 프로필로 시작'}</button><Link className="button glass-button" to="/login">로그인·가입으로 시작</Link></div>{guestError && <p className="guest-error" role="alert">{guestError}</p>}{loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}</div></div><button type="button" className="center-link" disabled={loadingRole!==null} onClick={() => startGuest('CENTER')}>{loadingRole==='CENTER' ? '체험 계정 만드는 중…' : '센터 담당자로 보기 →'}</button><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
     <section className={`home-process ${isProcessVisible ? 'is-visible' : ''}`} ref={processSectionRef}>
       <div className="process-layout">
         <div className="process-copy">
