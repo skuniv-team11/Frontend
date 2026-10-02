@@ -4,7 +4,7 @@
   padding: 0;
   position: relative;
   background-color: #1f2528;
-  background-image: url('/images/internship-hero.png');
+  background-image: url('../../assets/images/internship-hero.png');
   background-position: center top;
   background-repeat: no-repeat;
   background-size: auto 100vh;
