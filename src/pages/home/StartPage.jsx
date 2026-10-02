@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Shell } from '../components/Shell'
-import { jobs } from '../data/jobs'
+import { jobs } from '../../mock/jobs'
 import './StartPage.css'
 import './StartPageProcess.css'
 
@@ -39,7 +38,7 @@ const storyFilmBottomImages = [
   'https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=900&q=80',
 ]
 
-const jobSummaries: Record<string, string> = {
+const jobSummaries = {
   'beauty-marketing': '브랜드의 SNS 콘텐츠와 캠페인 운영을 함께 경험해요.',
   'package-design': '제품 패키지 제작 과정과 디자인 실무를 배워요.',
   'product-assistant': '상품 아이디어를 정리하고 기획 업무를 보조해요.',
@@ -47,15 +46,15 @@ const jobSummaries: Record<string, string> = {
 }
 
 export function StartPage() {
-  const processSectionRef = useRef<HTMLElement>(null)
-  const jobsSectionRef = useRef<HTMLElement>(null)
-  const storiesSectionRef = useRef<HTMLElement>(null)
-  const animationVideoRef = useRef<HTMLVideoElement>(null)
-  const animationReplayTimer = useRef<number | null>(null)
+  const processSectionRef = useRef(null)
+  const jobsSectionRef = useRef(null)
+  const storiesSectionRef = useRef(null)
+  const animationVideoRef = useRef(null)
+  const animationReplayTimer = useRef(null)
   const animationInViewRef = useRef(false)
-  const storiesListRef = useRef<HTMLDivElement>(null)
+  const storiesListRef = useRef(null)
   const storyDragRef = useRef({ startX: 0, startScrollLeft: 0 })
-  const storyResetTimer = useRef<number | null>(null)
+  const storyResetTimer = useRef(null)
   const [messageIndex, setMessageIndex] = useState(0)
   const [isFading, setIsFading] = useState(false)
   const [isProcessVisible, setIsProcessVisible] = useState(false)
@@ -79,7 +78,7 @@ export function StartPage() {
   }, [])
 
   useEffect(() => {
-    let changeTimer: number | undefined
+    let changeTimer
     const timer = window.setInterval(() => {
       setIsJobHeadlineFading(true)
       changeTimer = window.setTimeout(() => {
@@ -94,7 +93,7 @@ export function StartPage() {
   }, [])
 
   useEffect(() => {
-    const observe = (section: HTMLElement | null, reveal: () => void, threshold = 0.16) => {
+    const observe = (section, reveal, threshold = 0.16) => {
       if (!section) return undefined
       const observer = new IntersectionObserver(([entry]) => {
         if (entry.isIntersecting) {
@@ -129,7 +128,7 @@ export function StartPage() {
     animationReplayTimer.current = window.setTimeout(playGreeting, 20000)
   }, [])
 
-  const startStoryDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const startStoryDrag = (event) => {
     const list = storiesListRef.current
     if (!list) return
     storyDragRef.current = { startX: event.clientX, startScrollLeft: list.scrollLeft }
@@ -137,7 +136,7 @@ export function StartPage() {
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
-  const moveStoryDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const moveStoryDrag = (event) => {
     if (!isStoriesDragging || !storiesListRef.current) return
     storiesListRef.current.scrollLeft = storyDragRef.current.startScrollLeft - (event.clientX - storyDragRef.current.startX)
   }
@@ -183,7 +182,7 @@ export function StartPage() {
     if (!isStoriesVisible || isStoriesDragging || isStoriesHovered || hasStoriesAutoFinished || !list) return undefined
 
     const slideOneCard = () => {
-      const card = list.querySelector<HTMLElement>('.story-card')
+      const card = list.querySelector('.story-card')
       if (!card) return
       const gap = Number.parseFloat(window.getComputedStyle(list).gap) || 0
       const lastPosition = list.scrollWidth - list.clientWidth
@@ -202,7 +201,7 @@ export function StartPage() {
     return () => window.clearInterval(timer)
   }, [hasStoriesAutoFinished, isStoriesDragging, isStoriesHovered, isStoriesVisible])
 
-  return <Shell><main className="landing home-landing">
+  return <main className="landing home-landing">
     <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row"><Link className="button primary" to="/profile">예시 프로필로 시작</Link><Link className="button glass-button" to="/login">로그인·가입으로 시작</Link></div></div></div><Link className="center-link" to="/center">센터 담당자료 보기 →</Link><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
     <section className={`home-process ${isProcessVisible ? 'is-visible' : ''}`} ref={processSectionRef}>
       <div className="process-layout">
@@ -255,5 +254,5 @@ export function StartPage() {
     <section className="home-cta">
       <div className="home-cta-content"><h2>지금 바로 신청하세요</h2><Link className="button primary" to="/login">신청하기</Link></div>
     </section>
-  </main></Shell>
+  </main>
 }
