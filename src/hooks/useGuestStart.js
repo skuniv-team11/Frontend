@@ -11,7 +11,7 @@ const guestErrorMessage = (error) => {
 }
 
 // [예시 프로필로 시작](STUDENT) · [센터 담당자로 보기](CENTER) — 체험 계정을 만들고 바로 들어간다
-export function useGuestStart() {
+export function useGuestStart(onNavigate) {
   const navigate = useNavigate()
   const [loadingRole, setLoadingRole] = useState(null)
   const [error, setError] = useState('')
@@ -20,7 +20,9 @@ export function useGuestStart() {
     setLoadingRole(role); setError('')
     try {
       await guest(role)
-      navigate(role === 'CENTER' ? '/center' : '/profile')
+      const destination = role === 'CENTER' ? '/center' : '/profile'
+      if (onNavigate) onNavigate(destination)
+      else navigate(destination)
     } catch (caught) {
       setError(guestErrorMessage(caught))
     } finally {

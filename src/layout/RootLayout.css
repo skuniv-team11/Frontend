@@ -5,7 +5,18 @@
 
 .topbar {
   background: #fff;
-  transition: background-color .35s ease, border-color .35s ease, color .35s ease;
+  transform: translateY(0);
+  transition: transform .62s cubic-bezier(.22, 1, .36, 1), background-color .35s ease, border-color .35s ease, color .35s ease;
+  will-change: transform;
+}
+
+.topbar.topbar-hidden {
+  transform: translateY(calc(-100% - 2px));
+  pointer-events: none;
+}
+
+.login-shell .topbar {
+  margin-bottom: -66px;
 }
 
 .shell .topbar.home-topbar {
@@ -29,7 +40,21 @@ html {
   scrollbar-width: none;
 }
 
-body::-webkit-scrollbar {
+/* 기본 스크롤바는 전역에서 숨긴다. 스크롤 UI는 화면별 단일 막대 컨트롤을 사용한다. */
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-button,
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-thumb {
   display: none;
 }
 
@@ -40,4 +65,24 @@ body::-webkit-scrollbar {
 @keyframes page-fade {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* 공통 모션 규칙: 새 팝업·정보 패널은 Modal·SidePanel을 사용해 같은 진입/퇴장 효과를 따른다. */
+.motion-layer { animation: motion-layer-in .28s ease-out both; }
+.modal.motion-surface { animation: motion-modal-in .44s cubic-bezier(.22, 1, .36, 1) both; }
+.side-panel.motion-surface { animation: motion-panel-in .44s cubic-bezier(.22, 1, .36, 1) both; }
+.motion-layer.is-closing { animation: motion-layer-out .28s ease-in both; pointer-events: none; }
+.motion-layer.is-closing .modal.motion-surface { animation: motion-modal-out .28s ease-in both; }
+.motion-layer.is-closing .side-panel.motion-surface { animation: motion-panel-out .28s ease-in both; }
+
+@keyframes motion-layer-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes motion-layer-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes motion-modal-in { from { opacity: 0; transform: translateY(22px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes motion-modal-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(16px) scale(.97); } }
+@keyframes motion-panel-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes motion-panel-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar { transition-duration: .01ms; }
+  .motion-layer, .motion-surface, .motion-layer.is-closing, .motion-layer.is-closing .motion-surface { animation-duration: .01ms; }
 }
