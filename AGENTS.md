@@ -6,14 +6,14 @@
 현장실습 공고를 AI로 구조화해 학생에게는 지원할 수 있는 자리와 이유(**원문 근거** 포함)·1~3지망 빈 자리 제안을, 현장실습지원센터에는 모집 중 현황판을 보여주는 서비스의 웹 화면. 앱이 아닌 PC 웹 전용(10/1 회의, 모바일 대응 없음). 백엔드·API 계약은 `skuniv-team11/Backend`(`docs/api/`). 제출 11/1, 1차 평가 11/2~11/9(공개 링크), 최종 발표 11/12.
 
 ## 스택·명령
-React 19 · Vite · React Router 7 · TypeScript. Vercel 배포.
+React 19 · Vite · React Router 7 · JavaScript(JSX) · styled-components. Vercel 배포.
 ```
 npm ci
 npm run lint       # oxlint — 통과해야 끝
-npm run build      # tsc -b + vite build — 통과해야 끝
+npm run build      # vite build — 통과해야 끝
 scripts/verify.sh  # 위 두 개 + 비밀 검사. CI와 같은 검사
 ```
-화면은 로컬에서 띄우지 않는다(10/2). PR을 열면 Vercel이 다는 미리보기 주소에서 확인한다.
+작업 중에는 로컬에서 Render API까지 바로 확인한다 — `npm run dev`(localhost:5173)·`npm run build` 후 `npm run preview`(localhost:4173) 둘 다 된다(백엔드 `CORS_ORIGINS`가 localhost도 허용). 병합 전 최종 확인과 PR 스크린샷은 Vercel 미리보기 주소에서 한다.
 
 ## 화면과 라우트 (10/1 기능 명세·화면 설계 기준)
 학생 화면과 센터 현황판 모두 PC 웹 1280px 기준이고 모바일 대응은 하지 않는다(10/1 회의). 로그인이 있고(백엔드 ADR-0008), [예시 프로필로 시작]·[센터 담당자로 보기]는 가입 없는 체험 계정을 만든다. 체험 계정도 가입 계정과 같은 화면을 쓴다.
@@ -54,7 +54,7 @@ P1은 여유가 되면 S6 → S8 → S7 순서. S6·S8은 새 API 없이 이미 
 - `vercel.json`, `.github/workflows/` 변경
 
 ## 항상 할 것 (Always)
-- API 호출은 `src/api.ts`에만 모은다. 화면에서 `fetch`를 직접 부르지 않는다.
+- API 호출은 `src/api/`에만 모은다. 화면에서 `fetch`를 직접 부르지 않는다.
 - 백엔드가 아직 없는 API는 백엔드 저장소 `docs/api/*.json` 예시로 목업을 만든다.
 - 폭 1280px에서 확인하고 PR에 PC 스크린샷을 붙인다.
 - 커밋·PR은 한국어, `feat|fix|docs|refactor|test|chore(fe): 요약` (`docs/conventions.md`).
