@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getToken } from '../../api/client'
-import { getEligibility, getRecommendations, toProfileBody } from '../../api/matching'
+import { getEligibility, getRecommendationReason, getRecommendations, toProfileBody } from '../../api/matching'
 import { getMyProfile } from '../../api/myInfo'
 import { getCodes, getCurrentRound } from '../../api/reference'
 import { PageTitle } from '../../components/PageParts'
@@ -17,20 +17,22 @@ const dayBefore = (day) => new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).t
 
 const won = (amount) => `${amount.toLocaleString('ko-KR')}원`
 
-// 추천 카드 하나. 이유는 규칙 문장(reasonTemplate)과 근거(citations)를 그대로 쓴다.
-function RecommendationCard({ item, label, openCitations }) {
-  const text = item.reasonTemplate
-  const citations = item.citations
-  return <article className="recommend-card"><div><Badge tone={verdictTone[item.verdict]}>{label('verdict', item.verdict)}</Badge><Badge>적합도 {label('fit', item.fit)}</Badge></div><small>{item.rank}위 · {item.institution.name}</small><h3><Link to={`/jobs/${item.jobId}`}>{item.title}</Link></h3><p>{label('jobType', item.jobType)}{item.stipend?.amount ? ` · ${label('stipendBasis', item.stipend.basis)} ${won(item.stipend.amount)}` : ''}</p><p>{text}</p>{citations.length > 0 && <button className="link-button" onClick={() => openCitations({ ...item, reasonTemplate: text, citations })}>근거 보기 →</button>}</article>
+// 추천 카드 하나. reasonStatus가 PENDING이면 이유 문장 API를 불러 바꾼다(2~6초). 그동안·실패 때는 규칙 문장(reasonTemplate)을 보여 준다.
+function RecommendationCard({ item, profile, label, openCitations }) {
+  const loadReason = useCallback((signal) => getRecommendationReason(item.jobId, profile, signal), [item.jobId, profile])
+  const reason = useRequest(loadReason, item.reasonStatus === 'PENDING')
+  const text = reason.data?.text ?? item.reasonTemplate
+  const citations = reason.data?.citations ?? item.citations
+  return <article className="recommend-card"><div><Badge tone={verdictTone[item.verdict]}>{label('verdict', item.verdict)}</Badge><Badge>적합도 {label('fit', item.fit)}</Badge></div><small>{item.rank}위 · {item.institution.name}</small><h3><Link to={`/jobs/${item.jobId}`}>{item.title}</Link></h3><p>{label('jobType', item.jobType)}{item.stipend?.amount ? ` · ${label('stipendBasis', item.stipend.basis)} ${won(item.stipend.amount)}` : ''}</p><p>{text}</p>{reason.loading && <small>이유 문장을 다듬는 중…</small>}{citations.length > 0 && <button className="link-button" onClick={() => openCitations({ ...item, reasonTemplate: text, citations })}>근거 보기 →</button>}</article>
 }
 
 // 추천 5개. 판정 목록과 따로 불러와서, 늦거나 실패해도 아래 목록은 그대로 보인다.
-function RecommendationSection({ recommendations, label, openCitations }) {
+function RecommendationSection({ recommendations, profile, label, openCitations }) {
   if (recommendations.loading) return <p className="notice">관심 분야와 가까운 직무를 고르는 중…</p>
   if (recommendations.error) return <p className="notice danger">추천을 불러오지 못했어요. 아래 전체 직무에서 골라 보세요.</p>
   const { items, blockedBy } = recommendations.data
   if (!items.length) return <p className="notice">지금 조건으로 추천할 직무가 없어요.{blockedBy.length > 0 && ` ${blockedBy.map(block => `${block.item} 때문에 ${block.count}개`).join(', ')}가 빠졌어요.`}</p>
-  return <section className="recommendations">{items.map(item => <RecommendationCard key={item.jobId} item={item} label={label} openCitations={openCitations}/>)}</section>
+  return <section className="recommendations">{items.map(item => <RecommendationCard key={item.jobId} item={item} profile={profile} label={label} openCitations={openCitations}/>)}</section>
 }
 
 function Blocked({ children }) {
@@ -70,7 +72,7 @@ export function JobsPage() {
   const shown=filter==='ALL'?jobs:jobs.filter(job=>job.verdict===filter)
 
   return <main className="content wide"><div className="space-between"><PageTitle eyebrow="내 조건으로 찾은 결과" title="지원할 수 있는 직무를 모았어요" description="판정 이유를 눌러 내 조건과 직무 조건을 비교해 보세요."/><div className="result-summary"><b>추천 {recommendations.data?.items.length??'–'} · 전체 {summary.total}</b><span>지원 가능 {summary.eligible} · 확인 필요 {summary.needsCheck} · 지원 불가 {summary.ineligible}</span></div></div>
-    <RecommendationSection recommendations={recommendations} label={label} openCitations={setCitationJob}/>
+    <RecommendationSection recommendations={recommendations} profile={profileBody} label={label} openCitations={setCitationJob}/>
     <section className="card jobs-list"><div className="list-header"><b>전체 직무</b><div className="filter">{filters.map(([key,name])=><button key={key} className={filter===key?'selected':''} onClick={()=>setFilter(key)}>{name} {counts[key]}</button>)}</div></div>
       {shown.length===0&&<p className="notice">이 판정에 해당하는 직무가 없어요.</p>}
       {shown.map(job=><div className="job-row" key={job.jobId}><div><Link to={`/jobs/${job.jobId}`}><b>{job.title}</b></Link><small>{job.institution.name} · {job.team}</small></div><div><Badge>{label('majorMatch',job.majorMatch)}</Badge>{job.alertCount>0&&<Badge tone="orange">문서 검토</Badge>}</div><Badge tone={verdictTone[job.verdict]}>{label('verdict',job.verdict)}</Badge><span>{isClosed(job)?<Badge>마감</Badge>:job.closing.closesOn?`${formatDay(dayBefore(job.closing.closesOn))} 마감`:'모집 중'}</span><div><button className="link-button" onClick={()=>setReasonJob(job)}>판정 이유</button> <button className={`save-button ${saved.includes(job.jobId)?'saved':''}`} onClick={()=>save(job.jobId)}>{saved.includes(job.jobId)?'담았어요':'담기'}</button></div></div>)}

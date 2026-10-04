@@ -21,3 +21,7 @@ export const getEligibility = (profile, signal) => request('/api/eligibility', {
 // { items: [{ rank, jobId, verdict, fit, jobType, stipend, reasonTemplate, reasonStatus, citations }], blockedBy: [{ item, count }] }
 // items가 비면 blockedBy에 막힌 항목별 직무 수가 온다(예: 이수 학기 40)
 export const getRecommendations = (profile, signal) => request('/api/recommendations', { method: 'POST', body: { profile }, signal })
+
+// POST /api/recommendations/{jobId}/reason — 추천 이유 문장(LLM). 실패·5초 초과·호출 제한이어도 200 + source TEMPLATE(기본 문장)
+// { jobId, source: 'LLM' | 'CACHE' | 'TEMPLATE', text, citations }. 추천 카드의 reasonStatus가 PENDING일 때 카드마다 부른다.
+export const getRecommendationReason = (jobId, profile, signal) => request(`/api/recommendations/${encodeURIComponent(jobId)}/reason`, { method: 'POST', body: { profile }, signal })
