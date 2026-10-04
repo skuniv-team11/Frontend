@@ -24,3 +24,7 @@ export const planErrorMessage = (error, action = '담기') => {
   if (error.code === 'INVALID_INPUT') return '지금 회차에서 담을 수 없는 직무예요.'
   return `${action === '빼기' ? '빼지' : '담지'} 못했어요. 잠시 뒤 다시 시도해 주세요.`
 }
+
+// PUT /api/me/plan/ranks — 1~3지망 순위. 순위 '전체'를 보낸다(여기 없는 담은 직무는 순위가 지워짐, []면 모두 지움). 200 + GET /api/me/plan과 같은 응답
+// 1~3·중복 불가·담은 직무만 — 어기면 400 RANK_INVALID(아무것도 바꾸지 않음)
+export const saveRanks = (ranks) => request('/api/me/plan/ranks', { method: 'PUT', body: { ranks } })
