@@ -5,3 +5,4 @@
 .detail-dl div{display:grid;grid-template-columns:120px 1fr;padding:10px 0;border-top:1px solid #eeeae2;font-size:13px}.detail-dl dt{color:var(--muted)}.detail-dl dd{margin:0}.work-card p{white-space:pre-line;line-height:1.7;font-size:14px}.work-card ol{padding-left:18px;font-size:13px;line-height:1.9}.senior-note{border-top:1px solid #eeeae2;padding:12px 0;font-size:13px}.senior-note ul{margin:6px 0;padding-left:18px;line-height:1.8}
 .side-panel{overflow-y:auto}
 .plan-signal{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}.plan-signal small{color:var(--muted)}.mini-job>div:first-child{display:flex;gap:4px}
+.metrics.is-five{grid-template-columns:repeat(5,1fr)}.center-table details>div .badge{margin:4px 4px 0 0}.risk-list{margin:8px 0 0;padding-left:16px;font-size:12px;line-height:1.8}.alert-item{border-top:1px solid #eeeae2;padding:12px 0;font-size:13px}
