@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RootLayout } from '../layout/RootLayout'
 import { CenterPage } from '../pages/center/CenterPage'
 import { StartPage } from '../pages/home/StartPage'
@@ -9,7 +9,6 @@ import { MePage } from '../pages/myinfo/MePage'
 import { ApplyPage } from '../pages/plan/ApplyPage'
 import { CounselPage } from '../pages/plan/CounselPage'
 import { PlanPage } from '../pages/plan/PlanPage'
-import { ProfilePage } from '../pages/profile/ProfilePage'
 
 export const router = createBrowserRouter([
   {
@@ -17,7 +16,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <StartPage /> },
       { path: '/login', element: <LoginPage /> },
-      { path: '/profile', element: <ProfilePage /> },
+      { path: '/profile', element: <Navigate to="/me" replace state={{ editProfile: true }} /> },
       { path: '/jobs', element: <JobsPage /> },
       { path: '/jobs/:id', element: <JobDetailPage /> },
       { path: '/plan', element: <PlanPage /> },

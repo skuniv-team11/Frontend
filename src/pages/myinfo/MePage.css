@@ -1,0 +1,98 @@
+.me-page {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  height: calc(100vh - 66px);
+  overflow: hidden;
+  color: #20242b;
+  background: #fff;
+}
+
+.me-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 46px 30px 36px;
+  border-right: 1px solid #e8ebf0;
+  background: #fff;
+}
+
+.me-identity { padding: 0 10px 30px; }
+.me-avatar { display: grid; width: 52px; height: 52px; margin-bottom: 16px; border-radius: 17px; place-items: center; color: #8d98a8; background: #f0f3f6; }
+.me-avatar svg { width: 27px; height: 27px; fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+.me-account-copy { display: flex; flex-direction: column; gap: 6px; }
+.me-account-copy b { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.me-account-copy span { overflow: hidden; color: #9099a7; font-size: 13px; text-overflow: ellipsis; }
+.me-account-copy small { color: #a1a9b4; font-size: 11px; }
+
+.me-nav { display: flex; flex-direction: column; gap: 8px; }
+.me-nav a, .me-nav button { padding: 14px 17px; border: 0; border-radius: 13px; color: #4d535d; background: transparent; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; transition: color .2s ease, background-color .2s ease, transform .2s ease; }
+.me-nav a:hover, .me-nav button:hover { color: #3154f4; background: #f6f7fb; transform: translateX(2px); }
+.me-nav a.active, .me-nav button.active { color: #3154f4; background: #f1f4ff; }
+.me-logout { margin-top: 22px; padding: 16px 12px; border: 0; border-top: 1px solid #e8ebf0; color: #7d8795; background: #fff; font-weight: 700; text-align: left; cursor: pointer; }
+.me-logout:disabled { opacity: .45; cursor: default; }
+
+.me-workspace { min-width: 0; overflow: hidden; padding: 38px 64px 42px; background: #f7f8fa; }
+.me-workspace > header { width: min(900px, 100%); margin: 0 auto 22px; }
+.me-workspace > header h1 { margin: 0; font-size: 34px; letter-spacing: -1.8px; }
+.me-panel { width: min(900px, 100%); margin: 0 auto; padding: 8px 34px; border: 1px solid #e5e9ef; border-radius: 24px; background: #fff; box-shadow: 0 18px 50px rgb(42 52 75 / 6%); }
+.me-stage { position: relative; overflow: hidden; }
+.me-profile-view { height: 100%; }
+.me-stage.is-editing .me-profile-view { animation: me-profile-view-out .48s cubic-bezier(.22, 1, .36, 1) both; pointer-events: none; }
+.me-profile-editor { position: absolute; inset: 0; z-index: 2; background: #fff; animation: me-profile-editor-in .56s cubic-bezier(.22, 1, .36, 1) both; }
+.me-stage.is-editing.is-closing .me-profile-view { animation: me-profile-view-in .48s cubic-bezier(.22, 1, .36, 1) both; }
+.me-stage.is-editing.is-closing .me-profile-editor { animation: me-profile-editor-out .48s cubic-bezier(.22, 1, .36, 1) both; pointer-events: none; }
+.me-profile-editor .embedded-profile { padding: 30px 42px 24px; }
+.me-edit-profile { display: inline-flex; padding: 6px 0; align-items: center; gap: 8px; border: 0; color: #20242b; background: transparent; font-size: 15px; font-weight: 800; letter-spacing: -.4px; cursor: pointer; transition: opacity .2s ease, transform .2s ease; }
+.me-edit-profile svg { width: 15px; height: 15px; fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.me-edit-profile span { color: inherit; font-size: inherit; letter-spacing: normal; }
+.me-edit-profile:hover { opacity: .62; transform: translateX(2px); }
+.me-panel-section { padding: 24px 0; }
+.me-panel-section + .me-panel-section { border-top: 1px solid #e8ebf0; }
+.me-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+.me-section-heading > div { display: flex; flex-direction: column; gap: 4px; }
+.me-section-heading span { color: #8793a4; font-size: 10px; font-weight: 800; letter-spacing: 1.2px; }
+.me-section-heading h2 { margin: 0; font-size: 20px; letter-spacing: -.8px; }
+.me-section-heading > a { color: #3154f4; font-size: 13px; font-weight: 800; }
+.me-panel .info-card { padding: 0; margin: 0; border: 0; }
+.me-panel dl { margin: 0; }
+.me-panel dl div { display: grid; grid-template-columns: 160px 1fr; padding: 13px 0; border-top: 1px solid #edf0f4; font-size: 13px; }
+.me-panel dl dt { color: #7c8694; }
+.me-panel dl dd { margin: 0; font-weight: 600; }
+.me-saved-profile { animation: me-saved-profile-in .5s cubic-bezier(.22, 1, .36, 1) both; }
+.me-saved-profile dl > div { opacity: 0; animation: me-profile-row-in .46s cubic-bezier(.22, 1, .36, 1) forwards; }
+.me-saved-profile dl > div:nth-child(1) { animation-delay: .08s; }
+.me-saved-profile dl > div:nth-child(2) { animation-delay: .16s; }
+.me-saved-profile dl > div:nth-child(3) { animation-delay: .24s; }
+.me-saved-profile dl > div:nth-child(4) { animation-delay: .32s; }
+.me-panel-section > p { color: #6f7987; font-size: 13px; line-height: 1.7; }
+.me-account-actions > button { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 15px 0; border: 0; border-top: 1px solid #edf0f4; color: #343a44; background: #fff; font-weight: 700; text-align: left; cursor: pointer; }
+.me-account-actions { margin-top: 48px; }
+.me-account-actions > button span { color: #a3abb7; font-size: 20px; }
+.me-account-actions > button:disabled { color: #aeb5bf; cursor: default; }
+.me-account-actions > button.danger { color: #c53535; }
+.me-saved-panel { padding-top: 8px; padding-bottom: 24px; }
+.me-section-heading > small { color: #7d8795; font-size: 12px; font-weight: 700; }
+.me-saved-practices { display: flex; flex-direction: column; }
+.me-saved-practice { display: flex; min-height: 92px; padding: 18px 4px; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid #edf0f4; transition: padding .2s ease, background-color .2s ease; }
+.me-saved-practice:hover { padding-right: 12px; padding-left: 12px; background: #fafbff; }
+.me-saved-practice > div { min-width: 0; }
+.me-saved-practice .badge { margin-bottom: 7px; }
+.me-saved-practice small { display: block; color: #7c8694; font-size: 11px; font-weight: 700; }
+.me-saved-practice h3 { margin: 4px 0 0; font-size: 15px; letter-spacing: -.4px; }
+.me-saved-practice p { margin: 7px 0 0; color: #7d8795; font-size: 12px; font-weight: 600; }
+.me-saved-practice > span { flex: 0 0 auto; color: #3154f4; font-size: 12px; font-weight: 800; }
+.me-saved-empty { display: flex; min-height: 210px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; border-top: 1px solid #edf0f4; color: #7d8795; }
+.me-saved-empty b { color: #343a44; font-size: 15px; }
+.me-saved-empty span { font-size: 12px; }
+.me-saved-empty a { margin-top: 8px; color: #3154f4; font-size: 13px; font-weight: 800; }
+
+@keyframes me-profile-view-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(-36%); } }
+@keyframes me-profile-editor-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes me-profile-view-in { from { opacity: 0; transform: translateX(-36%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes me-profile-editor-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+@keyframes me-saved-profile-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes me-profile-row-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .me-stage.is-editing .me-profile-view,
+  .me-profile-editor { animation-duration: .01ms; }
+}

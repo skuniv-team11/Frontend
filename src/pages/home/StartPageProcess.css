@@ -47,7 +47,7 @@
 .home-process .process-heading h3 {
   margin: 0;
   color: #202124;
-  font-size: 18px;
+  font-size: 20px;
   letter-spacing: -1.3px;
 }
 
@@ -71,16 +71,11 @@
 .home-process .process-step b {
   display: block;
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
-.home-process .process-step h4 { margin: 0 0 3px; color: #202124; font-size: 16px; }
-.home-process .process-step p { margin: 0; color: var(--muted); font-size: 12px; }
-
-.home-process .process-action {
-  align-self: flex-start;
-  margin-top: 22px;
-}
+.home-process .process-step h4 { margin: 0 0 3px; color: #202124; font-size: 18px; }
+.home-process .process-step p { margin: 0; color: var(--muted); font-size: 14px; }
 
 .home-process {
   min-height: 80vh;
