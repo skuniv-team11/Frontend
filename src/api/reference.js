@@ -10,3 +10,6 @@ export const getAreas = (signal) => request('/api/areas', { signal })
 // GET /api/rounds/current — 현재 모집 회차와 리플레이 날짜 범위
 // { termCode, roundNo, programName, recruitStart, recruitEnd, replay: { defaultAsOf, minDate, maxDate, signalsAreVirtual } }
 export const getCurrentRound = (signal) => request('/api/rounds/current', { signal })
+
+// GET /api/codes — 코드값 → 화면 표기. { size: { SME: '중소기업', … }, course: {…}, … }
+export const getCodes = (signal) => request('/api/codes', { signal })
