@@ -1,20 +1,28 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getToken } from '../../api/client'
-import { getMyPlan } from '../../api/plan'
+import { getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
 import { ActionCard, PageTitle } from '../../components/PageParts'
 import { useRequest } from '../../hooks/useRequest'
 
 const formatAddedAt = (value) => new Date(value).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 
-// 담은 직무 목록. 순위 바꾸기(PUT ranks)·지망 점검(POST check — 판정·모집 신호·빈 자리)은 다음 연동에서 붙인다.
+// 담은 직무 목록. [빼기]는 담기 취소(DELETE) 뒤 목록을 다시 불러온다. 순위 바꾸기(PUT ranks)·지망 점검(POST check — 판정·모집 신호·빈 자리)은 다음 연동에서 붙인다.
 function PlanList({ plan }) {
+  const [removing, setRemoving] = useState(null); const [removeError, setRemoveError] = useState('')
+  const remove = async (jobId) => {
+    setRemoving(jobId); setRemoveError('')
+    try { await removePlanItem(jobId); plan.reload() }
+    catch (caught) { setRemoveError(planErrorMessage(caught, '빼기')) }
+    finally { setRemoving(null) }
+  }
   if (!getToken()) return <p className="notice">로그인하면 담은 직무를 볼 수 있어요. <Link className="link-button" to="/login">로그인하기 →</Link></p>
   if (plan.loading) return <p className="notice">담은 직무를 불러오는 중… 서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>
   if (plan.error?.code === 'FORBIDDEN_ROLE') return <p className="notice">내 지망은 학생 계정에서만 쓸 수 있어요.</p>
   if (plan.error?.status === 401) return <p className="notice">로그인 정보가 없거나 만료됐어요. <Link className="link-button" to="/login">다시 로그인하기 →</Link></p>
   if (plan.error) return <p className="notice danger">담은 직무를 불러오지 못했어요. <button className="link-button" onClick={plan.reload}>다시 불러오기</button></p>
   if (!plan.data.items.length) return <p className="notice">아직 담은 직무가 없어요. 직무 찾기에서 마음에 드는 직무를 담아 보세요. <Link className="link-button" to="/jobs">직무 찾기 →</Link></p>
-  return <div className="pick-list">{plan.data.items.map(item => <article className="card pick" key={item.jobId}><b className="rank">{item.rank ? `${item.rank}지망` : '순위 없음'}</b><div><small>{item.institution.name}</small><h3>{item.title}</h3><small>{formatAddedAt(item.addedAt)}에 담음</small></div><div className="pick-actions"><button disabled title="순위 정하기는 준비 중이에요">↑</button><button disabled title="순위 정하기는 준비 중이에요">↓</button><Link to={`/jobs/${item.jobId}`}>상세</Link></div></article>)}</div>
+  return <>{removeError && <p className="notice danger" role="alert">{removeError}</p>}<div className="pick-list">{plan.data.items.map(item => <article className="card pick" key={item.jobId}><b className="rank">{item.rank ? `${item.rank}지망` : '순위 없음'}</b><div><small>{item.institution.name}</small><h3>{item.title}</h3><small>{formatAddedAt(item.addedAt)}에 담음</small></div><div className="pick-actions"><button disabled title="순위 정하기는 준비 중이에요">↑</button><button disabled title="순위 정하기는 준비 중이에요">↓</button><Link to={`/jobs/${item.jobId}`}>상세</Link><button disabled={removing !== null} onClick={() => remove(item.jobId)}>{removing === item.jobId ? '빼는 중…' : '빼기'}</button></div></article>)}</div></>
 }
 
 export function PlanPage(){

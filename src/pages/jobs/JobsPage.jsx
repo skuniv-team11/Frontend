@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { getToken } from '../../api/client'
 import { getEligibility, getRecommendationReason, getRecommendations, toProfileBody } from '../../api/matching'
 import { getMyProfile } from '../../api/myInfo'
-import { addPlanItem, getMyPlan, planErrorMessage } from '../../api/plan'
+import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
 import { getCodes, getCurrentRound } from '../../api/reference'
 import { PageTitle } from '../../components/PageParts'
 import { Badge, Modal, SidePanel } from '../../components/Shell'
@@ -53,15 +53,19 @@ export function JobsPage() {
   const label=(group,value)=>codes.data?.[group]?.[value]??value
 
   const [filter,setFilter]=useState('ALL'); const [reasonJob,setReasonJob]=useState(null); const [citationJob,setCitationJob]=useState(null)
-  // 담기: 이미 담은 직무는 GET /api/me/plan으로 알고, 새로 담으면 POST /api/me/plan/items. 담기 취소는 다음 연동에서 붙인다
+  // 담기: 이미 담은 직무는 GET /api/me/plan으로 알고, 누를 때마다 담기(POST)·담기 취소(DELETE)를 오간다
   const plan=useRequest(getMyPlan,Boolean(profile.data))
-  const [added,setAdded]=useState([]); const [adding,setAdding]=useState(null); const [saveError,setSaveError]=useState(''); const [guide,setGuide]=useState(false)
-  const savedIds=[...(plan.data?.items.map(item=>item.jobId)??[]),...added]
+  const [added,setAdded]=useState([]); const [removed,setRemoved]=useState([]); const [adding,setAdding]=useState(null); const [saveError,setSaveError]=useState(''); const [guide,setGuide]=useState(false)
+  const savedIds=[...(plan.data?.items.map(item=>item.jobId)??[]),...added].filter(id=>!removed.includes(id))
   const save=async(id)=>{
-    if(savedIds.includes(id)||adding!==null)return
+    if(adding!==null)return
+    const isSaved=savedIds.includes(id)
     setAdding(id);setSaveError('')
-    try{await addPlanItem(id);setAdded(current=>[...current,id]);if(savedIds.length===0)setGuide(true)}
-    catch(caught){setSaveError(planErrorMessage(caught))}
+    try{
+      if(isSaved){await removePlanItem(id);setRemoved(current=>[...current,id]);setAdded(current=>current.filter(item=>item!==id))}
+      else{await addPlanItem(id);setAdded(current=>[...current,id]);setRemoved(current=>current.filter(item=>item!==id));if(savedIds.length===0)setGuide(true)}
+    }
+    catch(caught){setSaveError(planErrorMessage(caught,isSaved?'빼기':'담기'))}
     finally{setAdding(null)}
   }
 
@@ -85,7 +89,7 @@ export function JobsPage() {
     <section className="card jobs-list"><div className="list-header"><b>전체 직무</b><div className="filter">{filters.map(([key,name])=><button key={key} className={filter===key?'selected':''} onClick={()=>setFilter(key)}>{name} {counts[key]}</button>)}</div></div>
       {saveError&&<p className="notice danger" role="alert">{saveError}</p>}
       {shown.length===0&&<p className="notice">이 판정에 해당하는 직무가 없어요.</p>}
-      {shown.map(job=><div className="job-row" key={job.jobId}><div><Link to={`/jobs/${job.jobId}`}><b>{job.title}</b></Link><small>{job.institution.name} · {job.team}</small></div><div><Badge>{label('majorMatch',job.majorMatch)}</Badge>{job.alertCount>0&&<Badge tone="orange">문서 검토</Badge>}</div><Badge tone={verdictTone[job.verdict]}>{label('verdict',job.verdict)}</Badge><span>{isClosed(job)?<Badge>마감</Badge>:job.closing.closesOn?`${formatDay(dayBefore(job.closing.closesOn))} 마감`:'모집 중'}</span><div><button className="link-button" onClick={()=>setReasonJob(job)}>판정 이유</button> <button className={`save-button ${savedIds.includes(job.jobId)?'saved':''}`} disabled={adding!==null||plan.loading} onClick={()=>save(job.jobId)}>{adding===job.jobId?'담는 중…':savedIds.includes(job.jobId)?'담았어요':'담기'}</button></div></div>)}
+      {shown.map(job=><div className="job-row" key={job.jobId}><div><Link to={`/jobs/${job.jobId}`}><b>{job.title}</b></Link><small>{job.institution.name} · {job.team}</small></div><div><Badge>{label('majorMatch',job.majorMatch)}</Badge>{job.alertCount>0&&<Badge tone="orange">문서 검토</Badge>}</div><Badge tone={verdictTone[job.verdict]}>{label('verdict',job.verdict)}</Badge><span>{isClosed(job)?<Badge>마감</Badge>:job.closing.closesOn?`${formatDay(dayBefore(job.closing.closesOn))} 마감`:'모집 중'}</span><div><button className="link-button" onClick={()=>setReasonJob(job)}>판정 이유</button> <button className={`save-button ${savedIds.includes(job.jobId)?'saved':''}`} disabled={adding!==null||plan.loading} title={savedIds.includes(job.jobId)?'다시 누르면 담기를 취소해요':undefined} onClick={()=>save(job.jobId)}>{adding===job.jobId?(savedIds.includes(job.jobId)?'빼는 중…':'담는 중…'):savedIds.includes(job.jobId)?'담았어요':'담기'}</button></div></div>)}
     </section>
     {reasonJob&&<SidePanel title="이렇게 판단했어요" close={()=>setReasonJob(null)}><Badge tone={verdictTone[reasonJob.verdict]}>{label('verdict',reasonJob.verdict)}</Badge><h3>{reasonJob.title}</h3><p className="source">{reasonJob.institution.name} · {reasonJob.team}</p>{reasonJob.reasons.map((reason,index)=><div className="reason-row" key={`${reason.layer}-${reason.item}-${index}`}><b>{label('reasonLayer',reason.layer)}<br/>{reason.item}</b><span>{reason.requirement}<br/><small>내 값: {reason.mine}</small></span><Badge tone={resultTone[reason.result]}>{label('reasonResult',reason.result)}</Badge></div>)}<p className="notice">선호 전공은 참고용이라 판정에 넣지 않아요. 원문 근거는 직무 상세에서 볼 수 있어요.</p><Link className="button primary full" to={`/jobs/${reasonJob.jobId}`}>직무 상세 보기</Link></SidePanel>}
     {citationJob&&<SidePanel title="추천 근거" close={()=>setCitationJob(null)}><Badge tone={verdictTone[citationJob.verdict]}>{label('verdict',citationJob.verdict)}</Badge><h3>{citationJob.title}</h3><p>{citationJob.reasonTemplate}</p>{citationJob.citations.map((citation,index)=><div key={index}><blockquote>“{citation.quote}”</blockquote><p className="source">{label('sourceType',citation.sourceType)} · {citation.documentTitle} · {citation.page}쪽</p></div>)}<Link className="button primary full" to={`/jobs/${citationJob.jobId}`}>직무 상세 보기</Link></SidePanel>}
