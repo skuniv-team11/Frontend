@@ -28,3 +28,9 @@ export const planErrorMessage = (error, action = '담기') => {
 // PUT /api/me/plan/ranks — 1~3지망 순위. 순위 '전체'를 보낸다(여기 없는 담은 직무는 순위가 지워짐, []면 모두 지움). 200 + GET /api/me/plan과 같은 응답
 // 1~3·중복 불가·담은 직무만 — 어기면 400 RANK_INVALID(아무것도 바꾸지 않음)
 export const saveRanks = (ranks) => request('/api/me/plan/ranks', { method: 'PUT', body: { ranks } })
+
+
+// POST /api/me/plan/check — 지망별 모집 신호 + 빈 자리 제안. 본문 { profile, asOf? }(asOf 생략 = 리플레이 기본 기준일)
+// { asOf, isVirtual, signalSource, items: [{ rank, jobId, signal }], alternatives: [{ jobId, verdict, fit, remaining, signal, why }] }
+// 순위를 안 정했으면 items는 []. 지원 의사가 정원을 넘어도 경고 문장은 없다(ADR-0015). asOf가 모집기간 밖이면 400 AS_OF_OUT_OF_RANGE
+export const checkPlan = (profile, signal) => request('/api/me/plan/check', { method: 'POST', body: { profile }, signal })
