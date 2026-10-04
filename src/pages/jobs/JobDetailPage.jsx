@@ -1,6 +1,8 @@
 import { useCallback, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getJob } from '../../api/jobs'
+import { getToken } from '../../api/client'
+import { getCommute, getJob } from '../../api/jobs'
+import { getMyProfile } from '../../api/myInfo'
 import { getCodes } from '../../api/reference'
 import { ActionCard, PageTitle } from '../../components/PageParts'
 import { Badge, SidePanel } from '../../components/Shell'
@@ -10,6 +12,20 @@ const formatDay = (day) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 
 // closesOn은 '이 날부터 지원 불가'라서 화면에는 하루 전 날짜를 마감일로 보여 준다(백엔드 docs/api)
 const dayBefore = (day) => new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)
 const won = (amount) => `${amount.toLocaleString('ko-KR')}원`
+
+// 통근 칸. 출발지는 저장한 프로필의 사는 곳(없거나 센터 계정이면 서경대). 결과는 이 화면 상태로만 들고 저장하지 않는다(AGENTS.md).
+function CommuteCard({ jobId, hasCoordinates, label }) {
+  const profile = useRequest(getMyProfile, Boolean(getToken()))
+  const homeAreaCode = profile.data?.homeAreaCode ?? null
+  const loadCommute = useCallback((signal) => getCommute(jobId, homeAreaCode, signal), [jobId, homeAreaCode])
+  const commute = useRequest(loadCommute, hasCoordinates && !profile.loading)
+  const body = !hasCoordinates ? <p>근무지 주소가 없어 통근 시간을 계산할 수 없어요.</p>
+    : profile.loading || commute.loading ? <p role="status">통근 시간을 불러오는 중… 카카오맵 대중교통 기준으로 계산하고 있어요.</p>
+    : commute.error ? <p>통근 시간을 불러오지 못했어요. <button className="link-button" onClick={commute.reload}>다시 불러오기</button></p>
+    : !commute.data.available ? <p>{commute.data.origin.label}에서 출발 · 카카오맵 대중교통 기준<br/>통근 시간을 불러오지 못했어요({label('commuteUnavailable', commute.data.unavailableReason)}). <button className="link-button" onClick={commute.reload}>다시 불러오기</button></p>
+    : <><p><b>{commute.data.origin.label}</b>에서 출발 · {label('commuteProvider', commute.data.provider)} 대중교통 기준{commute.data.origin.type === 'SCHOOL' && ' (사는 곳을 저장하지 않아 서경대에서 출발로 계산했어요)'}</p><div><strong>약 {commute.data.minutes}분</strong><span>환승 {commute.data.transfers}회{commute.data.fareWon != null && ` · 요금 ${commute.data.fareWon.toLocaleString('ko-KR')}원`}</span></div></>
+  return <section className="card commute"><h2>통근</h2>{body}<small>통근 결과는 저장하지 않아요.</small></section>
+}
 
 function DetailError({ error }) {
   if (error.code === 'JOB_NOT_FOUND') return <p className="notice">없는 직무예요. <Link className="link-button" to="/jobs">직무 찾기로 돌아가기 →</Link></p>
@@ -65,7 +81,7 @@ export function JobDetailPage() {
   return <main className="content two-column"><section><Link className="back" to="/jobs">← 직무 찾기로</Link><PageTitle eyebrow={`${institution.name} · ${detail.team}`} title={detail.title}/>
     <div className="metadata"><Badge tone="blue">{label('jobType',conditions.jobType)}</Badge><Badge>{label('course',conditions.course)}</Badge>{closing.closesOn&&<Badge tone="orange">{formatDay(dayBefore(closing.closesOn))} 마감{closing.closesOnIsVirtual?'(가상)':''}</Badge>}<span>{detail.workplace.address??institution.address}</span><span>{conditions.headcount}명 모집</span>{detail.alerts.length>0&&<Badge tone="orange">문서 검토 {detail.alerts.length}건</Badge>}</div>
     <div className="detail-tabs tabs"><button className={tab==='reason'?'active':''} onClick={()=>setTab('reason')}>판정 이유</button><button className={tab==='work'?'active':''} onClick={()=>setTab('work')}>하는 일 · 기관</button></div>
-    {tab==='reason'?<><section className="card reason-card"><h2>기관이 정한 지원 조건</h2>{requirementRows.map(([title,text,fieldKey])=><div className="reason-row" key={title}><b>{title}</b><span>{text}</span>{sourceButton(fieldKey)}</div>)}<p className="notice">내 프로필과 비교한 결과(충족 · 확인 필요)는 직무 찾기의 판정과 함께 보여 줄 예정이에요.</p><button className="link-button" onClick={()=>setSource('all')}>AI가 읽은 값과 근거 모두 보기({detail.evidence.length}) →</button></section><section className="card commute"><h2>통근</h2><p>{detail.workplace.hasCoordinates?'카카오맵 대중교통 기준 통근 시간은 통근 조회 연동 후 보여 줘요.':'근무지 주소가 없어 통근 시간을 계산할 수 없어요.'}</p><small>통근 결과는 저장하지 않아요.</small></section></>
+    {tab==='reason'?<><section className="card reason-card"><h2>기관이 정한 지원 조건</h2>{requirementRows.map(([title,text,fieldKey])=><div className="reason-row" key={title}><b>{title}</b><span>{text}</span>{sourceButton(fieldKey)}</div>)}<p className="notice">내 프로필과 비교한 결과(충족 · 확인 필요)는 직무 찾기의 판정과 함께 보여 줄 예정이에요.</p><button className="link-button" onClick={()=>setSource('all')}>AI가 읽은 값과 근거 모두 보기({detail.evidence.length}) →</button></section><CommuteCard jobId={detail.id} hasCoordinates={detail.workplace.hasCoordinates} label={label}/></>
     :<section className="card work-card"><h2>이런 일을 해요</h2><p>{detail.overview}</p><h3>교육 목표</h3><p>{detail.educationGoal}</p><h3>요구 역량</h3><p>{detail.competencies}</p>{detail.weeklyPlan.length>0&&<><h3>주차별 계획</h3><ol>{detail.weeklyPlan.map(week=><li key={week.seq}><b>{week.weeksLabel}</b> {week.content}</li>)}</ol></>}<h2>실습 조건</h2><dl className="detail-dl">{conditionRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl><h2>기관 정보</h2><dl className="detail-dl">{institutionRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl>{detail.seniorNotes.length>0&&<><h2>선배 수기</h2>{detail.seniorNotes.map((note,index)=><div className="senior-note" key={`${note.termCode}-${index}`}><b>{note.termCode} · {note.teamText}</b><ul>{note.activities.map(activity=><li key={activity}>{activity}</li>)}</ul><p className="source">{note.documentTitle} · {note.page}쪽</p></div>)}</>}</section>}
   </section><ActionCard action={<Link className="button primary full" to="/plan">담고 내 지망에서 순서 정하기</Link>}><h3>내 지망에 담아두기</h3><p>담은 뒤 1~3지망 순서를 정할 수 있어요.</p></ActionCard>
   {source&&<SidePanel title="출처 · AI가 읽은 값" close={()=>setSource(null)}>{shownEvidence.map(item=><div key={item.fieldKey}><h3>{item.label}</h3>{item.rawValue&&<p>{item.rawValue}</p>}<blockquote>“{item.quote}”</blockquote><p className="source">{item.documentTitle} · {item.page}쪽</p></div>)}<p className="notice">AI가 읽은 값은 원문과 다를 수 있어요. 최종 지원 전 반드시 확인하세요.</p></SidePanel>}</main>
