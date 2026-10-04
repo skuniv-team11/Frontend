@@ -121,6 +121,22 @@
   box-shadow: 0 2px 0 rgb(0 0 0 / 12%), 0 5px 12px rgb(0 0 0 / 14%);
 }
 
+.home-hero .hero-jobs-button {
+  min-width: 142px;
+  gap: 8px;
+  padding: 13px 19px 13px 22px;
+  border: 1px solid rgb(255 255 255 / 76%);
+  border-radius: 999px;
+  color: #262a31;
+  background: rgb(255 255 255 / 94%);
+  font-size: 14px;
+  letter-spacing: -.4px;
+}
+
+.home-hero .hero-jobs-button::after { content: '→'; font-size: 17px; line-height: 1; transition: transform .2s ease; }
+.home-hero .hero-jobs-button:hover { color: #262a31; background: #fff; }
+.home-hero .hero-jobs-button:hover::after { transform: translateX(3px); }
+
 .scroll-cue {
   position: absolute;
   z-index: 1;
@@ -243,7 +259,8 @@
   position: relative;
   z-index: 2;
   min-height: 100vh;
-  padding: 96px max(48px, calc((100vw - 1136px) / 2));
+  overflow: hidden;
+  padding: 82px max(48px, calc((100vw - 1136px) / 2)) 0;
   background: #fff;
 }
 
@@ -308,85 +325,117 @@
 
 .home-jobs-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(430px, .92fr);
-  gap: 76px;
-  align-items: center;
+  grid-template-columns: minmax(0, .88fr) minmax(590px, 1.12fr);
+  gap: 0;
+  align-items: end;
   width: min(1120px, 100%);
+  min-height: calc(100vh - 82px);
   margin: 0 auto;
 }
 
 .job-animation-slot {
   position: relative;
-  height: 440px;
-  overflow: hidden;
+  top: -50px;
+  z-index: 1;
+  align-self: end;
+  width: 780px;
+  height: 690px;
+  margin-left: -260px;
+  overflow: visible;
   background: transparent;
   cursor: pointer;
-  transform: translateX(-30px);
-  -webkit-mask-image: radial-gradient(ellipse 88% 86% at center, #000 58%, transparent 100%);
-  mask-image: radial-gradient(ellipse 88% 86% at center, #000 58%, transparent 100%);
 }
 
-.job-animation-slot::after {
-  position: absolute;
-  z-index: 2;
-  bottom: 18px;
-  left: 21%;
-  width: 58%;
-  height: 24px;
-  border-radius: 50%;
-  background: rgb(59 65 76 / 26%);
-  content: '';
-  filter: blur(13px);
-  pointer-events: none;
-}
-
-.job-animation-slot video { position: relative; z-index: 1; display: block; width: 100%; height: 100%; object-fit: contain; filter: saturate(.94); }
+.job-animation-slot video { position: relative; z-index: 1; display: block; width: 118%; height: 118%; object-fit: contain; object-position: center bottom; filter: saturate(.94); }
 
 .home-jobs .job-animation-slot,
-.home-jobs .home-jobs-content {
+.home-jobs .home-section-heading {
   opacity: 0;
   transform: translateY(28px);
   transition: opacity .75s ease, transform .75s ease;
 }
 
-.home-jobs .home-jobs-content { transition-delay: .16s; }
+.home-jobs .home-section-heading { transition-delay: .12s; }
 .home-jobs.is-visible .job-animation-slot,
-.home-jobs.is-visible .home-jobs-content { opacity: 1; transform: translateY(0); }
+.home-jobs.is-visible .home-section-heading { opacity: 1; transform: translateY(0); }
 
-.home-jobs-content { min-width: 0; }
+.home-jobs-content { position: relative; top: -50px; z-index: 3; min-width: 0; align-self: center; padding: 34px 0 84px; }
 
 .home-jobs .home-section-heading {
   display: block;
   width: auto;
-  margin: 0 0 78px;
+  margin: 0 0 38px;
 }
 
-.home-jobs .home-section-heading h2 { font-size: 29px; line-height: 1.35; }
+.home-jobs .home-section-heading h2 { font-size: 32px; line-height: 1.35; }
 .job-title-message { transition: opacity .7s ease, transform .7s ease; }
 .job-title-message.is-fading { opacity: 0; transform: translateY(-10px); }
-.home-jobs .section-more { display: block; width: max-content; margin: 25px 0 0 auto; color: #8490bd; font-size: 12px; font-weight: 700; }
+.home-jobs .section-more {
+  position: absolute;
+  right: max(68px, calc((100vw - 1096px) / 2));
+  bottom: 80px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  padding: 7px 0;
+  border-bottom: 1px solid #9daae0;
+  color: #5269bf;
+  font-size: 13px;
+  font-weight: 800;
+  transition: gap .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.home-jobs .section-more:hover {
+  gap: 12px;
+  color: #3154f4;
+  border-color: #3154f4;
+}
+
+.home-jobs .section-more span {
+  font-size: 17px;
+  line-height: 1;
+}
 
 .home-jobs .home-job-list {
-  display: block;
-  width: auto;
-  margin: 0;
-  border-bottom: 1px solid #dfe3eb;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  width: calc(100% - 16px);
+  margin: 0 0 0 8px;
 }
-
-.popular-top { display: block; margin: 0 0 8px auto; color: #8793bb; font-size: 11px; font-weight: 700; text-align: right; }
 
 .home-job-row {
-  display: block;
-  padding: 12px 4px;
-  border-top: 1px solid #dfe3eb;
+  position: relative;
+  display: flex;
+  min-height: 184px;
+  padding: 20px;
+  border: 1px solid rgb(224 228 237 / 82%);
+  border-radius: 24px;
   color: #202124;
-  transition: color .2s ease, padding-left .2s ease, background-color .2s ease;
+  background: rgb(255 255 255 / 94%);
+  box-shadow: 0 18px 42px rgb(45 52 76 / 10%);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .65s ease, transform .65s cubic-bezier(.2, .7, .2, 1), border-color .28s ease, box-shadow .28s ease;
 }
 
-.home-job-row:hover { padding-left: 12px; color: #3154f4; background: #fafbff; }
-.home-job-row h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.8px; }
-.home-job-row .job-description { margin: 5px 0 8px; color: #858b96; font-size: 12px; line-height: 1.45; }
-.home-job-row .job-meta { display: flex; justify-content: space-between; color: #747b87; font-size: 12px; }
+.home-job-row:nth-child(even) { transform: translateY(62px); }
+.home-jobs.is-visible .home-job-row { opacity: 1; transform: translateY(0); }
+.home-jobs.is-visible .home-job-row:nth-child(even) { transform: translateY(34px); }
+.home-jobs .home-job-row:nth-child(1) { transition-delay: .18s; }
+.home-jobs .home-job-row:nth-child(2) { transition-delay: .3s; }
+.home-jobs .home-job-row:nth-child(3) { transition-delay: .42s; }
+.home-jobs .home-job-row:nth-child(4) { transition-delay: .54s; }
+.home-jobs.is-visible .home-job-row:hover { z-index: 2; transform: translateY(-9px) scale(1.015); border-color: #bfcafa; box-shadow: 0 28px 58px rgb(45 65 145 / 19%); transition-delay: 0s; }
+.home-jobs.is-visible .home-job-row:nth-child(even):hover { transform: translateY(25px) scale(1.015); }
+.home-job-row > div { display: flex; flex: 1; flex-direction: column; width: 100%; }
+.home-job-row small { color: #6075c4; font-size: 12px; font-weight: 800; }
+.home-job-row h3 { margin: 24px 0 8px; font-size: 18px; font-weight: 800; letter-spacing: -.8px; }
+.home-job-row .job-description { min-height: 38px; margin: 0 0 16px; color: #858b96; font-size: 12px; line-height: 1.55; }
+.home-job-row .job-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; color: #747b87; font-size: 12px; }
 
 .home-stories {
   position: relative;
@@ -471,21 +520,16 @@
 
 .home-cta::before {
   position: absolute;
-  inset: 0;
+  inset: -3%;
   background: url('https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=2200&q=85') center / cover fixed no-repeat;
   content: '';
   filter: blur(3px) brightness(.54);
-  clip-path: inset(100% 0 0 0);
-  animation: cta-photo-reveal linear both;
-  animation-timeline: view();
-  animation-range: entry 0% entry 90%;
+  opacity: 0;
+  transition: opacity 1.5s ease;
 }
 
+.home-cta.is-visible::before { opacity: 1; }
 .home-cta::after { position: absolute; inset: 0; background: rgb(16 20 24 / 22%); content: ''; }
-
-@keyframes cta-photo-reveal {
-  to { clip-path: inset(0 0 0 0); }
-}
 .home-cta-content { position: relative; z-index: 1; text-align: center; }
 .home-cta-content h2 { margin: 0 0 28px; color: #fff; font-size: 48px; letter-spacing: -2.6px; }
 .home-cta-content .button {
@@ -543,6 +587,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .scroll-cue, .hero-message { animation: none; }
+  .home-cta::before { opacity: 1; transition: none; }
+  .home-jobs .home-job-row { opacity: 1; transform: translateY(0); transition: none; }
+  .home-jobs .home-job-row:nth-child(even) { transform: translateY(34px); }
 }
 
 button.center-link { cursor: pointer; }

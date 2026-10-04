@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getToken } from '../../api/client'
+import { getRecommendations, toProfileBody } from '../../api/matching'
+import { getMyProfile } from '../../api/myInfo'
+import { getCodes } from '../../api/reference'
 import processMascot from '../../assets/images/process-mascot.png'
 import jobAnimation from '../../assets/images/job-animation.mp4'
 import { useGuestStart } from '../../hooks/useGuestStart'
@@ -16,6 +20,11 @@ const heroMessages = [
 const jobHeadlines = [
   '이런 현장실습을 만나볼 수 있어요',
   '지금, 나에게 맞는 현장실습을 찾아보세요',
+]
+
+const recommendedJobHeadlines = [
+  '내 정보에 어울리는 추천 현장실습',
+  '내 조건에 맞는 현장실습을 지금 만나보세요',
 ]
 
 const seniorStories = [
@@ -48,11 +57,55 @@ const jobSummaries = {
   'customer-experience': '고객이 브랜드를 만나는 경험을 더 좋게 만들어요.',
 }
 
+// 프로필·추천 결과는 브라우저 저장소에 남기지 않고, 현재 앱 세션의 메모리에만 보관한다.
+// 같은 계정으로 홈에 다시 돌아오면 API를 반복 호출하지 않고 직전 추천을 바로 보여 준다.
+let homeRecommendationCache = { token: null, data: null }
+
+function useCachedHomeRecommendations() {
+  const token = getToken()
+  const cached = token && homeRecommendationCache.token === token ? homeRecommendationCache.data : null
+  const [result, setResult] = useState(() => ({ token, data: cached }))
+
+  useEffect(() => {
+    if (!token || (homeRecommendationCache.token === token && homeRecommendationCache.data)) return undefined
+
+    const controller = new AbortController()
+    const load = async () => {
+      try {
+        const [profile, codes] = await Promise.all([getMyProfile(controller.signal), getCodes(controller.signal)])
+        const recommendations = await getRecommendations(toProfileBody(profile), controller.signal)
+        const data = { recommendations, codes }
+        homeRecommendationCache = { token, data }
+        setResult({ token, data })
+      } catch (error) {
+        if (error.name !== 'AbortError') setResult({ token, data: null })
+      }
+    }
+    load()
+    return () => controller.abort()
+  }, [token])
+
+  return result.token === token ? result.data : cached
+}
+
 export function StartPage() {
   const { start: startGuest, loadingRole, error: guestError } = useGuestStart()
+  const loggedIn = Boolean(getToken())
+  const homeRecommendationData = useCachedHomeRecommendations()
+  const recommendedJobs = homeRecommendationData?.recommendations.items?.slice(0, 4) ?? []
+  const label = (group, value) => homeRecommendationData?.codes?.[group]?.[value] ?? value
+  const activeJobHeadlines = recommendedJobs.length > 0 ? recommendedJobHeadlines : jobHeadlines
+  const homeJobs = recommendedJobs.length > 0 ? recommendedJobs.map(item => ({
+    id: item.jobId,
+    company: item.institution.name,
+    title: item.title,
+    description: `${label('jobType', item.jobType)}${item.stipend?.amount ? ` · ${label('stipendBasis', item.stipend.basis)} ${item.stipend.amount.toLocaleString('ko-KR')}원` : ''}`,
+    meta: '내 프로필 기반 추천',
+  })) : jobs.slice(0, 4).map(job => ({ ...job, description: jobSummaries[job.id], meta: job.location }))
   const processSectionRef = useRef(null)
   const jobsSectionRef = useRef(null)
   const storiesSectionRef = useRef(null)
+  const ctaSectionRef = useRef(null)
   const animationVideoRef = useRef(null)
   const animationReplayTimer = useRef(null)
   const animationInViewRef = useRef(false)
@@ -64,6 +117,7 @@ export function StartPage() {
   const [isProcessVisible, setIsProcessVisible] = useState(false)
   const [isJobsVisible, setIsJobsVisible] = useState(false)
   const [isStoriesVisible, setIsStoriesVisible] = useState(false)
+  const [isCtaVisible, setIsCtaVisible] = useState(false)
   const [isStoriesDragging, setIsStoriesDragging] = useState(false)
   const [isStoriesHovered, setIsStoriesHovered] = useState(false)
   const [hasStoriesAutoFinished, setHasStoriesAutoFinished] = useState(false)
@@ -111,9 +165,11 @@ export function StartPage() {
 
     const stopObservingJobs = observe(jobsSectionRef.current, () => setIsJobsVisible(true))
     const stopObservingStories = observe(storiesSectionRef.current, () => setIsStoriesVisible(true), 0.45)
+    const stopObservingCta = observe(ctaSectionRef.current, () => setIsCtaVisible(true), 0.18)
     return () => {
       stopObservingJobs?.()
       stopObservingStories?.()
+      stopObservingCta?.()
     }
   }, [])
 
@@ -206,7 +262,7 @@ export function StartPage() {
   }, [hasStoriesAutoFinished, isStoriesDragging, isStoriesHovered, isStoriesVisible])
 
   return <main className="landing home-landing">
-    <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row"><button type="button" className="button primary" disabled={loadingRole!==null} onClick={() => startGuest('STUDENT')}>{loadingRole==='STUDENT' ? '체험 계정 만드는 중…' : '예시 프로필로 시작'}</button><Link className="button glass-button" to="/login">로그인·가입으로 시작</Link></div>{guestError && <p className="guest-error" role="alert">{guestError}</p>}{loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}</div></div><button type="button" className="center-link" disabled={loadingRole!==null} onClick={() => startGuest('CENTER')}>{loadingRole==='CENTER' ? '체험 계정 만드는 중…' : '센터 담당자로 보기 →'}</button><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
+    <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row">{loggedIn?<Link className="button hero-jobs-button" to="/jobs">직무 찾아보기</Link>:<><button type="button" className="button primary" disabled={loadingRole!==null} onClick={() => startGuest('STUDENT')}>{loadingRole==='STUDENT' ? '체험 계정 만드는 중…' : '예시 프로필로 시작'}</button><Link className="button glass-button" to="/login">로그인·가입으로 시작</Link></>}</div>{!loggedIn&&guestError && <p className="guest-error" role="alert">{guestError}</p>}{!loggedIn&&loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}</div></div><button type="button" className="center-link" disabled={loadingRole!==null} onClick={() => startGuest('CENTER')}>{loadingRole==='CENTER' ? '체험 계정 만드는 중…' : '센터 담당자로 보기 →'}</button><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
     <section className={`home-process ${isProcessVisible ? 'is-visible' : ''}`} ref={processSectionRef}>
       <div className="process-layout">
         <div className="process-copy">
@@ -217,7 +273,6 @@ export function StartPage() {
           <div className="process-guide">
             <div className="process-heading"><h3>세 단계면 준비가 끝나요</h3></div>
             <div className="steps">{[['01','프로필 입력','전공·학년·이수 학기만 간단히'],['02','지원 가능 확인','학교 규정과 공고 조건을 함께'],['03','1~3지망 정리','모집 신호와 빈 자리까지 한눈에']].map(([n,t,d])=><div className="process-step" key={n}><b>{n}</b><h4>{t}</h4><p>{d}</p></div>)}</div>
-            <Link className="button primary process-action" to="/login">지금 시작하기</Link>
           </div>
         </div>
         <div className="process-image"><img src={processMascot} alt="책상 앞에서 현장실습을 준비하는 마스코트" /></div>
@@ -232,14 +287,14 @@ export function StartPage() {
         </div>
         <div className="home-jobs-content">
           <div className="home-section-heading">
-            <h2 className={`job-title-message ${isJobHeadlineFading ? 'is-fading' : ''}`}>{jobHeadlines[jobHeadlineIndex]}</h2>
+            <h2 className={`job-title-message ${isJobHeadlineFading ? 'is-fading' : ''}`}>{activeJobHeadlines[jobHeadlineIndex]}</h2>
           </div>
-          <div className="home-job-list"><span className="popular-top">인기 TOP 4</span>{jobs.slice(0, 4).map(job => <Link className="home-job-row" to={`/jobs/${job.id}`} key={job.id}>
-            <div><h3>{job.title}</h3><p className="job-description">{jobSummaries[job.id]}</p><div className="job-meta"><span>{job.company}</span><span>{job.location}</span></div></div>
+          <div className="home-job-list">{homeJobs.map(job => <Link className="home-job-row" to={`/jobs/${job.id}`} key={job.id}>
+            <div><small>{job.company}</small><h3>{job.title}</h3><p className="job-description">{job.description}</p><div className="job-meta"><span>{job.meta}</span></div></div>
           </Link>)}</div>
-          <Link to="/jobs" className="section-more">현장실습 전체 보기 →</Link>
         </div>
       </div>
+      <Link to="/jobs" className="section-more">현장실습 전체 보기 <span aria-hidden="true">→</span></Link>
     </section>
     <section className={`home-stories ${isStoriesVisible ? 'is-visible' : ''}`} ref={storiesSectionRef}>
       <div className="story-film" aria-hidden="true">
@@ -255,8 +310,8 @@ export function StartPage() {
         </div></div>
       </div>
     </section>
-    <section className="home-cta">
-      <div className="home-cta-content"><h2>지금 바로 신청하세요</h2><Link className="button primary" to="/login">신청하기</Link></div>
+    <section className={`home-cta ${isCtaVisible ? 'is-visible' : ''}`} ref={ctaSectionRef}>
+      <div className="home-cta-content"><h2>지금 바로 신청하세요</h2><Link className="button primary" to={loggedIn ? '/jobs' : '/login'}>{loggedIn ? '직무 찾아보기' : '신청하기'}</Link></div>
     </section>
   </main>
 }

@@ -31,6 +31,65 @@
   text-shadow: 0 1px 10px rgb(0 0 0 / 32%);
 }
 
+.profile-menu { position: relative; }
+
+.profile-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  color: #8d98a8;
+  background: transparent;
+  cursor: pointer;
+}
+
+.profile-avatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  place-items: center;
+  background: #f0f3f6;
+  transition: background-color .2s ease, transform .2s ease;
+}
+
+.profile-avatar svg { width: 23px; height: 23px; fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.profile-menu-trigger:hover .profile-avatar { background: #e7ebf0; transform: translateY(-1px); }
+
+.profile-popover {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  z-index: 30;
+  width: 260px;
+  padding: 10px;
+  border: 1px solid #e5e9ef;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 22px 60px rgb(33 43 67 / 16%);
+  animation: profile-popover-in .24s ease-out both;
+}
+
+.profile-popover::before { position: absolute; top: -7px; right: 21px; width: 14px; height: 14px; border-top: 1px solid #e5e9ef; border-left: 1px solid #e5e9ef; background: #fff; content: ''; transform: rotate(45deg); }
+.profile-popover-summary { display: flex; align-items: center; gap: 10px; margin: 2px 4px 8px; padding: 9px 8px 14px; border-bottom: 1px solid #e8ebf0; }
+.profile-summary-avatar { display: grid; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 13px; place-items: center; color: #8995a5; background: #f0f3f6; }
+.profile-summary-avatar svg { width: 21px; height: 21px; fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.profile-popover-summary > div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.profile-popover-summary b { overflow: hidden; color: #252a32; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-popover-summary span { overflow: hidden; color: #8a94a2; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-popover a { position: relative; display: flex; align-items: center; justify-content: space-between; padding: 13px 14px; border-radius: 13px; color: #252a32; font-size: 13px; font-weight: 700; transition: color .2s ease, background-color .2s ease, transform .2s ease; }
+.profile-popover a:hover { color: #3154f4; background: #f4f6ff; transform: translateX(2px); }
+.profile-popover a b { color: #a0a9b7; font-size: 20px; font-weight: 400; }
+.profile-popover-logout { display: block; width: calc(100% - 8px); margin: 8px 4px 0; padding: 15px 10px 7px; border: 0; border-top: 1px solid #e8ebf0; color: #7d8795; background: #fff; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; transition: color .2s ease; }
+.profile-popover-logout:hover { color: #3154f4; }
+
+.home-topbar .profile-menu-trigger { color: rgb(255 255 255 / 82%); }
+.home-topbar .profile-avatar { background: rgb(255 255 255 / 15%); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 28%); backdrop-filter: blur(10px); }
+.home-topbar .profile-menu-trigger:hover .profile-avatar { background: rgb(255 255 255 / 24%); }
+
+@keyframes profile-popover-in { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
 .topbar.home-topbar .brand span,
 .topbar.home-topbar nav a.active {
   color: #a9baff;

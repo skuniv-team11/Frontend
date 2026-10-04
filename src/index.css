@@ -3,6 +3,36 @@
 .form-card select{border:1px solid var(--line);border-radius:5px;padding:10px;background:white;font:inherit}.form-card .segments button,.form-card .counter button{cursor:pointer}.form-card .counter button:disabled{opacity:.4;cursor:default}.form-card>.button{margin-top:6px}
 
 .detail-dl div{display:grid;grid-template-columns:120px 1fr;padding:10px 0;border-top:1px solid #eeeae2;font-size:13px}.detail-dl dt{color:var(--muted)}.detail-dl dd{margin:0}.work-card p{white-space:pre-line;line-height:1.7;font-size:14px}.work-card ol{padding-left:18px;font-size:13px;line-height:1.9}.senior-note{border-top:1px solid #eeeae2;padding:12px 0;font-size:13px}.senior-note ul{margin:6px 0;padding-left:18px;line-height:1.8}
+
+/* 모든 화면의 안내 문구는 같은 상단 알림 규칙을 사용한다. */
+body .shell .notice {
+  position: fixed;
+  top: 82px;
+  left: 50%;
+  z-index: 100;
+  width: max-content;
+  max-width: min(680px, calc(100vw - 48px));
+  margin: 0;
+  padding: 11px 18px;
+  border: 1px solid #e2e6ed;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(38 45 60 / 14%);
+  color: #5f6876;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.55;
+  text-align: center;
+  transform: translateX(-50%);
+  animation: global-notice-lifecycle 3s ease both;
+}
+body .shell .notice.danger { border-color: #f0d2d2; color: #bd3535 !important; background: #fff; }
+
+@keyframes global-notice-lifecycle {
+  0% { opacity: 0; transform: translate(-50%, -10px); }
+  10%, 82% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; visibility: hidden; transform: translate(-50%, -8px); }
+}
 .side-panel{overflow-y:auto}
 .plan-signal{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}.plan-signal small{color:var(--muted)}.mini-job>div:first-child{display:flex;gap:4px}
 .metrics.is-five{grid-template-columns:repeat(5,1fr)}.center-table details>div .badge{margin:4px 4px 0 0}.risk-list{margin:8px 0 0;padding-left:16px;font-size:12px;line-height:1.8}.alert-item{border-top:1px solid #eeeae2;padding:12px 0;font-size:13px}

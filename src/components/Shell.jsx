@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export function Badge({ children, tone = 'gray' }) {
   return <span className={`badge ${tone}`}>{children}</span>
@@ -17,12 +18,16 @@ function useDismissTransition(close, duration = 280) {
   return { closing, dismiss }
 }
 
-export function SidePanel({ title, children, close }) {
+export function SidePanel({ title, children, close, className = '' }) {
   const { closing, dismiss } = useDismissTransition(close)
-  return <div className={`overlay motion-layer ${closing ? 'is-closing' : ''}`} onClick={dismiss}><aside className="side-panel motion-surface" onClick={event => event.stopPropagation()}><button className="close" onClick={dismiss}>×</button><h2>{title}</h2>{children}</aside></div>
+  return createPortal(<div className={`overlay motion-layer ${closing ? 'is-closing' : ''}`} onClick={dismiss}><aside className={`side-panel motion-surface ${className}`} onClick={event => event.stopPropagation()}><button className="close" onClick={dismiss}>×</button><h2>{title}</h2>{children}</aside></div>, document.body)
+}
+
+export function Toast({ children, className = '', ...props }) {
+  return createPortal(<div className={`toast ${className}`} role="status" {...props}>{children}</div>, document.body)
 }
 
 export function Modal({ children, close, className = '' }) {
   const { closing, dismiss } = useDismissTransition(close)
-  return <div className={`modal-backdrop motion-layer ${closing ? 'is-closing' : ''}`} onClick={dismiss}><div className={`modal motion-surface ${className}`} onClick={event => event.stopPropagation()}>{typeof children === 'function' ? children(dismiss) : children}</div></div>
+  return createPortal(<div className={`modal-backdrop motion-layer ${closing ? 'is-closing' : ''}`} onClick={dismiss}><div className={`modal motion-surface ${className}`} onClick={event => event.stopPropagation()}>{typeof children === 'function' ? children(dismiss) : children}</div></div>, document.body)
 }
