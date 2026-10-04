@@ -1,8 +1,9 @@
 import { useCallback, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getToken } from '../../api/client'
 import { getCommute, getJob } from '../../api/jobs'
 import { getMyProfile } from '../../api/myInfo'
+import { addPlanItem, planErrorMessage } from '../../api/plan'
 import { getCodes } from '../../api/reference'
 import { ActionCard, PageTitle } from '../../components/PageParts'
 import { Badge, SidePanel } from '../../components/Shell'
@@ -41,6 +42,9 @@ export function JobDetailPage() {
   const codes=useRequest(getCodes)
   const label=(group,value)=>codes.data?.[group]?.[value]??value
   const [tab,setTab]=useState('reason'); const [source,setSource]=useState(null)
+  // 담고 내 지망으로 간다. 이미 담겨 있어도(200) 그대로 이동한다
+  const navigate=useNavigate(); const [adding,setAdding]=useState(false); const [addError,setAddError]=useState('')
+  const addToPlan=async()=>{setAdding(true);setAddError('');try{await addPlanItem(Number(id));navigate('/plan')}catch(caught){setAddError(planErrorMessage(caught))}finally{setAdding(false)}}
 
   if(job.loading)return <main className="content two-column"><section><Link className="back" to="/jobs">← 직무 찾기로</Link><p className="notice">직무 정보를 불러오는 중… 서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p></section></main>
   if(job.error)return <main className="content two-column"><section><Link className="back" to="/jobs">← 직무 찾기로</Link><DetailError error={job.error}/></section></main>
@@ -83,6 +87,6 @@ export function JobDetailPage() {
     <div className="detail-tabs tabs"><button className={tab==='reason'?'active':''} onClick={()=>setTab('reason')}>판정 이유</button><button className={tab==='work'?'active':''} onClick={()=>setTab('work')}>하는 일 · 기관</button></div>
     {tab==='reason'?<><section className="card reason-card"><h2>기관이 정한 지원 조건</h2>{requirementRows.map(([title,text,fieldKey])=><div className="reason-row" key={title}><b>{title}</b><span>{text}</span>{sourceButton(fieldKey)}</div>)}<p className="notice">내 프로필과 비교한 결과(충족 · 확인 필요)는 직무 찾기의 판정과 함께 보여 줄 예정이에요.</p><button className="link-button" onClick={()=>setSource('all')}>AI가 읽은 값과 근거 모두 보기({detail.evidence.length}) →</button></section><CommuteCard jobId={detail.id} hasCoordinates={detail.workplace.hasCoordinates} label={label}/></>
     :<section className="card work-card"><h2>이런 일을 해요</h2><p>{detail.overview}</p><h3>교육 목표</h3><p>{detail.educationGoal}</p><h3>요구 역량</h3><p>{detail.competencies}</p>{detail.weeklyPlan.length>0&&<><h3>주차별 계획</h3><ol>{detail.weeklyPlan.map(week=><li key={week.seq}><b>{week.weeksLabel}</b> {week.content}</li>)}</ol></>}<h2>실습 조건</h2><dl className="detail-dl">{conditionRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl><h2>기관 정보</h2><dl className="detail-dl">{institutionRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl>{detail.seniorNotes.length>0&&<><h2>선배 수기</h2>{detail.seniorNotes.map((note,index)=><div className="senior-note" key={`${note.termCode}-${index}`}><b>{note.termCode} · {note.teamText}</b><ul>{note.activities.map(activity=><li key={activity}>{activity}</li>)}</ul><p className="source">{note.documentTitle} · {note.page}쪽</p></div>)}</>}</section>}
-  </section><ActionCard action={<Link className="button primary full" to="/plan">담고 내 지망에서 순서 정하기</Link>}><h3>내 지망에 담아두기</h3><p>담은 뒤 1~3지망 순서를 정할 수 있어요.</p></ActionCard>
+  </section><ActionCard action={<button className="button primary full" disabled={adding} onClick={addToPlan}>{adding?'담는 중…':'담고 내 지망에서 순서 정하기'}</button>}><h3>내 지망에 담아두기</h3><p>담은 뒤 1~3지망 순서를 정할 수 있어요.</p>{addError&&<p className="notice danger" role="alert">{addError}</p>}</ActionCard>
   {source&&<SidePanel title="출처 · AI가 읽은 값" close={()=>setSource(null)}>{shownEvidence.map(item=><div key={item.fieldKey}><h3>{item.label}</h3>{item.rawValue&&<p>{item.rawValue}</p>}<blockquote>“{item.quote}”</blockquote><p className="source">{item.documentTitle} · {item.page}쪽</p></div>)}<p className="notice">AI가 읽은 값은 원문과 다를 수 있어요. 최종 지원 전 반드시 확인하세요.</p></SidePanel>}</main>
 }
