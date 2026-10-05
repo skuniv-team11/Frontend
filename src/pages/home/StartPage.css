@@ -409,7 +409,7 @@
 .home-job-row {
   position: relative;
   display: flex;
-  min-height: 184px;
+  min-height: 218px;
   padding: 20px;
   border: 1px solid rgb(224 228 237 / 82%);
   border-radius: 24px;
@@ -429,13 +429,18 @@
 .home-jobs .home-job-row:nth-child(2) { transition-delay: .3s; }
 .home-jobs .home-job-row:nth-child(3) { transition-delay: .42s; }
 .home-jobs .home-job-row:nth-child(4) { transition-delay: .54s; }
+.home-jobs.is-settled .home-job-row { transition-duration: .2s, .18s, .2s, .2s; transition-delay: 0s; }
 .home-jobs.is-visible .home-job-row:hover { z-index: 2; transform: translateY(-9px) scale(1.015); border-color: #bfcafa; box-shadow: 0 28px 58px rgb(45 65 145 / 19%); transition-delay: 0s; }
 .home-jobs.is-visible .home-job-row:nth-child(even):hover { transform: translateY(25px) scale(1.015); }
 .home-job-row > div { display: flex; flex: 1; flex-direction: column; width: 100%; }
-.home-job-row small { color: #6075c4; font-size: 12px; font-weight: 800; }
-.home-job-row h3 { margin: 24px 0 8px; font-size: 18px; font-weight: 800; letter-spacing: -.8px; }
+.home-job-company { display: flex; min-width: 0; align-items: center; gap: 11px; }
+.home-institution-logo { display: grid; width: 76px; height: 54px; flex: 0 0 76px; color: #6373bb; background: transparent; place-items: center; }
+.home-institution-logo img { display: block; width: auto; height: auto; max-width: 62px; max-height: 42px; object-fit: scale-down; object-position: center; }
+.home-institution-logo b { font-size: 18px; font-weight: 850; }
+.home-job-row small { min-width: 0; overflow: hidden; color: #6075c4; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.home-job-row h3 { margin: 15px 0 8px; font-size: 18px; font-weight: 800; letter-spacing: -.8px; }
 .home-job-row .job-description { min-height: 38px; margin: 0 0 16px; color: #858b96; font-size: 12px; line-height: 1.55; }
-.home-job-row .job-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; color: #747b87; font-size: 12px; }
+.home-job-row .job-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; color: #a0a6b0; font-size: 11px; font-weight: 650; }
 
 .home-stories {
   position: relative;

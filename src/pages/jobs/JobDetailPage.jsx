@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { getToken } from '../../api/client'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { getToken, resolveApiAssetUrl } from '../../api/client'
 import { getCommute, getJob } from '../../api/jobs'
 import { getMyProfile } from '../../api/myInfo'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
@@ -13,6 +13,13 @@ const formatDay = (day) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 
 // closesOn은 '이 날부터 지원 불가'라서 화면에는 하루 전 날짜를 마감일로 보여 준다(백엔드 docs/api)
 const dayBefore = (day) => new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)
 const won = (amount) => `${amount.toLocaleString('ko-KR')}원`
+
+function DetailInstitutionLogo({ institution }) {
+  const [failedSource,setFailedSource]=useState(null)
+  const source=resolveApiAssetUrl(institution.logoPath)
+  const fallback=(institution.name?.trim()?.[0]??'기').toUpperCase()
+  return <div className="job-detail-institution-logo">{source&&source!==failedSource?<img src={source} alt={`${institution.name} 로고`} onError={()=>setFailedSource(source)}/>:<><b aria-hidden="true">{fallback}</b><small>{institution.name}</small></>}</div>
+}
 
 // 통근 칸. 출발지는 저장한 프로필의 사는 곳(없거나 센터 계정이면 서경대). 결과는 이 화면 상태로만 들고 저장하지 않는다(AGENTS.md).
 function CommuteCard({ jobId, hasCoordinates, label, workplace }) {
@@ -41,6 +48,9 @@ function DetailLoading({ complete }) {
 
 export function JobDetailPage() {
   const {id}=useParams()
+  const location=useLocation()
+  const navigate=useNavigate()
+  const goBack=()=>location.key==='default'?navigate('/jobs',{replace:true}):navigate(-1)
   const loadJob=useCallback((signal)=>getJob(id,signal),[id])
   const job=useRequest(loadJob)
   const codes=useRequest(getCodes)
@@ -82,7 +92,7 @@ export function JobDetailPage() {
   const addToPlan=async()=>{if(adding||plan.loading)return;const isSaved=saved;setAdding(true);setAddError('');try{if(isSaved)await removePlanItem(Number(id));else await addPlanItem(Number(id));setSavedOverride(!isSaved)}catch(caught){setAddError(planErrorMessage(caught,isSaved?'빼기':'담기'))}finally{setAdding(false)}}
 
   if(job.loading||(job.data&&!detailReady))return <DetailLoading complete={Boolean(job.data)}/>
-  if(job.error)return <main className="content two-column"><section><Link className="back" to="/jobs">← 직무 찾기로</Link><DetailError error={job.error}/></section></main>
+  if(job.error)return <main className="content two-column"><section><button className="back job-detail-back-button" type="button" onClick={goBack}>← 뒤로가기</button><DetailError error={job.error}/></section></main>
 
   const detail=job.data; const {institution,conditions,requirements,closing}=detail
   const requirementRows=[
@@ -113,7 +123,7 @@ export function JobDetailPage() {
     ['사업자 상태',`${label('ntsStatus',institution.ntsStatus)}${institution.ntsCheckedOn?` (${institution.ntsCheckedOn} 확인)`:''}`],
   ]
 
-  return <main className="job-detail-page"><Link className="job-detail-fixed-back" to="/jobs">← 뒤로가기</Link><div className="job-detail-shell"><header className="job-detail-hero"><div><span className="job-detail-eyebrow">{institution.name} · {detail.team}</span><h1>{detail.title}</h1><div className="job-detail-meta"><Badge tone="blue">{label('jobType',conditions.jobType)}</Badge><Badge>{label('course',conditions.course)}</Badge>{closing.closesOn&&<Badge tone="orange">{formatDay(dayBefore(closing.closesOn))} 마감{closing.closesOnIsVirtual?'(가상)':''}</Badge>}{detail.alerts.length>0&&<Badge tone="orange">문서 검토 {detail.alerts.length}건</Badge>}</div></div><button className={`job-detail-save ${saved?'is-saved':''}`} disabled={adding||plan.loading} onClick={addToPlan}>{adding?<i className="job-detail-button-spinner" aria-label="처리 중"/>:saved?'담았어요':'담기'}</button></header>
+  return <main className="job-detail-page"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button><div className="job-detail-shell"><header className="job-detail-hero"><div className="job-detail-hero-main"><DetailInstitutionLogo institution={institution}/><div className="job-detail-hero-copy"><span className="job-detail-eyebrow">{institution.name} · {detail.team}</span><h1>{detail.title}</h1><div className="job-detail-meta"><Badge tone="blue">{label('jobType',conditions.jobType)}</Badge><Badge>{label('course',conditions.course)}</Badge>{closing.closesOn&&<Badge tone="orange">{formatDay(dayBefore(closing.closesOn))} 마감{closing.closesOnIsVirtual?'(가상)':''}</Badge>}{detail.alerts.length>0&&<Badge tone="orange">문서 검토 {detail.alerts.length}건</Badge>}</div></div></div><button className={`job-detail-save ${saved?'is-saved':''}`} disabled={adding||plan.loading} onClick={addToPlan}>{adding?<i className="job-detail-button-spinner" aria-label="처리 중"/>:saved?'담았어요':'담기'}</button></header>
     <section className="job-detail-highlights"><div><span>실습지원비</span><strong>{conditions.stipend?.amount?`${label('stipendBasis',conditions.stipend.basis)} ${won(conditions.stipend.amount)}`:'미기재'}</strong></div><div><span>실습 기간</span><strong>{conditions.period?`${conditions.period.start} ~ ${conditions.period.end}`:'미기재'}</strong></div><div><span>모집 인원</span><strong>{conditions.headcount}명</strong></div><div><span>근무지</span><strong>{detail.workplace.address??institution.address??'미기재'}</strong></div></section>
     {addError&&<p className="notice danger" role="alert">{addError}</p>}
     <nav className="job-detail-nav" aria-label="직무 상세 바로가기">{[['job-requirements','지원 조건'],['job-overview','하는 일'],['job-conditions','실습 조건'],['job-evidence','공고 정보'],['job-institution','기관 정보']].map(([sectionId,name])=><a className={activeSection===sectionId?'is-active':''} aria-current={activeSection===sectionId?'location':undefined} href={`#${sectionId}`} key={sectionId} onClick={event=>{event.preventDefault();window.clearTimeout(activeScrollTimer.current);activeScrollLock.current=true;setActiveSection(sectionId);document.getElementById(sectionId)?.scrollIntoView({behavior:'smooth',block:'start'});activeScrollTimer.current=window.setTimeout(()=>{activeScrollLock.current=false},850)}}>{name}</a>)}</nav>
