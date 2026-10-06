@@ -19,6 +19,13 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY)
 export const saveToken = (token) => localStorage.setItem(TOKEN_KEY, token)
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY)
 
+// 센터 현황판 전용 토큰. 원래 로그인 토큰(accessToken)은 건드리지 않고 현황판 요청에만 쓴다 —
+// 현황판에서 나가면 다른 화면은 원래 토큰을 그대로 쓰므로 따로 되돌릴 게 없다. 탭을 닫으면 사라진다(sessionStorage).
+const CENTER_TOKEN_KEY = 'centerAccessToken'
+export const getCenterToken = () => { try { return sessionStorage.getItem(CENTER_TOKEN_KEY) } catch { return null } }
+export const saveCenterToken = (token) => { try { sessionStorage.setItem(CENTER_TOKEN_KEY, token) } catch { /* 저장 못 해도 이번 요청에는 쓴다 */ } }
+export const clearCenterToken = () => { try { sessionStorage.removeItem(CENTER_TOKEN_KEY) } catch { /* 무시 */ } }
+
 // 백엔드 오류 본문 {code, message, fields?}를 그대로 들고 다닌다.
 export class ApiError extends Error {
   constructor(status, body) {
@@ -29,10 +36,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function request(path, { method = 'GET', body, signal } = {}) {
+// token을 넘기면 원래 로그인 토큰 대신 그 토큰을 쓴다(null이면 토큰 없이). 이때는 401이 나도 원래 토큰을 지우지 않는다.
+export async function request(path, { method = 'GET', body, signal, token: tokenOverride } = {}) {
   const headers = {}
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  const token = getToken()
+  const usesOverride = tokenOverride !== undefined
+  const token = usesOverride ? tokenOverride : getToken()
   if (token) headers.Authorization = `Bearer ${token}`
 
   let res
@@ -47,7 +56,7 @@ export async function request(path, { method = 'GET', body, signal } = {}) {
   if (!res.ok) {
     const error = new ApiError(res.status, data)
     // 토큰이 잘못됐거나 만료됐으면(체험 계정은 계정도 지워짐) 버린다. 로그인 실패(LOGIN_FAILED)는 토큰과 상관없다.
-    if (error.code === 'AUTH_REQUIRED' || error.code === 'TOKEN_EXPIRED') clearToken()
+    if (!usesOverride && (error.code === 'AUTH_REQUIRED' || error.code === 'TOKEN_EXPIRED')) clearToken()
     throw error
   }
   return data
