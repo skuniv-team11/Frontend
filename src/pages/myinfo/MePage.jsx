@@ -86,9 +86,9 @@ export function MePage(){
       <nav className="me-nav" aria-label="내 정보 메뉴">
         <button className={view==='profile'?'active':''} type="button" onClick={()=>navigate('/me')}>내 프로필</button>
         <button className={view==='saved'?'active':''} type="button" onClick={()=>{setEditing(false);navigate('/me?view=saved')}}>담은 실습</button>
-        <Link to="/plan">내 지망</Link>
       </nav>
-      <button className="me-logout" disabled={!me.data||loggingOut} aria-busy={loggingOut} onClick={logout}>{loggingOut&&<span className="logout-spinner" aria-hidden="true"/>}{loggingOut?'로그아웃 중…':'로그아웃'}</button>
+        <button className="me-logout" disabled={!me.data||loggingOut} aria-busy={loggingOut} onClick={logout}>{loggingOut&&<span className="logout-spinner" aria-hidden="true"/>}{loggingOut?'로그아웃 중…':'로그아웃'}</button>
+        {profile.data&&<Link className="me-jobs-link" to="/jobs">직무 담으러 가기 <span aria-hidden="true">→</span></Link>}
     </aside>
     <section className="me-workspace">
       <header><h1>{view==='saved'?'담은 실습':'내 프로필'}</h1></header>

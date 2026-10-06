@@ -41,6 +41,9 @@
 .me-stage.is-editing.is-closing .me-profile-view { animation: me-profile-view-in .48s cubic-bezier(.22, 1, .36, 1) both; }
 .me-stage.is-editing.is-closing .me-profile-editor { animation: me-profile-editor-out .48s cubic-bezier(.22, 1, .36, 1) both; pointer-events: none; }
 .me-profile-editor .embedded-profile { padding: 30px 42px 24px; }
+.me-profile-editor .embedded-profile .form-card { flex: 0 0 auto; }
+.me-profile-editor .embedded-profile .form-grid { flex: none; align-content: initial; row-gap: 22px; }
+.me-profile-editor .embedded-profile .form-card label { margin-block: 8px; }
 .me-edit-profile { display: inline-flex; padding: 6px 0; align-items: center; gap: 8px; border: 0; color: #20242b; background: transparent; font-size: 15px; font-weight: 800; letter-spacing: -.4px; cursor: pointer; transition: opacity .2s ease, transform .2s ease; }
 .me-edit-profile svg { width: 15px; height: 15px; fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .me-edit-profile span { color: inherit; font-size: inherit; letter-spacing: normal; }
@@ -63,6 +66,9 @@
 .me-saved-profile dl > div:nth-child(2) { animation-delay: .16s; }
 .me-saved-profile dl > div:nth-child(3) { animation-delay: .24s; }
 .me-saved-profile dl > div:nth-child(4) { animation-delay: .32s; }
+.me-jobs-link { display: flex; width: calc(100% - 24px); min-height: 46px; margin: auto 12px 0; padding: 0 16px; align-items: center; justify-content: space-between; gap: 10px; border-radius: 12px; color: #fff; background: #3154f4; box-shadow: 0 10px 22px rgba(49,84,244,.2); font-size: 13px; font-weight: 850; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+.me-jobs-link:hover { background: #2647dd; box-shadow: 0 13px 26px rgba(49,84,244,.28); transform: translateY(-2px); }
+.me-jobs-link span { font-size: 18px; line-height: 1; }
 .me-panel-section > p { color: #6f7987; font-size: 13px; line-height: 1.7; }
 .me-account-actions > button { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 15px 0; border: 0; border-top: 1px solid #edf0f4; color: #343a44; background: #fff; font-weight: 700; text-align: left; cursor: pointer; }
 .me-account-actions { margin-top: 48px; }
