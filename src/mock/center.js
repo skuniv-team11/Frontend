@@ -19,7 +19,7 @@ export const createCenterPreviewBoard = (asOf = centerPreviewRound.replay.defaul
   asOf,
   isVirtual: true,
   signalSource: 'SIMULATION',
-  summary: { jobs: 5, seats: 17, intentTotal: 12, zeroSignalJobs: 1, closedJobs: 1 },
+  summary: { jobs: 5, seats: 17, interestTotal: 12, zeroSignalJobs: 1, closedJobs: 1 },
   rows: previewRows,
   alerts: [{ id: 'preview-alert-1', kind: 'DOCUMENT_MISMATCH', institution: { name: '미디어코퍼스' }, description: '운영계획서와 모집 안내의 근무 기간 표기가 달라 확인이 필요합니다.', quoteA: '실습 기간은 16주로 운영합니다.', quoteB: '실습 기간: 15주', pageA: 3, pageB: 1 }],
 })
