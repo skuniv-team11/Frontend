@@ -11,11 +11,8 @@ const startCenterSession = () => {
   return pendingSession
 }
 
-// GET /api/center/board?asOf= — { asOf, isVirtual, signalSource, summary, historyAvailable, rows, alerts }
-// asOf는 날짜라 쿼리로 보낸다(개인정보 아님). 생략하면 rounds/current의 replay.defaultAsOf. 모집기간 밖이면 400 AS_OF_OUT_OF_RANGE
-// 센터 토큰이 만료(24시간)됐거나 정리됐으면(401) 새로 만들어 한 번만 다시 부른다.
-export async function getCenterBoard(asOf, signal) {
-  const path = `/api/center/board${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`
+// 센터 전용 토큰으로 부른다. 토큰이 만료(24시간)됐거나 정리됐으면(401) 새로 만들어 한 번만 다시 부른다.
+async function centerRequest(path, signal) {
   const token = getCenterToken() ?? await startCenterSession()
   try {
     return await request(path, { signal, token })
@@ -25,3 +22,10 @@ export async function getCenterBoard(asOf, signal) {
     return request(path, { signal, token: await startCenterSession() })
   }
 }
+
+// GET /api/center/board?asOf= — { asOf, isVirtual, signalSource, summary, historyAvailable, rows, alerts }
+// asOf는 날짜라 쿼리로 보낸다(개인정보 아님). 생략하면 rounds/current의 replay.defaultAsOf. 모집기간 밖이면 400 AS_OF_OUT_OF_RANGE
+export const getCenterBoard = (asOf, signal) => centerRequest(`/api/center/board${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`, signal)
+
+// GET /api/jobs/{jobId}/views — 현황판에서 직무 줄을 펼칠 때 센터 전용 토큰으로 부른다. 센터 담당자가 불러도 조회수는 늘지 않는다.
+export const getCenterJobViews = (jobId, signal) => centerRequest(`/api/jobs/${encodeURIComponent(jobId)}/views`, signal)

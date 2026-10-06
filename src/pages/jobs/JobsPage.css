@@ -130,6 +130,8 @@
 .jobs-page .recommend-card h3 a { transition: color .2s ease; }
 .jobs-page .recommend-card h3 a:hover { color: #3154f4; }
 .jobs-page .recommend-meta { margin: 0; color: #727b88; font-size: 11px; font-weight: 600; }
+.jobs-page .recommend-views { display: flex; margin: 6px 0 0; align-items: center; gap: 5px; color: #8b94a0; font-size: 11px; font-weight: 600; }
+.jobs-page .recommend-views::before { width: 5px; height: 5px; border-radius: 50%; background: #c3cad6; content: ""; }
 .jobs-page .recommend-reason { display: -webkit-box; margin: 15px 0 12px; color: #858d99; font-size: 11px; line-height: 1.65; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .recommend-ai-label { display: inline-block; margin-right: 6px; padding: 1px 5px; border-radius: 5px; color: #3154f4; background: #eef1ff; font-size: 9px; font-weight: 900; line-height: 1.5; vertical-align: 1px; }
 .recommend-card-bottom { position: absolute; right: 14px; bottom: 13px; left: 14px; display: flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; opacity: 0; transform: translateY(46px); transition: opacity .28s ease, transform .36s cubic-bezier(.22, 1, .36, 1); }
