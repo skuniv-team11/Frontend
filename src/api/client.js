@@ -2,6 +2,17 @@
 // 값이 없으면(로컬) Render를 바로 부른다. 백엔드 CORS_ORIGINS가 localhost도 허용한다.
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? 'https://coop-radar-api.onrender.com').replace(/\/$/, '')
 
+// 백엔드가 기관 로고를 절대 URL 또는 API 기준 상대 경로로 줄 수 있어 두 형태를 모두 브라우저 URL로 맞춘다.
+export const resolveApiAssetUrl = (path) => {
+  if (!path || typeof path !== 'string') return null
+  try {
+    const url = new URL(path, `${API_BASE_URL}/`)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null
+  } catch {
+    return null
+  }
+}
+
 // 토큰만 저장한다. 프로필 값·통근 결과는 localStorage에 두지 않는다(AGENTS.md).
 const TOKEN_KEY = 'accessToken'
 export const getToken = () => localStorage.getItem(TOKEN_KEY)

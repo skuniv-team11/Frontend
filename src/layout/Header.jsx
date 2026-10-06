@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { clearToken, getToken } from '../api/client'
 import { getMe, getMyProfile } from '../api/myInfo'
 
 export function Header({ center = false, hidden = false }) {
   const location = useLocation()
-  const navigate = useNavigate()
   const token = getToken()
   const loggedIn = Boolean(token)
   const [isHomeTop, setIsHomeTop] = useState(location.pathname === '/' && window.scrollY < 12)
   const [profileOpen, setProfileOpen] = useState(false)
   const [menuAccount, setMenuAccount] = useState(null)
+  const [loggingOut, setLoggingOut] = useState(false)
   const profileMenuRef = useRef(null)
-  const logout = () => {
+  const logout = async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
+    await new Promise(resolve => window.setTimeout(resolve, 450))
     clearToken()
-    setProfileOpen(false)
-    navigate('/')
+    window.location.replace('/')
   }
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export function Header({ center = false, hidden = false }) {
 
   return <header aria-hidden={hidden} className={`topbar ${isHomeTop ? 'home-topbar' : ''} ${hidden ? 'topbar-hidden' : ''}`}>
     <Link className="brand" to="/">현장뛰자<span>.</span></Link>
-    <nav>{center ? <b>현장실습지원센터</b> : <><NavLink to="/" end>홈</NavLink><NavLink to="/jobs">직무 찾기</NavLink></>}</nav>
+    <nav>{center ? <b>현장실습지원센터</b> : <><NavLink to="/" end>홈</NavLink><NavLink to="/jobs">직무 찾기</NavLink><NavLink to="/plan">내 지망</NavLink></>}</nav>
     {center ? <Link className="top-action" to="/">학생 화면</Link> : loggedIn ? <div className="profile-menu" ref={profileMenuRef}>
       <button className="profile-menu-trigger" type="button" aria-label="내 정보 메뉴" aria-expanded={profileOpen} onClick={() => setProfileOpen(open => !open)}>
         <span className="profile-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.4-4 2.5-6 6.5-6s6.1 2 6.5 6"/></svg></span>
@@ -69,7 +71,7 @@ export function Header({ center = false, hidden = false }) {
         <Link to="/me" onClick={() => setProfileOpen(false)}><span>내 프로필</span><b>›</b></Link>
         <Link to="/me?view=saved" onClick={() => setProfileOpen(false)}><span>담은 실습</span><b>›</b></Link>
         <Link to="/plan" onClick={() => setProfileOpen(false)}><span>내 지망</span><b>›</b></Link>
-        <button className="profile-popover-logout" type="button" onClick={logout}>로그아웃</button>
+        <button className="profile-popover-logout" type="button" disabled={loggingOut} aria-busy={loggingOut} onClick={logout}>{loggingOut && <span className="logout-spinner" aria-hidden="true"/>}{loggingOut ? '로그아웃 중…' : '로그아웃'}</button>
       </div>}
     </div> : <Link className="top-action" to="/login">로그인</Link>}
   </header>

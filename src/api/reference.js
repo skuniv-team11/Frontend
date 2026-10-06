@@ -1,15 +1,11 @@
 import { request } from './client'
 
 const referenceCache = new Map()
-const cachedReference = (key, path, signal) => {
-  if (!referenceCache.has(key)) {
-    const requestPromise = request(path, { signal }).catch(error => {
-      referenceCache.delete(key)
-      throw error
-    })
-    referenceCache.set(key, requestPromise)
-  }
-  return referenceCache.get(key)
+const cachedReference = async (key, path, signal) => {
+  if (referenceCache.has(key)) return referenceCache.get(key)
+  const data = await request(path, { signal })
+  referenceCache.set(key, data)
+  return data
 }
 // 기준 정보(공개). 프로필 화면의 선택지와 현황판·내 지망의 기준일에 쓴다.
 // GET /api/departments — { departments: [{ id, name, college }] }

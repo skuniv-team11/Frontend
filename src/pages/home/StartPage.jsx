@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getToken } from '../../api/client'
+import { getToken, resolveApiAssetUrl } from '../../api/client'
 import { getRecommendations, toProfileBody } from '../../api/matching'
 import { getMyProfile } from '../../api/myInfo'
 import { getCodes } from '../../api/reference'
@@ -61,6 +61,13 @@ const jobSummaries = {
 // 같은 계정으로 홈에 다시 돌아오면 API를 반복 호출하지 않고 직전 추천을 바로 보여 준다.
 let homeRecommendationCache = { token: null, data: null }
 
+function HomeInstitutionLogo({ institution }) {
+  const [failedSource,setFailedSource]=useState(null)
+  const source=resolveApiAssetUrl(institution.logoPath)
+  const fallback=(institution.name?.trim()?.[0]??'기').toUpperCase()
+  return <span className="home-institution-logo">{source&&source!==failedSource?<img src={source} alt={`${institution.name} 로고`} onError={()=>setFailedSource(source)}/>:<b aria-hidden="true">{fallback}</b>}</span>
+}
+
 function useCachedHomeRecommendations() {
   const token = getToken()
   const cached = token && homeRecommendationCache.token === token ? homeRecommendationCache.data : null
@@ -98,10 +105,10 @@ export function StartPage() {
   const homeJobs = recommendedJobs.length > 0 ? recommendedJobs.map(item => ({
     id: item.jobId,
     company: item.institution.name,
+    institution: item.institution,
     title: item.title,
     description: `${label('jobType', item.jobType)}${item.stipend?.amount ? ` · ${label('stipendBasis', item.stipend.basis)} ${item.stipend.amount.toLocaleString('ko-KR')}원` : ''}`,
-    meta: '내 프로필 기반 추천',
-  })) : jobs.slice(0, 4).map(job => ({ ...job, description: jobSummaries[job.id], meta: job.location }))
+  })) : jobs.slice(0, 4).map(job => ({ ...job, institution: { name: job.company, logoPath: job.logoPath }, description: jobSummaries[job.id] }))
   const processSectionRef = useRef(null)
   const jobsSectionRef = useRef(null)
   const storiesSectionRef = useRef(null)
@@ -116,6 +123,7 @@ export function StartPage() {
   const [isFading, setIsFading] = useState(false)
   const [isProcessVisible, setIsProcessVisible] = useState(false)
   const [isJobsVisible, setIsJobsVisible] = useState(false)
+  const [areJobsSettled, setAreJobsSettled] = useState(false)
   const [isStoriesVisible, setIsStoriesVisible] = useState(false)
   const [isCtaVisible, setIsCtaVisible] = useState(false)
   const [isStoriesDragging, setIsStoriesDragging] = useState(false)
@@ -172,6 +180,12 @@ export function StartPage() {
       stopObservingCta?.()
     }
   }, [])
+
+  useEffect(() => {
+    if (!isJobsVisible) return undefined
+    const timer = window.setTimeout(() => setAreJobsSettled(true), 1200)
+    return () => window.clearTimeout(timer)
+  }, [isJobsVisible])
 
   useEffect(() => () => {
     if (animationReplayTimer.current !== null) window.clearTimeout(animationReplayTimer.current)
@@ -262,7 +276,7 @@ export function StartPage() {
   }, [hasStoriesAutoFinished, isStoriesDragging, isStoriesHovered, isStoriesVisible])
 
   return <main className="landing home-landing">
-    <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row">{loggedIn?<Link className="button hero-jobs-button" to="/jobs">직무 찾아보기</Link>:<><button type="button" className="button primary" disabled={loadingRole!==null} onClick={() => startGuest('STUDENT')}>{loadingRole==='STUDENT' ? '체험 계정 만드는 중…' : '예시 프로필로 시작'}</button><Link className="button glass-button" to="/login">로그인·가입으로 시작</Link></>}</div>{!loggedIn&&guestError && <p className="guest-error" role="alert">{guestError}</p>}{!loggedIn&&loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}</div></div><button type="button" className="center-link" disabled={loadingRole!==null} onClick={() => startGuest('CENTER')}>{loadingRole==='CENTER' ? '체험 계정 만드는 중…' : '센터 담당자로 보기 →'}</button><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
+    <section className="home-hero"><div className="home-hero-content"><div className="hero"><span className="eyebrow">학교 밖에서, 내 일을 먼저 만나보세요</span><h1 className={`hero-message ${isFading ? 'is-fading' : ''}`}>{heroMessages[messageIndex]}</h1><div className="button-row">{loggedIn?<Link className="button hero-jobs-button" to="/jobs">직무 찾아보기</Link>:<><button type="button" className="button primary" disabled={loadingRole!==null} onClick={() => startGuest('STUDENT')}>{loadingRole==='STUDENT' ? '체험 계정 만드는 중…' : '로그인·가입으로 시작'}</button><Link className="button glass-button" to="/login">예시 프로필로 시작</Link></>}</div>{!loggedIn&&guestError && <p className="guest-error" role="alert">{guestError}</p>}{!loggedIn&&loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}</div></div><Link className="center-link" to="/center?preview=1">센터 담당자로 보기 →</Link><button className="scroll-cue" onClick={() => processSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}><span>아래로 살펴보기</span><b>↓</b></button></section>
     <section className={`home-process ${isProcessVisible ? 'is-visible' : ''}`} ref={processSectionRef}>
       <div className="process-layout">
         <div className="process-copy">
@@ -278,7 +292,7 @@ export function StartPage() {
         <div className="process-image"><img src={processMascot} alt="책상 앞에서 현장실습을 준비하는 마스코트" /></div>
       </div>
     </section>
-    <section className={`home-jobs ${isJobsVisible ? 'is-visible' : ''}`} ref={jobsSectionRef}>
+    <section className={`home-jobs ${isJobsVisible ? 'is-visible' : ''} ${areJobsSettled ? 'is-settled' : ''}`} ref={jobsSectionRef}>
       <div className="home-jobs-layout">
         <div className="job-animation-slot" onClick={playGreeting} role="button" tabIndex={0} aria-label="클릭하면 마스코트가 인사합니다">
           <video ref={animationVideoRef} muted playsInline preload="auto" aria-hidden="true">
@@ -290,7 +304,7 @@ export function StartPage() {
             <h2 className={`job-title-message ${isJobHeadlineFading ? 'is-fading' : ''}`}>{activeJobHeadlines[jobHeadlineIndex]}</h2>
           </div>
           <div className="home-job-list">{homeJobs.map(job => <Link className="home-job-row" to={`/jobs/${job.id}`} key={job.id}>
-            <div><small>{job.company}</small><h3>{job.title}</h3><p className="job-description">{job.description}</p><div className="job-meta"><span>{job.meta}</span></div></div>
+            <div><div className="home-job-company"><HomeInstitutionLogo institution={job.institution}/><small>{job.company}</small></div><h3>{job.title}</h3><p className="job-description">{job.description}</p><div className="job-meta"><span>상세보기</span></div></div>
           </Link>)}</div>
         </div>
       </div>

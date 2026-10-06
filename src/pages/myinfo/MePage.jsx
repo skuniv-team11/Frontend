@@ -65,7 +65,14 @@ export function MePage(){
   const plan=useRequest(getMyPlan,me.data?.role==='STUDENT')
   const codes=useRequest(getCodes)
   const label=(group,value)=>codes.data?.[group]?.[value]??value
-  const logout=()=>{clearToken();navigate('/')}
+  const [loggingOut,setLoggingOut]=useState(false)
+  const logout=async()=>{
+    if(loggingOut)return
+    setLoggingOut(true)
+    await new Promise(resolve=>window.setTimeout(resolve,450))
+    clearToken()
+    window.location.replace('/')
+  }
   const [leaving,setLeaving]=useState(false); const [leaveError,setLeaveError]=useState('')
   const leaveAccount=async()=>{
     setLeaving(true);setLeaveError('')
@@ -81,11 +88,11 @@ export function MePage(){
         <button className={view==='saved'?'active':''} type="button" onClick={()=>{setEditing(false);navigate('/me?view=saved')}}>담은 실습</button>
         <Link to="/plan">내 지망</Link>
       </nav>
-      <button className="me-logout" disabled={!me.data} onClick={logout}>로그아웃</button>
+      <button className="me-logout" disabled={!me.data||loggingOut} aria-busy={loggingOut} onClick={logout}>{loggingOut&&<span className="logout-spinner" aria-hidden="true"/>}{loggingOut?'로그아웃 중…':'로그아웃'}</button>
     </aside>
     <section className="me-workspace">
       <header><h1>{view==='saved'?'담은 실습':'내 프로필'}</h1></header>
-      {view==='saved'?<div className="me-panel me-saved-panel"><section className="me-panel-section"><div className="me-section-heading"><div><span>SAVED JOBS</span><h2>내가 담은 실습</h2></div><small>{plan.data?.items.length??0}개</small></div><SavedPractices plan={plan} label={label}/></section></div>:<div className={`me-panel me-stage ${editing?'is-editing':''} ${editClosing?'is-closing':''}`}>
+      {view==='saved'?<div className="me-panel me-saved-panel" key="saved"><section className="me-panel-section"><div className="me-section-heading"><div><span>SAVED JOBS</span><h2>내가 담은 실습</h2></div><small>{plan.data?.items.length??0}개</small></div><SavedPractices plan={plan} label={label}/></section></div>:<div className={`me-panel me-stage ${editing?'is-editing':''} ${editClosing?'is-closing':''}`} key="profile">
         <div className="me-profile-view">
           <section className="me-panel-section"><div className="me-section-heading"><div><span>PROFILE</span><h2>저장된 프로필</h2></div><button className="me-edit-profile" type="button" onClick={()=>{setEditClosing(false);setEditing(true)}}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/><path d="m13.8 7.2 3 3"/></svg><span>프로필 수정</span></button></div><SavedProfile profile={profile}/></section>
           <section className="me-panel-section me-account-actions"><div className="me-section-heading"><div><span>MANAGE</span><h2>계정 관리</h2></div></div><button className="danger" disabled={!me.data} onClick={()=>{setLeaveError('');setLeave(true)}}>회원 탈퇴 <span>›</span></button></section>
