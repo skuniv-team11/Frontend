@@ -10,6 +10,29 @@
   background: transparent;
 }
 
+.profile-form-caption {
+  display: flex;
+  margin: 0;
+  align-items: center;
+  gap: 10px;
+  color: #343a44;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: -.5px;
+  transform: translateY(-12px);
+}
+
+.profile-form-caption span {
+  color: #8893a3;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.25px;
+}
+
+.profile-form-caption + .form-card { margin-top: 22px; }
+
 .profile-content.embedded-profile {
   width: 100%;
   max-width: none;
@@ -31,10 +54,10 @@
 .profile-step.is-forward { animation: profile-step-in-right .48s cubic-bezier(.22, 1, .36, 1) both; }
 .profile-step.is-backward { animation: profile-step-in-left .48s cubic-bezier(.22, 1, .36, 1) both; }
 .profile-save-status { display: grid; height: 100%; place-content: center; justify-items: center; text-align: center; animation: profile-save-status-in .35s ease-out both; }
-.profile-save-status h2 { margin: 19px 0 6px; font-size: 24px; letter-spacing: -1px; }
-.profile-save-status p { margin: 0; color: #7b8491; font-size: 13px; }
-.profile-save-spinner { width: 54px; height: 54px; border: 4px solid #e3e7f1; border-top-color: #3154f4; border-radius: 50%; animation: profile-save-spin .8s linear infinite; }
-.profile-save-check { display: grid; width: 58px; height: 58px; place-items: center; border-radius: 50%; color: #fff; background: #3154f4; box-shadow: 0 13px 28px rgb(49 84 244 / 24%); font-size: 27px; font-weight: 800; animation: profile-save-check-in .46s cubic-bezier(.22, 1.45, .36, 1) both; }
+.profile-save-status h2 { margin: 22px 0 7px; font-size: 28px; letter-spacing: -1.2px; }
+.profile-save-status p { margin: 0; color: #7b8491; font-size: 15px; }
+.profile-save-spinner { width: 68px; height: 68px; border: 5px solid #e3e7f1; border-top-color: #3154f4; border-radius: 50%; animation: profile-save-spin .8s linear infinite; }
+.profile-save-check { display: grid; width: 68px; height: 68px; place-items: center; border-radius: 50%; color: #fff; background: #3154f4; box-shadow: 0 13px 28px rgb(49 84 244 / 24%); font-size: 32px; font-weight: 800; animation: profile-save-check-in .46s cubic-bezier(.22, 1.45, .36, 1) both; }
 
 .interest-heading { text-align: center; }
 .interest-heading > span { color: #3154f4; font-size: 10px; font-weight: 800; letter-spacing: 1.4px; }

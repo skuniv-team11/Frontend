@@ -1,3 +1,8 @@
+.home-process .process-layout {
+  grid-template-columns: 1fr .92fr;
+  gap: 62px;
+}
+
 .home-process .process-heading {
   text-align: left;
   margin-bottom: 24px;
@@ -54,13 +59,13 @@
 .home-process .steps {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 26px;
   margin: 0;
 }
 
 .home-process .steps > .process-step {
   min-height: 0;
-  padding: 0 0 10px;
+  padding: 0 0 18px;
   border: 0;
   border-bottom: 1px solid rgb(32 33 36 / 16%);
   border-radius: 0;
@@ -85,7 +90,8 @@
 }
 
 .home-process .process-image {
-  height: 430px;
+  height: 510px;
+  transform: translateX(18px);
 }
 
 .home-process.is-visible .process-intro,

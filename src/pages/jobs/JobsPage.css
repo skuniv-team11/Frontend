@@ -116,23 +116,24 @@
 .jobs-page .badge { margin: 0; padding: 5px 7px; border-radius: 7px; color: #68717e; background: #f1f3f6; }
 .jobs-page .badge.green { color: #16734c; background: #eaf7f0; }
 .jobs-page .badge.orange { color: #9b5d12; background: #fff4e5; }
-.recommend-company-block { display: flex; min-width: 0; margin-top: 22px; align-items: center; gap: 9px; }
-.jobs-page .recommend-company { min-width: 0; overflow: hidden; color: #6678bf; font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.recommend-company-block { display: flex; min-width: 0; margin-top: 22px; align-items: flex-start; gap: 9px; }
+.jobs-page .recommend-company { min-width: 0; max-width: calc(100% - 77px); margin-top: -8px; margin-left: auto; overflow: hidden; color: #6678bf; font-size: 11px; font-weight: 800; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .institution-logo { display: grid; width: 68px; height: 68px; flex: 0 0 68px; overflow: hidden; border: 1px solid #e3e7ee; border-radius: 15px; color: #6373bb; background: #fff; place-items: center; }
 .institution-logo img { width: 100%; height: 100%; object-fit: contain; }
 .institution-logo b { font-size: 18px; font-weight: 850; }
-.recommend-company-block .institution-logo { width: 68px; height: 68px; padding: 5px; flex: 0 0 68px; border-radius: 15px; }
-.recommend-company-block .institution-logo img { width: auto; height: auto; max-width: 58px; max-height: 58px; object-fit: contain; object-position: center; }
+.recommend-company-block .institution-logo { width: 68px; height: 68px; padding: 0; flex: 0 0 68px; overflow: visible; border: 0; border-radius: 0; background: transparent; }
+.recommend-company-block .institution-logo img { width: auto; height: auto; max-width: 68px; max-height: 68px; object-fit: contain; object-position: center; }
 .recommend-company-block .institution-logo b { font-size: 20px; }
 .institution-logo.is-compact { width: 54px; height: 54px; padding: 0; flex-basis: 54px; overflow: visible; border-radius: 12px; }
 .institution-logo.is-compact img { width: auto; height: auto; max-width: 82%; max-height: 82%; object-fit: scale-down; object-position: center; }
-.jobs-page .recommend-card h3 { min-height: 44px; margin: 6px 0 9px; font-size: 16px; line-height: 1.4; letter-spacing: -.65px; }
+.jobs-page .recommend-card h3 { min-width: 0; min-height: 23px; margin: 6px 0 9px; overflow: hidden; font-size: 16px; line-height: 1.4; letter-spacing: -.65px; text-overflow: ellipsis; white-space: nowrap; }
 .jobs-page .recommend-card h3 a { transition: color .2s ease; }
 .jobs-page .recommend-card h3 a:hover { color: #3154f4; }
 .jobs-page .recommend-meta { margin: 0; color: #727b88; font-size: 11px; font-weight: 600; }
-.jobs-page .recommend-views { display: flex; margin: 6px 0 0; align-items: center; gap: 5px; color: #8b94a0; font-size: 11px; font-weight: 600; }
+.jobs-page .recommend-views { display: flex; margin: 0; align-items: center; gap: 5px; color: #8b94a0; font-size: 11px; font-weight: 600; }
+.jobs-page .recommend-views.is-pending { visibility: hidden; }
 .jobs-page .recommend-views::before { width: 5px; height: 5px; border-radius: 50%; background: #c3cad6; content: ""; }
-.jobs-page .recommend-reason { display: -webkit-box; margin: 15px 0 12px; color: #858d99; font-size: 11px; line-height: 1.65; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.jobs-page .recommend-reason { display: -webkit-box; margin: 15px 0 3px; color: #858d99; font-size: 11px; line-height: 1.65; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .recommend-ai-label { display: inline-block; margin-right: 6px; padding: 1px 5px; border-radius: 5px; color: #3154f4; background: #eef1ff; font-size: 9px; font-weight: 900; line-height: 1.5; vertical-align: 1px; }
 .recommend-card-bottom { position: absolute; right: 14px; bottom: 13px; left: 14px; display: flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; opacity: 0; transform: translateY(46px); transition: opacity .28s ease, transform .36s cubic-bezier(.22, 1, .36, 1); }
 .recommend-card:hover .recommend-card-bottom, .recommend-card:focus-within .recommend-card-bottom, .recommend-card:focus .recommend-card-bottom, .recommend-card.actions-open .recommend-card-bottom { opacity: 1; transform: translateY(0); }
@@ -216,10 +217,10 @@
 .jobs-login-error { margin: 15px 0 0; color: #c53535; font-size: 12px; font-weight: 700; }
 @keyframes jobs-login-content-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .jobs-loading-content { display: flex; align-items: center; flex-direction: column; text-align: center; }
-.jobs-loading-spinner { display: block; width: 34px; height: 34px; margin-bottom: 15px; border: 3px solid #e1e5ec; border-top-color: #30343c; border-radius: 50%; animation: jobs-loading-spin .8s linear infinite; }
-.jobs-loading-content strong { color: #30343c; font-size: 11px; font-weight: 850; letter-spacing: .16em; }
-.jobs-loading-content span { margin-top: 22px; color: #30343c; font-size: 16px; font-weight: 800; letter-spacing: -.5px; }
-.jobs-loading-content small { margin-top: 8px; color: #858d99; font-size: 11px; }
+.jobs-loading-spinner { display: block; width: 68px; height: 68px; margin-bottom: 24px; border: 5px solid #e1e5ec; border-top-color: #30343c; border-radius: 50%; animation: jobs-loading-spin .8s linear infinite; }
+.jobs-loading-content strong { color: #30343c; font-size: 15px; font-weight: 850; letter-spacing: .14em; }
+.jobs-loading-content span { margin-top: 24px; color: #30343c; font-size: 22px; font-weight: 800; letter-spacing: -.7px; }
+.jobs-loading-content small { margin-top: 10px; color: #858d99; font-size: 13px; }
 @keyframes jobs-loading-spin { to { transform: rotate(360deg); } }
 .reason-panel-badges { display: flex; margin: -2px 0 20px; align-items: center; justify-content: flex-start; gap: 5px; }
 .reason-sheet-overlay { position: fixed; z-index: 1000; inset: 0; display: flex; padding: 42px 44px 0; align-items: flex-end; justify-content: center; background: rgb(30 35 45 / 44%); backdrop-filter: blur(3px); animation: reason-overlay-in .25s ease both; }

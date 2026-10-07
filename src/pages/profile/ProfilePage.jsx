@@ -178,7 +178,7 @@ export function ProfilePage({ embedded = false, onSaved, onCancel }) {
 
   const Container=embedded?'div':'main'
   return <Container className={`content profile-content ${fromSignup?'from-signup':''} ${embedded?'embedded-profile':''}`}><section>{message&&<p className={`profile-announcement notice ${message.tone}`} role={message.tone?'alert':'status'}>{message.text}</p>}{saveStage!=='idle'?<div className={`profile-save-status is-${saveStage}`} role="status">{saveStage==='loading'?<><span className="profile-save-spinner"/><h2>프로필을 저장하고 있어요</h2><p>새 정보를 안전하게 반영하는 중이에요.</p></>:<><span className="profile-save-check">✓</span><h2>저장 완료</h2><p>새 프로필 정보를 반영했어요.</p></>}</div>:<div key={step} className={`profile-step is-${stepDirection}`}>
-    {step==='profile'?<><h1 className="profile-title">내 프로필</h1><div className="card form-card"><div className="form-grid">
+    {step==='profile'?<>{!onCancel&&<h1 className="profile-title">내 프로필</h1>}{onCancel&&<p className="profile-form-caption">내 정보 <span>ABOUT ME</span></p>}<div className="card form-card"><div className="form-grid">
       <label>학교<input value="서경대학교" readOnly/></label>
       <label>학년<div className="segments">{[1,2,3,4].map(grade=><button type="button" key={grade} className={form.grade===grade?'selected':''} onClick={()=>change('grade',grade)}>{grade}학년</button>)}</div></label>
       <label>학과<button type="button" className="profile-select-trigger" disabled={departments.loading||departments.error} onClick={()=>{setDepartmentQuery('');setDepartmentPicker(true)}}><span>{departments.loading?'불러오는 중…':departments.error?'학과 목록을 불러오지 못했어요':selectedDepartment?.name??'학과를 골라 주세요'}</span><img src={chevronDown} alt=""/></button></label>
