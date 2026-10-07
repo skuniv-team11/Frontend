@@ -1,0 +1,14 @@
+.has-plan-signal-notice { overflow: hidden; }
+.plan-signal-notice-backdrop { position: fixed; z-index: 1399; inset: 0; cursor: default; }
+.plan-signal-notice-shell { position: fixed; top: 78px; left: 50%; z-index: 1400; width: min(560px,calc(100vw - 80px)); transform: translateX(-50%); transform-origin: top center; animation: plan-signal-notice-in .46s cubic-bezier(.22,1,.36,1) both; }
+.plan-signal-notice { position: relative; display: flex; width: 100%; padding: 15px 54px 15px 18px; align-items: center; gap: 14px; border: 2px solid #e3a44c; border-radius: 16px; color: #70470f; background: #fffaf1; box-shadow: 0 12px 30px rgb(99 67 21 / 18%); }
+.plan-signal-notice-icon { display: grid; width: 38px; height: 38px; flex: 0 0 auto; border: 1px solid #efc477; border-radius: 12px; background: #ffe8bc; place-items: center; }
+.plan-signal-notice-icon svg { width: 23px; height: 23px; fill: none; stroke: #bd7418; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.plan-signal-notice-copy { min-width: 0; flex: 1; }
+.plan-signal-notice-copy p { margin: 0; color: #775d38; font-size: 17px; font-weight: 650; line-height: 1.5; }
+.plan-signal-notice-copy .plan-signal-notice-helper { margin-top: 5px; color: #9a7440; font-size: 14px; font-weight: 500; }
+.plan-signal-notice-copy b { display: block; margin-top: 2px; color: #8c5410; font-size: 15px; line-height: 1.5; }
+.plan-signal-notice-snooze { display: flex; width: max-content; margin: 7px 0 0 12px; align-items: center; gap: 7px; color: #79501c; font-size: 14px; font-weight: 650; cursor: pointer; }
+.plan-signal-notice-snooze input { width: 16px; height: 16px; margin: 0; accent-color: #d8871e; cursor: pointer; }
+.plan-signal-notice-close { position: absolute; top: 3px; right: 3px; display: grid; width: 54px; height: 54px; padding: 0; border: 0; color: #79501c; background: transparent; font-family: Arial,sans-serif; font-size: 46px; font-weight: 500; line-height: 1; cursor: pointer; place-items: center; }
+@keyframes plan-signal-notice-in { from { opacity: 0; transform: translate(-50%,-24px) scale(.97); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
