@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal, flushSync } from 'react-dom'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getToken, resolveApiAssetUrl } from '../../api/client'
 import { toProfileBody } from '../../api/matching'
 import { getMyProfile } from '../../api/myInfo'
-import { checkPlan, getMyPlan, planErrorMessage, removePlanItem, saveRanks } from '../../api/plan'
+import { addPlanItem, checkPlan, getMyPlan, planErrorMessage, removePlanItem, saveRanks } from '../../api/plan'
 import { getCodes } from '../../api/reference'
 import { PageTitle } from '../../components/PageParts'
 import { Badge } from '../../components/Shell'
+import { PlanSignalNotice } from '../../components/PlanSignalNotice'
 import { useRequest } from '../../hooks/useRequest'
 import dragHandGrab from '../../assets/images/cursors/drag-hand-grab.png'
 import dragHandOpen from '../../assets/images/cursors/drag-hand-open.png'
@@ -20,6 +21,16 @@ import guideScone from '../../assets/images/guide-scone-cutout.png'
 import './PlanPage.css'
 
 const verdictTone = { ELIGIBLE: 'green', NEEDS_CHECK: 'orange', INELIGIBLE: 'gray' }
+const signalNoticeSnoozeKey = 'plan-signal-notice-snoozed-until'
+const getSignalNoticeSnoozeKey = () => {
+  const token=getToken()
+  if(!token)return `${signalNoticeSnoozeKey}:anonymous`
+  try{
+    const encoded=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')
+    const payload=JSON.parse(window.atob(encoded.padEnd(Math.ceil(encoded.length/4)*4,'=')))
+    return `${signalNoticeSnoozeKey}:${payload.sub??payload.userId??'unknown'}`
+  }catch{return `${signalNoticeSnoozeKey}:unknown`}
+}
 const formatDay = (day) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일`
 const fallbackGuideJobs = [
   { jobId: 'guide-naver', title: '클라우드 서비스 운영 지원', institution: { name: 'NAVER', logoSrc: naverLogo } },
@@ -54,7 +65,7 @@ const rankErrorMessage = (error) => {
   if (error.status === 401) return '로그인 정보가 없거나 만료됐어요. 다시 로그인해 주세요.'
   return '순위를 정하지 못했어요. 잠시 뒤 다시 시도해 주세요.'
 }
-function PlanList({ plan, signals, label, onChanged, guiding = false }) {
+function PlanList({ plan, signals, label, onChanged, guiding = false, crowdedJobIds = [], swapJob = null, swapStage = null, onSwap }) {
   const navigate=useNavigate()
   const [removing, setRemoving] = useState(null); const [removeError, setRemoveError] = useState('')
   const [ranking, setRanking] = useState(false); const [rankError, setRankError] = useState('')
@@ -62,7 +73,7 @@ function PlanList({ plan, signals, label, onChanged, guiding = false }) {
   const dragOriginal=useRef(null); const dragOriginIndex=useRef(null); const dragMoved=useRef(false); const dragGesture=useRef(false)
   const dragTargetIndexRef=useRef(null)
   const dragPreview=useRef(null); const dragOffset=useRef({x:0,y:0}); const dragPointerY=useRef(0); const dragStart=useRef({x:0,y:0})
-  const busy = removing !== null || ranking
+  const busy = removing !== null || ranking || Boolean(swapStage?.busy)
   const rankedItems=(ordered)=>ordered.map((item,index)=>({...item,rank:index<3?index+1:null}))
   const rankSignature=plan.data?.items.map(item=>`${item.jobId}:${item.rank??0}`).join('|')??''
   useEffect(()=>{
@@ -128,7 +139,7 @@ function PlanList({ plan, signals, label, onChanged, guiding = false }) {
     dragPreview.current.classList.toggle('is-ranked',Boolean(rank));dragPreview.current.classList.toggle('is-candidate',!rank)
   }
   const startDrag=(event,item)=>{
-    if(busy||event.button!==0||event.target.closest('button'))return
+    if(busy||swapJob||event.button!==0||event.target.closest('button'))return
     const origin=plan.data.items.findIndex(entry=>String(entry.jobId)===String(item.jobId))
     dragOriginal.current=plan.data;dragOriginIndex.current=origin;dragTargetIndexRef.current=origin;dragMoved.current=false;dragGesture.current=false;dragStart.current={x:event.clientX,y:event.clientY};setDraggingId(item.jobId);setDragTargetIndex(origin)
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -179,17 +190,60 @@ function PlanList({ plan, signals, label, onChanged, guiding = false }) {
   const guideDisplayItems=fallbackGuideJobs.map(item=>({...item,addedAt:'2026-10-01T09:00:00Z'}))
   const displayItems=guiding?guideDisplayItems:orderAtDragTarget(items,dragTargetIndex)
   const dragGuideJobs=displayItems
-  return <section className="plan-board">{(removeError || rankError) && <p className="plan-error" role="alert">{removeError || rankError}</p>}<div className="plan-board-toolbar"><h2>담은 직무</h2>{ranking&&<small className="plan-saving">순서를 저장하는 중…</small>}</div><div className="pick-list">{displayItems.map((item,index)=>{const rank=index<3?index+1:null;const shownItem=guiding&&index<2?{...item,...dragGuideJobs[index]}:item;return <article className={`plan-pick ${rank?'is-ranked':'is-candidate'} ${guiding&&index<2?'is-guide-example':''} ${String(draggingId)===String(item.jobId)?'is-dragging':''} ${String(removing)===String(item.jobId)?'is-removing':''}`} data-job-id={item.jobId} role="link" tabIndex="0" style={{'--pick-index':index}} key={item.jobId} onClick={()=>{if(!guiding&&!dragGesture.current)navigate(`/jobs/${item.jobId}`)}} onKeyDown={event=>{if(!guiding&&event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();navigate(`/jobs/${item.jobId}`)}}} onPointerDown={event=>startDrag(event,item)} onPointerMove={followDrag} onPointerUp={dropDraggedItem} onPointerCancel={endDrag}><span className="plan-drag-handle" aria-hidden="true">⠿</span><div className="plan-rank"><span className={guiding&&index<2?'is-guide-rank':''}>{guiding&&index<2?<><i className="rank-before">{rank}</i><i className="rank-after">{index===0?2:1}</i></>:rank??'·'}</span><b>{rank?'지망':'후보'}</b></div><div className="plan-pick-main"><PlanInstitutionLogo institution={shownItem.institution}/><div className="plan-pick-copy"><small>{shownItem.institution.name}</small><h3>{shownItem.title}</h3>{guiding&&index<2?<p className="plan-added-at">순서 변경 안내용 예시 직무</p>:signals[item.jobId]?<SignalLine signal={signals[item.jobId]} label={label}/>:<p className="plan-added-at">{formatAddedAt(item.addedAt)}에 담았어요</p>}</div></div><div className="plan-order-actions"><button disabled={busy||index===0} aria-label={`${shownItem.title} 순서를 위로`} onClick={event=>{event.stopPropagation();move(index,-1)}}>↑</button><button disabled={busy||index===displayItems.length-1} aria-label={`${shownItem.title} 순서를 아래로`} onClick={event=>{event.stopPropagation();move(index,1)}}>↓</button></div><div className="plan-pick-actions"><button disabled={busy||guiding} onClick={event=>{event.stopPropagation();remove(item.jobId)}}>{removing===item.jobId?'빼는 중…':'빼기'}</button></div></article>})}{guiding&&displayItems.length>1&&<span className="plan-guide-live-pointer" aria-hidden="true"><span className="plan-guide-hand"><img className="is-open" src={dragHandOpen} alt=""/><img className="is-grab" src={dragHandGrab} alt=""/></span><b>잡고 이동</b></span>}<Link className="plan-add-candidate" to="/jobs" aria-label="후보 직무 더 담기"><span aria-hidden="true">＋</span></Link></div></section>
+  return <section className="plan-board">{(removeError || rankError) && <p className="plan-error" role="alert">{removeError || rankError}</p>}<div className="plan-board-toolbar"><h2>담은 직무</h2>{ranking&&<small className="plan-saving">순서를 저장하는 중…</small>}</div><div className="pick-list">{displayItems.map((item,index)=>{const rank=index<3?index+1:null;const shownItem=guiding&&index<2?{...item,...dragGuideJobs[index]}:item;const crowded=crowdedJobIds.includes(item.jobId);const swapping=String(swapStage?.leavingId)===String(item.jobId);const entering=String(swapStage?.enteringId)===String(item.jobId);const openItem=()=>{if(swapJob&&!busy){onSwap(item,index);return}if(!guiding&&!dragGesture.current)navigate(`/jobs/${item.jobId}`,{state:{returnScrollY:window.scrollY}})};return <article className={`plan-pick ${rank?'is-ranked':'is-candidate'} ${crowded?'is-crowded':''} ${guiding&&index<2?'is-guide-example':''} ${String(draggingId)===String(item.jobId)?'is-dragging':''} ${String(removing)===String(item.jobId)?'is-removing':''} ${swapping?'is-swap-leaving':''} ${entering?'is-swap-entering':''}`} data-job-id={item.jobId} role="button" tabIndex="0" style={{'--pick-index':index}} key={item.jobId} onClick={openItem} onKeyDown={event=>{if(event.target===event.currentTarget&&(event.key==='Enter'||event.key===' ')){event.preventDefault();openItem()}}} onPointerDown={event=>startDrag(event,item)} onPointerMove={followDrag} onPointerUp={dropDraggedItem} onPointerCancel={endDrag}><span className="plan-drag-handle" aria-hidden="true">⠿</span>{swapJob&&<span className="plan-swap-hover" aria-hidden="true">⇄</span>}{crowded&&!guiding&&<span className="plan-crowded-tooltip" role="tooltip">관심이 몰리는 지망이에요.</span>}<div className="plan-rank"><span className={guiding&&index<2?'is-guide-rank':''}>{guiding&&index<2?<><i className="rank-before">{rank}</i><i className="rank-after">{index===0?2:1}</i></>:rank??'·'}</span><b>{rank?'지망':'후보'}</b></div><div className="plan-pick-main"><PlanInstitutionLogo institution={shownItem.institution}/><div className="plan-pick-copy"><small>{shownItem.institution.name}</small><h3>{shownItem.title}</h3>{guiding&&index<2?<p className="plan-added-at">순서 변경 안내용 예시 직무</p>:signals[item.jobId]?<SignalLine signal={signals[item.jobId]} label={label}/>:<p className="plan-added-at">{formatAddedAt(item.addedAt)}에 담았어요</p>}</div></div><div className="plan-order-actions"><button disabled={busy||Boolean(swapJob)||index===0} aria-label={`${shownItem.title} 순서를 위로`} onClick={event=>{event.stopPropagation();move(index,-1)}}>↑</button><button disabled={busy||Boolean(swapJob)||index===displayItems.length-1} aria-label={`${shownItem.title} 순서를 아래로`} onClick={event=>{event.stopPropagation();move(index,1)}}>↓</button></div><div className="plan-pick-actions"><button disabled={busy||Boolean(swapJob)||guiding} onClick={event=>{event.stopPropagation();remove(item.jobId)}}>{removing===item.jobId?'빼는 중…':'빼기'}</button></div></article>})}{guiding&&displayItems.length>1&&<span className="plan-guide-live-pointer" aria-hidden="true"><span className="plan-guide-hand"><img className="is-open" src={dragHandOpen} alt=""/><img className="is-grab" src={dragHandGrab} alt=""/></span><b>잡고 이동</b></span>}<Link className="plan-add-candidate" to="/jobs" aria-label="후보 직무 더 담기"><span aria-hidden="true">＋</span></Link></div></section>
+}
+
+function AlternativePreviewSheet({ job, label, close, onStartSwap }) {
+  const [closing,setClosing]=useState(false)
+  const panelRef=useRef(null)
+  const closeTimer=useRef(null)
+  const dragState=useRef({active:false,startY:0,offset:0})
+  const requestClose=useCallback(()=>{
+    if(closing)return
+    setClosing(true);window.clearTimeout(closeTimer.current)
+    closeTimer.current=window.setTimeout(close,360)
+  },[close,closing])
+  const requestCloseRef=useRef(requestClose)
+  useEffect(()=>{requestCloseRef.current=requestClose},[requestClose])
+  useEffect(()=>{
+    const previousOverflow=document.body.style.overflow
+    const closeOnEscape=(event)=>{if(event.key==='Escape')requestCloseRef.current()}
+    document.body.style.overflow='hidden';window.addEventListener('keydown',closeOnEscape)
+    return()=>{document.body.style.overflow=previousOverflow;window.removeEventListener('keydown',closeOnEscape);window.clearTimeout(closeTimer.current)}
+  },[])
+  const startDrag=(event)=>{
+    if(closing||event.button!==0||event.target.closest('button,a'))return
+    dragState.current={active:true,startY:event.clientY,offset:0};event.currentTarget.setPointerCapture(event.pointerId)
+    panelRef.current?.classList.add('is-dragging','has-dragged')
+  }
+  const moveDrag=(event)=>{
+    if(!dragState.current.active||!panelRef.current)return
+    const offset=Math.max(-70,event.clientY-dragState.current.startY);dragState.current.offset=offset
+    panelRef.current.style.setProperty('--sheet-drag-y',`${offset}px`);panelRef.current.style.transform=`translateY(${offset}px)`
+  }
+  const endDrag=(event)=>{
+    if(!dragState.current.active||!panelRef.current)return
+    dragState.current.active=false;event.currentTarget.releasePointerCapture?.(event.pointerId)
+    const panel=panelRef.current;panel.classList.remove('is-dragging')
+    if(dragState.current.offset>=panel.getBoundingClientRect().height*.2){requestClose();return}
+    panel.classList.add('is-settling');panel.style.transform='translateY(0)';panel.style.setProperty('--sheet-drag-y','0px')
+    window.setTimeout(()=>panel.classList.remove('is-settling'),300)
+  }
+  const rememberOpenSheet=()=>window.history.replaceState({...window.history.state,usr:{...(window.history.state?.usr??{}),reopenAlternativeId:job.jobId}},'')
+  const startSwap=()=>{requestClose();window.setTimeout(()=>onStartSwap(job),370)}
+  return createPortal(<div className={`plan-alternative-sheet-overlay ${closing?'is-closing':''}`} onMouseDown={event=>{if(event.target===event.currentTarget)requestClose()}}><section ref={panelRef} className="plan-alternative-sheet" role="dialog" aria-modal="true" aria-labelledby="plan-alternative-sheet-title" onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}><button type="button" className="plan-alternative-sheet-grip" aria-label="패널을 위아래로 움직이기"/><button type="button" className="plan-alternative-sheet-close" aria-label="닫기" onClick={requestClose}>×</button><div className="plan-alternative-sheet-heading"><div><span>빈 자리 제안</span><h2 id="plan-alternative-sheet-title">이 직무를 추천하는 이유</h2></div><div><Badge tone={verdictTone[job.verdict]}>{label('verdict',job.verdict)}</Badge><Badge>적합도 {label('fit',job.fit)}</Badge></div></div><div className="plan-alternative-sheet-job"><small>{job.institution.name}</small><h3>{job.title}</h3><p>{job.why||'내 조건과 비슷한 직무 중 지금 지원할 수 있는 자리가 남아 있어요.'}</p></div><dl className="plan-alternative-sheet-info"><div><dt>지원 판정</dt><dd>{label('verdict',job.verdict)}</dd></div><div><dt>적합도</dt><dd>{label('fit',job.fit)}</dd></div><div><dt>모집 정보</dt><dd>남은 자리 {job.remaining}개 · {label('signalStatus',job.signal?.status)}</dd></div></dl><div className="plan-alternative-sheet-actions"><Link to={`/jobs/${job.jobId}`} state={{returnScrollY:window.scrollY,reopenAlternativeId:job.jobId}} onClick={rememberOpenSheet}>직무 상세 보기</Link><button type="button" onClick={startSwap}>지망 교체하기</button></div></section></div>,document.body)
 }
 
 // 지망 점검 응답의 빈 자리 제안, 최대 5개
-function Alternatives({ check, profile, label }) {
+function Alternatives({ check, profile, label, initialSelectedId = null, onStartSwap }) {
+  const [selectedId,setSelectedId]=useState(initialSelectedId)
   if (profile.error?.code === 'PROFILE_NOT_FOUND') return <p>프로필을 저장하면 내 조건으로 자리가 남은 직무를 찾아 드려요. <Link className="link-button" to="/profile">프로필 입력하기 →</Link></p>
   if (profile.loading || (check.loading && !check.data)) return <p>모집 신호를 확인하는 중…</p>
   if (check.error || profile.error) return <p>모집 신호를 불러오지 못했어요. <button className="link-button" onClick={check.reload}>다시 불러오기</button></p>
   if (!check.data) return null
   if (!check.data.alternatives.length) return <p>지금 기준으로 자리가 남은 비슷한 직무가 없어요.</p>
-  return <div className="plan-alternatives">{check.data.alternatives.map(job => <Link className="plan-alternative" to={`/jobs/${job.jobId}`} key={job.jobId}><PlanInstitutionLogo institution={job.institution} compact/><div className="plan-alternative-copy"><small>{job.institution.name}</small><b>{job.title}</b><div className="plan-alternative-meta"><Badge tone={verdictTone[job.verdict]}>{label('verdict',job.verdict)}</Badge><span>남은 자리 {job.remaining}개</span></div></div><i aria-hidden="true">→</i></Link>)}</div>
+  const selectedJob=check.data.alternatives.find(job=>String(job.jobId)===String(selectedId))
+  return <><div className="plan-alternatives">{check.data.alternatives.map(job=>{const selected=String(selectedId)===String(job.jobId);const toggle=()=>setSelectedId(selected?null:job.jobId);return <div className={`plan-alternative-wrap ${selected?'is-open':''}`} key={job.jobId}><article className="plan-alternative" role="button" tabIndex="0" aria-expanded={selected} onClick={toggle} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle()}}}><PlanInstitutionLogo institution={job.institution} compact/><div className="plan-alternative-copy"><small>{job.institution.name}</small><b>{job.title}</b><div className="plan-alternative-meta"><Badge tone={verdictTone[job.verdict]}>{label('verdict',job.verdict)}</Badge><span>남은 자리 {job.remaining}개</span></div></div></article></div>})}</div>{selectedJob&&<AlternativePreviewSheet job={selectedJob} label={label} close={()=>setSelectedId(null)} onStartSwap={onStartSwap}/>}</>
 }
 
 function PlanPrintSheet({ plan, signals }) {
@@ -233,15 +287,31 @@ function PlanToolPanel({ type, plan, signals, onClose, closing, guidePreview = f
 }
 
 export function PlanPage(){
+  const location=useLocation()
+  const reopenAlternativeId=location.state?.reopenAlternativeId
+  useEffect(()=>{
+    if(reopenAlternativeId==null)return
+    const currentState=window.history.state??{}
+    const currentUserState={...(currentState.usr??{})}
+    delete currentUserState.reopenAlternativeId
+    window.history.replaceState({...currentState,usr:currentUserState},'')
+  },[reopenAlternativeId])
   const loggedIn=Boolean(getToken())
   const plan=useRequest(getMyPlan,loggedIn)
   const profile=useRequest(getMyProfile,loggedIn)
   const codes=useRequest(getCodes)
+  const [signalNoticeClosed,setSignalNoticeClosed]=useState(()=>{
+    try{return Number(window.localStorage.getItem(getSignalNoticeSnoozeKey()))>Date.now()}
+    catch{return false}
+  })
   const [activeTool,setActiveTool]=useState(null)
   const [showDragGuide,setShowDragGuide]=useState(false)
   const [guideStep,setGuideStep]=useState(0)
   const [guideTransitioning,setGuideTransitioning]=useState(false)
   const [guideClosing,setGuideClosing]=useState(false)
+  const [swapJob,setSwapJob]=useState(null)
+  const [swapStage,setSwapStage]=useState(null)
+  const [swapError,setSwapError]=useState('')
   const guideTransitionTimer=useRef(null)
   const closeDragGuide=useCallback(()=>{setShowDragGuide(false);setActiveTool(null)},[])
   useEffect(()=>{
@@ -281,6 +351,34 @@ export function PlanPage(){
     ...(check.data?.items??[]).filter(item=>item.signal).map(item=>[item.jobId,item.signal]),
   ])
   const dragGuideActive=Boolean(showDragGuide&&plan.data)
+  const isCrowdedSignal=(signal)=>Boolean(signal?.crowded||signal?.isCrowded||signal?.overCapacity||((signal?.ratio??0)>1))
+  const crowdedItems=(check.data?.items??[]).filter(item=>isCrowdedSignal(item.signal))
+  const crowdedJobIds=crowdedItems.flatMap(item=>[item.jobId,String(item.jobId)])
+  const signalNoticeActive=!dragGuideActive&&!signalNoticeClosed&&crowdedItems.length>0
+  const swapPlanItem=async(item,index)=>{
+    if(!swapJob||swapStage?.busy)return
+    const previous=plan.data
+    setSwapError('');setSwapStage({busy:true,leavingId:item.jobId})
+    await new Promise(resolve=>window.setTimeout(resolve,360))
+    try{
+      await addPlanItem(swapJob.jobId)
+      await removePlanItem(item.jobId)
+      let updated
+      if(index<3){
+        const ranks=previous.items.slice(0,3).map((entry,rankIndex)=>({jobId:rankIndex===index?swapJob.jobId:entry.jobId,rank:rankIndex+1}))
+        updated=await saveRanks(ranks)
+      }else{
+        updated=await getMyPlan()
+      }
+      const replacement=updated.items.find(entry=>String(entry.jobId)===String(swapJob.jobId))??{...swapJob,rank:index<3?index+1:null,addedAt:new Date().toISOString()}
+      const reordered=updated.items.filter(entry=>String(entry.jobId)!==String(swapJob.jobId))
+      reordered.splice(Math.min(index,reordered.length),0,replacement)
+      plan.mutate({...updated,items:reordered});setSwapStage({busy:true,enteringId:swapJob.jobId});check.reload()
+      window.setTimeout(()=>{setSwapJob(null);setSwapStage(null)},620)
+    }catch(caught){
+      plan.mutate(previous);setSwapStage(null);setSwapError(planErrorMessage(caught,'담기'))
+    }
+  }
   const guideChecklistStep=dragGuideActive&&guideStep===3
   const guideCounselStep=dragGuideActive&&guideStep===4
   const guideToolStep=guideChecklistStep||guideCounselStep
@@ -299,17 +397,17 @@ export function PlanPage(){
       const nextStep=guideStep+1;setGuideStep(nextStep);if(nextStep===3)openTool('apply');if(nextStep===4)openTool('counsel');setGuideTransitioning(false)
     },260)
   }
-  return <main className={`plan-page ${dragGuideActive?`is-drag-guiding is-guide-step-${guideStep} ${guideTransitioning?'is-guide-transitioning':''} ${guideClosing?'is-guide-closing':''}`:''}`}>
+  return <main className={`plan-page ${signalNoticeActive?'has-signal-notice':''} ${swapJob?'is-swap-mode':''} ${dragGuideActive?`is-drag-guiding is-guide-step-${guideStep} ${guideTransitioning?'is-guide-transitioning':''} ${guideClosing?'is-guide-closing':''}`:''}`}>
     <div className="plan-page-inner">
       <header className="plan-heading"><PageTitle eyebrow="MY PRIORITY" title="내 지망을 한눈에 점검해 보세요"/>{plan.data&&<div className="plan-summary"><div><small>담은 직무</small><b>{plan.data.items.length}</b></div></div>}</header>
       <div className="plan-layout"><div>
         {plan.data&&createPortal(<button className={`plan-guide-open ${dragGuideActive?'is-guide-disabled':''} ${guideClosing?'is-guide-closing':''}`} type="button" disabled={dragGuideActive} aria-hidden={dragGuideActive||undefined} onClick={()=>{setActiveTool(null);setGuideStep(0);setShowDragGuide(true)}}><img src={guideScone} alt="" aria-hidden="true"/><span aria-hidden="true">i</span><b>가이드</b></button>,document.body)}
         {dragGuideActive&&(guideToolStep?createPortal(<p className={`plan-guide-title is-overlay ${guideClosing?'is-closing':''}`}>{guideMessages[guideStep]}</p>,document.body):<p className="plan-guide-title">{guideMessages[guideStep]}</p>)}
-        <PlanList key={dragGuideActive?`guide-step-${guideStep}`:'plan-list'} plan={plan} signals={signals} label={label} onChanged={check.reload} guiding={dragGuideActive}/>
+        {swapError&&<p className="plan-error" role="alert">{swapError}</p>}<PlanList key={dragGuideActive?`guide-step-${guideStep}`:'plan-list'} plan={plan} signals={signals} label={label} onChanged={check.reload} guiding={dragGuideActive} crowdedJobIds={crowdedJobIds} swapJob={swapJob} swapStage={swapStage} onSwap={swapPlanItem}/>
         {dragGuideActive&&createPortal(<><div className={`plan-guide-inline ${guideClosing?'is-closing':''}`}><button type="button" disabled={guideTransitioning} onClick={advanceGuide}>{guideStep<4?'다음':'완료'}{guideStep<4&&<span aria-hidden="true">→</span>}</button></div>{!guideToolStep&&<button className="plan-guide-dismiss" type="button" onClick={closeDragGuide}>그만보기 <span aria-hidden="true">×</span></button>}</>,document.body)}
         {plan.data?.items.length>0&&<p className="plan-simulation">※ 모집 신호는 시연을 위한 가상 데이터예요.</p>}{plan.data&&createPortal(<div className={`plan-footer-actions ${dragGuideActive&&!guideToolStep?'is-guide-disabled':''} ${guideChecklistStep?'is-guide-checklist':''} ${guideCounselStep?'is-guide-counsel':''} ${guideClosing?'is-guide-closing':''}`} aria-hidden={dragGuideActive||undefined}><button type="button" className={`plan-apply-tool ${activeTool==='apply'?'is-active':''}`} disabled={dragGuideActive} aria-expanded={activeTool==='apply'} onClick={()=>activeTool==='apply'?closeTool():openTool('apply')}><span aria-hidden="true">✓</span><b>체크리스트</b></button><button type="button" className={`plan-counsel-tool ${activeTool==='counsel'?'is-active':''}`} disabled={dragGuideActive} aria-expanded={activeTool==='counsel'} onClick={()=>activeTool==='counsel'?closeTool():openTool('counsel')}><span aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4 16V10M10 16V5M16 16V8"/></svg></span><b>상담 요약</b></button>{guideToolStep&&<span className={`plan-guide-checklist-arrow ${guideCounselStep?'is-counsel':''}`} aria-hidden="true"><i>↘</i></span>}</div>,document.body)}{activeTool&&<PlanToolPanel key={activeTool} type={activeTool} plan={plan} signals={signals} onClose={closeTool} closing={toolClosing} guidePreview={guideToolStep} guideClosing={guideClosing}/>} 
-      </div><aside className="plan-side"><section><div className="plan-side-heading"><h2>비슷한 빈 자리</h2></div><Alternatives check={check} profile={profile} label={label}/></section></aside></div>
+      </div><aside className="plan-side"><section><div className="plan-side-heading"><h2>비슷한 빈 자리</h2></div><Alternatives check={check} profile={profile} label={label} initialSelectedId={reopenAlternativeId} onStartSwap={job=>{setSwapError('');setSwapJob(job)}}/></section></aside></div>
     </div>
-    <PlanPrintSheet plan={plan} signals={signals}/>{dragGuideActive&&<><div className="plan-guide-backdrop"/><div className="plan-guide-bottom-shade"/></>}
+    <PlanPrintSheet plan={plan} signals={signals}/>{signalNoticeActive&&<PlanSignalNotice items={crowdedItems} close={()=>setSignalNoticeClosed(true)} snooze={()=>{try{window.localStorage.setItem(getSignalNoticeSnoozeKey(),String(Date.now()+86400000))}catch{/* 저장할 수 없어도 현재 안내는 닫는다. */}setSignalNoticeClosed(true)}}/>}{swapJob&&createPortal(<><p className="plan-swap-instruction">교체할 직무를 선택하세요</p><aside className="plan-swap-candidate"><button type="button" aria-label="교체 취소" onClick={()=>setSwapJob(null)}>×</button><span>교체할 빈 자리</span><small>{swapJob.institution.name}</small><b>{swapJob.title}</b><em>남은 자리 {swapJob.remaining}개</em></aside></>,document.body)} {dragGuideActive&&<><div className="plan-guide-backdrop"/><div className="plan-guide-bottom-shade"/></>}
   </main>
 }
