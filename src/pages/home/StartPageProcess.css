@@ -1,6 +1,6 @@
 .home-process .process-layout {
-  grid-template-columns: 1fr .92fr;
-  gap: 62px;
+  grid-template-columns: 1fr 1fr;
+  gap: 54px;
 }
 
 .home-process .process-heading {
@@ -52,7 +52,7 @@
 .home-process .process-heading h3 {
   margin: 0;
   color: #202124;
-  font-size: 20px;
+  font-size: 18px;
   letter-spacing: -1.3px;
 }
 
@@ -90,8 +90,16 @@
 }
 
 .home-process .process-image {
-  height: 510px;
-  transform: translateX(18px);
+  width: calc(100% + 48px);
+  height: 590px;
+  opacity: 0;
+  transform: translateX(118px);
+  transition: opacity 1s ease .26s, transform 1s cubic-bezier(.22, 1, .36, 1) .26s;
+}
+
+.home-process.is-visible .process-image {
+  opacity: 1;
+  transform: translateX(72px);
 }
 
 .home-process.is-visible .process-intro,
@@ -102,9 +110,18 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-process .process-intro,
-  .home-process .process-guide {
+  .home-process .process-guide,
+  .home-process .process-image {
     opacity: 1;
-    transform: none;
     transition: none;
+  }
+
+  .home-process .process-intro,
+  .home-process .process-guide {
+    transform: none;
+  }
+
+  .home-process .process-image {
+    transform: translateX(72px);
   }
 }

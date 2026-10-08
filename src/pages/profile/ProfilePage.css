@@ -70,6 +70,11 @@
 .interest-options button.selected { border-color: #7168ff; color: #6158ff; background: #f5f3ff; box-shadow: inset 0 0 0 1px #7168ff; }
 .interest-check { width: 11px; flex: 0 0 11px; color: #6158ff; font-size: 14px; font-weight: 800; line-height: 1; }
 .interest-actions { margin-top: 18px; }
+.location-step-card { width: min(600px, 100%); margin: 30px auto 0; }
+.interest-heading:has(+ .location-step-card) { transform: translateY(-24px); }
+.location-step-card .profile-select-trigger { width: 100%; }
+.location-step-card > small { display: none; }
+.location-actions { width: 100%; margin: 22px 0 0; justify-content: space-between; }
 
 @keyframes profile-step-in-right { from { opacity: 0; transform: translateX(44px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes profile-step-in-left { from { opacity: 0; transform: translateX(-44px); } to { opacity: 1; transform: translateX(0); } }
@@ -116,6 +121,12 @@
   align-content: space-around;
   row-gap: 8px;
 }
+.profile-content .form-grid > label:nth-child(1) { grid-column: 1; grid-row: 1; }
+.profile-content .form-grid > label:nth-child(2) { grid-column: 2; grid-row: 1; }
+.profile-content .form-grid > label:nth-child(3) { grid-column: 1; grid-row: 2; }
+.profile-content .form-grid > label:nth-child(4) { grid-column: 2; grid-row: 2; }
+.profile-content .form-grid > label:nth-child(5) { grid-column: 2; grid-row: 3; }
+.profile-content .form-grid > label:nth-child(6) { grid-column: 1; grid-row: 3; }
 .embedded-profile .form-card label { margin-block: 8px; }
 .embedded-profile .notice { margin-block: 7px; }
 .embedded-profile .profile-form-actions { margin-top: 12px; }
@@ -130,6 +141,7 @@
 }
 .embedded-profile .profile-form-actions .profile-next { margin-left: auto; }
 .profile-content .check { cursor: pointer; user-select: none; }
+.profile-content .form-grid + .check { margin-top: 26px; transform: translateY(12px); }
 .profile-content .check input { cursor: pointer; }
 
 .profile-content .form-card input:not([type='checkbox']),
@@ -218,6 +230,12 @@
   border-color: #202227;
   box-shadow: none;
 }
+.graduation-choice { display: grid; min-height: 44px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 6px; }
+.graduation-choice button { display: flex; padding: 7px 12px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 9px; color: #555b66; background: transparent; font-size: 13px; font-weight: 750; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+.graduation-choice button:hover { border-color: #c9ced6; }
+.graduation-choice button.selected { border-color: #292b30; color: #343a44; background: transparent; box-shadow: none; }
+.graduation-check { display: grid; width: 18px; height: 18px; flex: 0 0 18px; border: 2px solid #9aa1ac; border-radius: 4px; color: transparent; font-size: 14px; font-weight: 950; line-height: 1; place-items: center; }
+.graduation-choice button.selected .graduation-check { border-color: #111216; color: #111216; background: #fff; }
 
 .profile-content .counter {
   width: max-content;
@@ -252,6 +270,11 @@
   padding: 28px;
   flex-direction: column;
   text-align: left;
+}
+
+body:has(.me-page) .modal-backdrop:has(.profile-department-modal) {
+  padding-top: 66px;
+  padding-left: 290px;
 }
 
 .department-modal-heading { display: flex; align-items: flex-start; justify-content: space-between; }
