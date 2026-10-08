@@ -34,7 +34,8 @@ function SavedProfile({ profile }) {
   if (profile.error) return <p className="danger">저장한 프로필을 불러오지 못했어요.</p>
   if (!profile.data) return <p className="notice">학생 계정으로 로그인하면 저장한 프로필을 볼 수 있어요.</p>
   const saved = profile.data
-  return <div className="me-saved-profile" key={saved.updatedAt}>{saved.isExample && <Badge tone="blue">예시 프로필</Badge>}<dl><div><dt>학교 · 학과</dt><dd>서경대학교 · {saved.department?.name ?? '—'}</dd></div><div><dt>학년</dt><dd>{saved.grade}학년 · {saved.completedSemesters}학기 이수</dd></div><div><dt>사는 곳</dt><dd>{saved.homeArea ? `${saved.homeArea.sido} ${saved.homeArea.name}` : '선택 안 함'}</dd></div><div><dt>관심 분야</dt><dd>{saved.interestText || '선택 안 함'}</dd></div></dl></div>
+  const graduationStatus = saved.graduationExpected ? '졸업 예정' : '졸업 예정 아님'
+  return <div className="me-saved-profile" key={saved.updatedAt}>{saved.isExample && <Badge tone="blue">예시 프로필</Badge>}<dl><div><dt>학교 · 학과</dt><dd>서경대학교 · {saved.department?.name ?? '—'}</dd></div><div><dt>학년</dt><dd>{saved.grade}학년 · {saved.completedSemesters}학기 이수 · {graduationStatus}</dd></div><div><dt>사는 곳</dt><dd>{saved.homeArea ? `${saved.homeArea.sido} ${saved.homeArea.name}` : '선택 안 함'}</dd></div><div><dt>관심 분야</dt><dd>{saved.interestText || '선택 안 함'}</dd></div></dl></div>
 }
 
 function SavedPractice({ item, label }) {
