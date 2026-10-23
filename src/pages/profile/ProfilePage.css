@@ -433,3 +433,11 @@ body:has(.me-page) .modal-backdrop:has(.profile-department-modal) {
   .profile-content.from-signup .profile-title,
   .profile-content.from-signup .form-card { animation-duration: .01ms !important; }
 }
+
+/* 가진 자격증 — 이번 회차 직무가 요구·우대하는 것만 체크(GET /api/certificates) */
+.profile-certificates { display: flex; margin: 14px 0; flex-direction: column; gap: 7px; font-size: 12px; font-weight: 600; }
+.profile-certificates small { color: #8b94a0; font-size: 11px; font-weight: 500; }
+.profile-certificates > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-certificates button { min-height: 40px; padding: 8px 15px; border: 1px solid #d9dee6; border-radius: 999px; color: #657080; background: #fff; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: border-color .2s ease, color .2s ease, background-color .2s ease; }
+.profile-certificates button:hover { border-color: #aeb9ff; color: #3154f4; }
+.profile-certificates button.selected { border-color: #292b30; color: #fff; background: #202227; }
