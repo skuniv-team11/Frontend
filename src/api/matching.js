@@ -11,6 +11,8 @@ export const toProfileBody = (saved) => ({
   graduationExpected: saved.graduationExpected,
   interestText: saved.interestText ?? null,
   homeAreaCode: saved.homeAreaCode ?? null,
+  // 가진 자격증 code 목록. []·null은 없음 — 필수 자격증 직무(미용 시술 보조)는 '지원 불가', 코드가 있으면 충족(ADR-0021·0024)
+  certificates: saved.certificates ?? null,
 })
 
 // POST /api/eligibility — 회차 직무 전부(40개)의 3층 판정. { summary, jobs: [{ jobId, verdict, majorMatch, closing, alertCount, reasons }] }
