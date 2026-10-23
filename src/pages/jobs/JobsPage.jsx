@@ -6,8 +6,6 @@ import { getEligibility, getRecommendationReason, getRecommendations, toProfileB
 import { getMyProfile } from '../../api/myInfo'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
 import { getCodes, getCurrentRound } from '../../api/reference'
-import { getJobViews } from '../../api/jobs'
-import { useJobViews } from '../../hooks/useJobViews'
 import { PageTitle } from '../../components/PageParts'
 import { Badge, Toast } from '../../components/Shell'
 import { useGuestStart } from '../../hooks/useGuestStart'
@@ -380,7 +378,8 @@ export function JobsPage() {
   const round=useRequest(getCurrentRound)
   const codes=useRequest(getCodes)
   // 목록에서 상세에 들어가기 전에 조회수를 보여 준다(전체 직무 = 추천 직무도 포함). 조회수만 늦거나 실패해도 목록은 그대로
-  const jobViews=useJobViews(eligibility.data?.jobs.map(job=>job.jobId)??[],getJobViews,Boolean(eligibility.data))
+  // 조회수는 판정 응답의 jobs[].views에 같이 온다. 따로 부르던 GET /views(#25)는 백엔드에서 지웠다(ADR-0036)
+  const jobViews={data:Object.fromEntries((eligibility.data?.jobs??[]).filter(job=>job.views!=null).map(job=>[job.jobId,{views:job.views}]))}
   const label=(group,value)=>codes.data?.[group]?.[value]??value
 
   const [filter,setFilter]=useState('ALL'); const [searchQuery,setSearchQuery]=useState(''); const [appliedSearch,setAppliedSearch]=useState(''); const [recommendReason,setRecommendReason]=useState(null)

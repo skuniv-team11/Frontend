@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getToken, resolveApiAssetUrl } from '../../api/client'
-import { getCommute, getJob, getJobViews } from '../../api/jobs'
+import { getCommute, getJob } from '../../api/jobs'
 import { getEligibility, getRecommendationReason, toProfileBody } from '../../api/matching'
 import { getMyProfile } from '../../api/myInfo'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
@@ -112,9 +112,8 @@ export function JobDetailPage() {
   }
   const loadJob=useCallback((signal)=>getJob(id,signal),[id])
   const job=useRequest(loadJob)
-  // 조회수는 상세를 받은 뒤에 부른다 — 상세(GET /api/jobs/{id})를 열 때 서버가 이번 조회를 먼저 센다
-  const loadViews=useCallback((signal)=>getJobViews(id,signal),[id])
-  const views=useRequest(loadViews,Boolean(job.data))
+  // 조회수는 상세 응답에 같이 온다(views·todayViews, 이번 조회까지 센 값). 따로 부르던 GET /views(#25)는 백엔드에서 지웠다(ADR-0036)
+  const views={data:job.data?.views!=null?{views:job.data.views,todayViews:job.data.todayViews??0}:null}
   const profile=useRequest(getMyProfile,Boolean(getToken()))
   const profileBody=useMemo(()=>profile.data?toProfileBody(profile.data):null,[profile.data])
   const loadEligibility=useCallback((signal)=>getEligibility(profileBody,signal),[profileBody])

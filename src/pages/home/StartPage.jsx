@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { getToken, resolveApiAssetUrl } from '../../api/client'
-import { getJobViews } from '../../api/jobs'
 import { getRecommendationReason, getRecommendations, toProfileBody } from '../../api/matching'
 import { getMyProfile } from '../../api/myInfo'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
@@ -10,7 +9,6 @@ import { getCodes } from '../../api/reference'
 import processMascot from '../../assets/images/process-mascot.png'
 import jobAnimation from '../../assets/images/job-animation.mp4'
 import { useGuestStart } from '../../hooks/useGuestStart'
-import { useJobViews } from '../../hooks/useJobViews'
 import { useRequest } from '../../hooks/useRequest'
 import { RecommendationReasonSheet } from '../jobs/JobsPage'
 import { jobs } from '../../mock/jobs'
@@ -172,7 +170,8 @@ export function StartPage() {
     reasonTemplate: item.reasonTemplate,
     citations: item.citations,
   })) : jobs.slice(0, 4).map(job => ({ ...job, institution: { name: job.company, logoPath: job.logoPath }, description: jobSummaries[job.id], verdictCode: job.verdict, fitCode: job.fit, reasonTemplate: jobSummaries[job.id], citations: [] }))
-  const jobViews = useJobViews(homeJobs.map(job => job.id), getJobViews, loggedIn)
+  // 따로 부르던 GET /views(#25)는 백엔드에서 지웠다(ADR-0036). 홈 카드는 조회수를 받을 곳이 없어 비워 둔다
+  const jobViews = { data: Object.fromEntries(homeJobs.filter(job => job.views != null).map(job => [job.id, { views: job.views }])) }
   const plan = useRequest(getMyPlan, Boolean(homeRecommendationData))
   const [addedJobIds, setAddedJobIds] = useState([])
   const [removedJobIds, setRemovedJobIds] = useState([])
