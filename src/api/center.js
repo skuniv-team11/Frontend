@@ -12,17 +12,21 @@ const startCenterSession = () => {
 }
 
 // 센터 전용 토큰으로 부른다. 토큰이 만료(24시간)됐거나 정리됐으면(401) 새로 만들어 한 번만 다시 부른다.
-async function centerRequest(path, signal) {
+async function centerRequest(path, signal, options = {}) {
   const token = getCenterToken() ?? await startCenterSession()
   try {
-    return await request(path, { signal, token })
+    return await request(path, { ...options, signal, token })
   } catch (error) {
     if (error.status !== 401) throw error
     clearCenterToken()
-    return request(path, { signal, token: await startCenterSession() })
+    return request(path, { ...options, signal, token: await startCenterSession() })
   }
 }
 
 // GET /api/center/board — { asOf, round, summary: { jobs, seats, closedJobs }, rows: [{ jobId, closing, closed, eligiblePool, risks, alertCount, views }], alerts, todo, demand }
 // asOf(마감을 본 날)는 날짜라 쿼리로 보낸다(개인정보 아님). 생략하면 rounds/current의 replay.defaultAsOf. 관심·모집 신호는 더 주지 않는다(ADR-0036)
 export const getCenterBoard = (asOf, signal) => centerRequest(`/api/center/board${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`, signal)
+
+// POST /api/center/demo/advance — 시연 버튼(#58). 체험(데모) 센터 계정만, 아니면 403 DEMO_ONLY
+// to: RECEIVED · MATCHED · SELECTED · CLOSING 중 하나. 응답 { to, changed }(바뀐 건수)
+export const advanceCenterDemo = (to) => centerRequest('/api/center/demo/advance', undefined, { method: 'POST', body: { to } })
