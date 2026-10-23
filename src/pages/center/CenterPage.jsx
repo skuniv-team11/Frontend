@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { getCenterBoard } from '../../api/center'
+import { advanceCenterDemo, getCenterBoard } from '../../api/center'
 import { getCodes, getCurrentRound } from '../../api/reference'
 import { PageTitle } from '../../components/PageParts'
 import { Badge, SidePanel } from '../../components/Shell'
@@ -17,6 +17,22 @@ const daysBetween = (from, to) => {
 const formatDay = (day) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일`
 // closesOn은 '이 날부터 지원 불가'라서 화면에는 하루 전 날짜를 마감일로 보여 준다(백엔드 docs/api)
 const dayBefore = (day) => new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)
+
+const demoSteps=[['RECEIVED','신청 접수'],['MATCHED','매칭'],['SELECTED','선발'],['CLOSING','마무리']]
+const demoErrorMessage=(error)=>error.code==='DEMO_ONLY'?'체험 센터 계정에서만 시연 단계를 진행할 수 있어요.':error.code==='NETWORK'?'서버에 연결하지 못했어요. 잠시 뒤 다시 시도해 주세요.':error.message||'시연 단계를 진행하지 못했어요.'
+
+// 시연 단계 진행(POST /api/center/demo/advance). 가상 데이터를 고른 단계까지 옮기고 현황판을 다시 부른다
+function DemoAdvanceCard({ onAdvanced }) {
+  const [pending,setPending]=useState(null)
+  const [result,setResult]=useState(null)
+  const advance=async(to,name)=>{
+    setPending(to);setResult(null)
+    try{const data=await advanceCenterDemo(to);setResult({ok:true,text:`${name} 단계로 옮겼어요 · ${data.changed??0}건 바뀜`});onAdvanced()}
+    catch(error){setResult({ok:false,text:demoErrorMessage(error)})}
+    finally{setPending(null)}
+  }
+  return <div className="card dashboard-demo"><span className="aside-kicker">DEMO</span><h3>시연 단계 진행</h3><p>가상 데이터를 고른 단계까지 진행해요. 실제 학생 데이터는 바뀌지 않아요.</p><div className="demo-steps">{demoSteps.map(([to,name])=><button key={to} type="button" disabled={pending!==null} onClick={()=>advance(to,name)}>{pending===to?'진행 중…':name}</button>)}</div>{result&&<p className={result.ok?'demo-result':'demo-result danger'} role="status">{result.text}</p>}</div>
+}
 
 function BoardMessage({ board }) {
   if (board.error?.code === 'RATE_LIMITED') return <p className="notice danger">센터 체험 계정을 너무 많이 만들었어요. 잠시 뒤 다시 시도해 주세요.</p>
@@ -73,7 +89,8 @@ export function CenterPage(){
           <Link className="link-button" to={`/jobs/${row.jobId}`}>직무 상세 →</Link></div></details>)}
     </section>
     <aside><div className="card dashboard-note"><span className="aside-kicker">HOW TO READ</span><h3>현황판 보는 법</h3><p>모집기간 중 하루를 기준일로 골라 그날의 모집 상태를 봐요. 슬라이더로 기준일을 바꿔 보세요. 조회수는 학생이 직무 상세를 연 실제 횟수예요.</p><ul><li>모집 중 · 마감: 기준일에 지원할 수 있는지</li><li>적격 학생 풀: 선호 전공 학과의 재학생 수</li><li>줄을 누르면 위험 신호와 마감일을 볼 수 있어요</li></ul></div>
-      <div className="card dashboard-alert"><h3>확인이 필요한 직무</h3>{Object.keys(riskCounts).length?<ul className="risk-list">{Object.entries(riskCounts).map(([name,count])=><li key={name}>{name} {count}개</li>)}</ul>:<p>위험 신호가 있는 직무가 없어요.</p>}{alerts.length>0&&<button className="link-button" onClick={()=>setAlertsOpen(true)}>문서 검토 알림 {alerts.length}건 보기 →</button>}</div></aside></div>
+      <div className="card dashboard-alert"><h3>확인이 필요한 직무</h3>{Object.keys(riskCounts).length?<ul className="risk-list">{Object.entries(riskCounts).map(([name,count])=><li key={name}>{name} {count}개</li>)}</ul>:<p>위험 신호가 있는 직무가 없어요.</p>}{alerts.length>0&&<button className="link-button" onClick={()=>setAlertsOpen(true)}>문서 검토 알림 {alerts.length}건 보기 →</button>}</div>
+      {!previewMode&&<DemoAdvanceCard onAdvanced={board.reload}/>}</aside></div>
     {alertsOpen&&<SidePanel className="center-alert-panel" title={`문서 검토 알림 ${alerts.length}건`} close={()=>setAlertsOpen(false)}>{alerts.map(alert=><div className="alert-item" key={alert.id}><Badge tone="orange">{label('alertKind',alert.kind)}</Badge><b>{alert.institution.name}</b><p>{alert.description}</p>{alert.quoteA&&<blockquote>“{alert.quoteA}”</blockquote>}{alert.pageA&&<p className="source">{alert.pageA}쪽{alert.pageB?` · ${alert.pageB}쪽`:''}</p>}{alert.quoteB&&<blockquote>“{alert.quoteB}”</blockquote>}</div>)}<p className="notice">AI가 운영계획서를 읽다 찾은 불일치예요. 사람이 확인해야 판정에 반영돼요.</p></SidePanel>}
   </main>
 }
