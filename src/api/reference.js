@@ -15,7 +15,8 @@ export const getDepartments = (signal) => cachedReference('departments', '/api/d
 export const getAreas = (signal) => cachedReference('areas', '/api/areas', signal)
 
 // GET /api/rounds/current — 현재 모집 회차와 리플레이 날짜 범위
-// { termCode, roundNo, programName, recruitStart, recruitEnd, replay: { defaultAsOf, minDate, maxDate, signalsAreVirtual } }
+// { termCode, roundNo, programName, recruitStart, recruitEnd, replay: { defaultAsOf }, stages: [{ code, phase, startsOn, endsOn, confirmed, source }] }
+// replay.minDate·maxDate는 백엔드에서 빠졌다 — 날짜 범위는 recruitStart~recruitEnd를 쓴다
 export const getCurrentRound = (signal) => request('/api/rounds/current', { signal })
 
 // GET /api/codes — 코드값 → 화면 표기. { size: { SME: '중소기업', … }, course: {…}, … }
