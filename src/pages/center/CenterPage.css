@@ -56,3 +56,11 @@
 .center-page .alert-item { padding: 18px 0; border-bottom: 1px solid #edf0f4; }
 .center-page .alert-item > b { display: block; margin-top: 12px; }
 @media (prefers-reduced-motion: reduce) { .center-page .center-table summary { transition: none; } }
+
+/* 시연 단계 진행 (POST /api/center/demo/advance) */
+.center-page .dashboard-demo .demo-steps { display: grid; margin-top: 12px; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.center-page .dashboard-demo .demo-steps button { padding: 9px 0; border: 1px solid #d9deea; border-radius: 10px; background: #fff; color: #2f3a4f; font-size: 13px; font-weight: 700; cursor: pointer; }
+.center-page .dashboard-demo .demo-steps button:hover:not(:disabled) { border-color: #3154f4; color: #3154f4; }
+.center-page .dashboard-demo .demo-steps button:disabled { opacity: .55; cursor: default; }
+.center-page .dashboard-demo .demo-result { margin-top: 10px; color: #2f7a4f; font-size: 12px; }
+.center-page .dashboard-demo .demo-result.danger { color: #c2410c; }
