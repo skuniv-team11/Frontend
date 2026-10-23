@@ -23,9 +23,6 @@ async function centerRequest(path, signal) {
   }
 }
 
-// GET /api/center/board?asOf= — { asOf, isVirtual, signalSource, summary, historyAvailable, rows, alerts }
-// asOf는 날짜라 쿼리로 보낸다(개인정보 아님). 생략하면 rounds/current의 replay.defaultAsOf. 모집기간 밖이면 400 AS_OF_OUT_OF_RANGE
+// GET /api/center/board — { asOf, round, summary: { jobs, seats, closedJobs }, rows: [{ jobId, closing, closed, eligiblePool, risks, alertCount, views }], alerts, todo, demand }
+// asOf(마감을 본 날)는 날짜라 쿼리로 보낸다(개인정보 아님). 생략하면 rounds/current의 replay.defaultAsOf. 관심·모집 신호는 더 주지 않는다(ADR-0036)
 export const getCenterBoard = (asOf, signal) => centerRequest(`/api/center/board${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`, signal)
-
-// GET /api/jobs/{jobId}/views — 현황판에서 직무 줄을 펼칠 때 센터 전용 토큰으로 부른다. 센터 담당자가 불러도 조회수는 늘지 않는다.
-export const getCenterJobViews = (jobId, signal) => centerRequest(`/api/jobs/${encodeURIComponent(jobId)}/views`, signal)
