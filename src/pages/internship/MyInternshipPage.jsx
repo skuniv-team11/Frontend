@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyApplication } from '../../api/application'
-import { errorMessage, getToken } from '../../api/client'
+import { errorMessage, getDemoSession, getToken } from '../../api/client'
 import { getMyExplore } from '../../api/explore'
 import { getMyInternship, markDocument } from '../../api/internship'
 import { getMyPlan, removePlanItem, saveRanks } from '../../api/plan'
@@ -191,6 +191,8 @@ function FormSheet({ kind, data, codes, close }) {
 
 export function MyInternshipPage() {
   const loggedIn = Boolean(getToken())
+  // 체험 학생의 시점 날(7/23 · 10/14 · 12/17). 같은 묶음 센터가 진행하면 서버 기준일(data.asOf)이 이보다 뒤로 간다(백엔드 ADR-0040)
+  const demoToday = getDemoSession()?.demoToday ?? null
   const internship = useRequest(getMyInternship, loggedIn)
   const plan = useRequest(getMyPlan, loggedIn)
   const codes = useCodes()
@@ -373,6 +375,7 @@ export function MyInternshipPage() {
 
   return <main className="fx-page"><div className="fx-shell">
     {virtual && <div className="fx-demo" style={{ marginBottom: 16 }}><b>체험</b><span>체험 계정이 갖고 시작한 지난 기록(지원서 · 매칭 · 면접{documents?.evaluation ? ' · 마무리 서류 일부' : ''})은 가상이에요</span><span>기준일 {fmtDate(data.asOf, true)}</span></div>}
+    {!virtual && demoToday && data.asOf && data.asOf > demoToday && <div className="fx-demo" style={{ marginBottom: 16 }}><b>체험</b><span>센터가 진행한 단계에 맞춰 기준일을 {fmtDate(demoToday)}에서 {fmtDate(data.asOf, true)}로 옮겨 보여 줘요</span></div>}
 
     <div className="mi-head">
       <header className="page-title"><span>MY INTERNSHIP · {data.round?.termCode} 표준 현장실습학기제</span><h1>{headTitle}</h1><p>{headSub}</p></header>
