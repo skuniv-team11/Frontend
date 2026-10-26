@@ -1,0 +1,40 @@
+/* 직무 찾기 v2 — 프로토타입(Jobs.dc.html)의 화면 전용 스타일 + 상태 표시. 공통 CSS(styles/*)는 고치지 않는다 */
+
+/* 프로토타입 helmet 그대로 */
+.jb-after { display: flex; margin: 8px 0 0; gap: 8px; align-items: baseline; color: #3e4651; font-size: 12px; font-weight: 700; line-height: 1.5; }
+.jb-after b { flex: 0 0 auto; color: #3154f4; font-size: 11px; font-weight: 900; }
+.jb-after span { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.jb-cta { display: flex; margin: 4px 0 26px; padding: 30px 34px; align-items: center; justify-content: space-between; gap: 28px; border: 1px dashed #b9c6ff; border-radius: 22px; background: #f7f9ff; }
+.jb-cta h3 { margin: 8px 0 6px; font-size: 22px; letter-spacing: -.8px; }
+.jb-cta p { margin: 0; color: #5b6472; font-size: 14px; line-height: 1.7; }
+.jb-cta a { text-decoration: none; }
+.jb-cta.is-empty { border-color: #d9dee7; background: #fafbfc; }
+.v2-more-row { display: flex; width: 100%; padding: 18px 20px; align-items: center; justify-content: center; border: 0; border-top: 1px solid #eeeae2; color: #5b6472; background: transparent; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.v2-more-row:hover { color: #3154f4; background: #fafbff; }
+
+/* 추천 카드 — NCS 꼬리표가 줄을 차지하지 않게 */
+.jobs-page .recommend-card .v2-ncs { align-self: flex-start; }
+.jobs-page .recommend-card .jb-after { margin-bottom: 8px; }
+
+/* 진단 띠 — 불러오는 중 · 오류 · 보조 문구 */
+.v2-diag-bar .jb-diag-note { color: #8a6a00; font-size: 12px; font-weight: 700; }
+.v2-diag-bar.jb-loading { color: #5b6472; }
+.v2-diag-bar.jb-loading .v2-spinner { width: 18px; height: 18px; border-width: 2px; }
+.v2-diag-bar.is-error { border-color: #f0d2d2; }
+.v2-diag-bar.is-error > p { color: #9b3a3a; }
+
+/* 목록 */
+.jb-list-empty { margin: 0; padding: 46px 20px; color: #7b8491; font-size: 13px; font-weight: 700; text-align: center; }
+.jobs-page .job-row.is-ineligible .job-main b { color: #5b6472; }
+.jobs-page .job-main small .v2-ncs { margin-left: 4px; }
+.jb-foot { margin: 14px 4px 0; color: #929aa7; font-size: 12px; line-height: 1.6; }
+
+/* 막힌 상태(프로필 없음 · 권한 · 오류) */
+.jobs-page .jb-blocked { display: flex; padding: 34px 36px; flex-direction: column; align-items: flex-start; gap: 10px; }
+.jobs-page .jb-blocked h3 { margin: 0; font-size: 20px; letter-spacing: -.6px; }
+.jobs-page .jb-blocked p { margin: 0 0 8px; color: #5b6472; font-size: 14px; line-height: 1.7; }
+
+/* 추천 이유 시트 — 탐색 짝 카드는 세 개까지 한 줄 */
+.reason-sheet-citations article > span { letter-spacing: 0; }
+.reason-sheet-citations p { line-height: 1.6; }
+.first-save-toast-icon.error { color: #c53535; background: #fdeeee; }
