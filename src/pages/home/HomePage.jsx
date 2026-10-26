@@ -13,10 +13,18 @@ import { useGuestStart } from '../../hooks/useGuestStart'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes, useSession } from '../../hooks/useSession'
 import { fmtDate, studentAppStatus, VERDICT_LABEL } from '../../lib/format'
-import { STAGES } from '../../lib/stages'
+import { STAGES, stageTitle } from '../../lib/stages'
 import './StartPage.css'
 import './StartPageProcess.css'
 import './HomePage.css'
+import story1 from '../../assets/images/story/story-1.jpg'
+import story2 from '../../assets/images/story/story-2.jpg'
+import story3 from '../../assets/images/story/story-3.jpg'
+import story4 from '../../assets/images/story/story-4.jpg'
+import story5 from '../../assets/images/story/story-5.jpg'
+import story6 from '../../assets/images/story/story-6.jpg'
+import story7 from '../../assets/images/story/story-7.jpg'
+import story8 from '../../assets/images/story/story-8.jpg'
 
 const loadInternship = (signal) => getMyInternship(signal)
 const loadExplore = (signal) => getMyExplore(signal)
@@ -40,10 +48,8 @@ const seniorStories = [
   { key: 'deltatech-business', category: '사업부', title: '델타텍코리아 선배의 실습 이야기', meta: '2025-2 · 사업부', activities: ['거래 제의서, 피치덱 등 영업 문서 작성 및 발송', '전시회/박람회 참가 및 해외 기업 B2B 미팅', '관심 기업 대상 화상회의 알선 및 통역', '기술 실증 데이터 클러스터 분석 및 보고서 작성'], outcomes: ['총 6개의 프로젝트에 참여', '2개 프로젝트에서는 프로젝트 매니저로서 용역 계약부터 완료 단계까지 전 과정을 담당', '기술 실증 관련 군집분석 보고서 작성'] },
   { key: 'building-doctor-safety', category: '안전진단팀', title: '빌딩닥터엔지니어링 선배의 실습 이야기', meta: '2024-2 · 안전진단팀', activities: ['어린이집 건축물 안전진단 후 결함 위치 도면 그리기 및 결과보고서 작성', 'OOO 건축물 외관 그리기 작업', '건축물 외관 조사 부록 정리, 결과표 정리', '건축물 보수작업에 필요한 재료 조사', 'MIDAS 프로그램 배우고 활용하기', '그 외 자료 및 보고서 정리 등'], outcomes: [] },
 ]
-const storyFilm = [
-  ['https://images.unsplash.com/photo-1521737711867-e3b97375f902', 'https://images.unsplash.com/photo-1524758631624-e2822e304c36', 'https://images.unsplash.com/photo-1497366754035-f200968a6e72', 'https://images.unsplash.com/photo-1522071820081-009f0129c71c'],
-  ['https://images.unsplash.com/photo-1531497865144-0464ef8fb9a9', 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3', 'https://images.unsplash.com/photo-1543269865-cbf427effbad'],
-].map((row) => row.map((url) => `${url}?auto=format&fit=crop&w=900&q=80`))
+// 선배 이야기 띠 사진(Unsplash 라이선스, 저장소에 둔다 — 외부 사이트를 직접 부르지 않게)
+const storyFilm = [[story1, story2, story3, story4], [story5, story6, story7, story8]]
 
 // 여정 4단계 ↔ #44 일정 단계(phase)
 const JOURNEY = [
@@ -124,15 +130,16 @@ function Hero({ mode, guest, openStages, onScroll }) {
   </section>
 }
 
-// 체험 학생 시점 고르기 — 지원 중 7/23 · 실습 중 10/14 · 실습 마친 뒤 12/17
+// 체험 학생 시점 고르기 — 날짜는 codes.guestStage
 function StageChooser({ guest, close }) {
   const { start, loadingRole, error } = guest
+  const codes = useCodes()
   const [picked, setPicked] = useState(null)
   return <Modal close={close} className="home-stage-modal">{(dismiss) => <>
     <h2>체험할 시점을 골라 주세요</h2>
     <p>예시 프로필(메이크업디자인학과 3학년)로 체험 계정을 만들어요. 가입은 필요 없고 24시간 뒤 지워져요. 실습 중 · 마친 뒤는 지난 기록(가상)을 갖고 시작해요.</p>
     <div className="home-stage-list">{STAGES.map(([stage, title, sub]) => <button key={stage} type="button" disabled={loadingRole !== null} onClick={() => { setPicked(stage); start('STUDENT', stage) }}>
-      <b>{loadingRole === 'STUDENT' && picked === stage ? '체험 계정 만드는 중…' : title}</b><small>{sub}</small><i aria-hidden="true">→</i>
+      <b>{loadingRole === 'STUDENT' && picked === stage ? '체험 계정 만드는 중…' : stageTitle(codes, stage, title)}</b><small>{sub}</small><i aria-hidden="true">→</i>
     </button>)}</div>
     {loadingRole && <p className="home-stage-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}
     {error && <p className="danger" role="alert">{error}</p>}

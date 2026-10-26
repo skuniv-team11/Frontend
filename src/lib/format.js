@@ -24,3 +24,6 @@ export const MAJOR_NOTE = '지원 판정에는 넣지 않아요. 지난 매칭 7
 // 학생 화면의 지원서 상태 — codes.applicationStatus는 센터 말(SUBMITTED '새로 들어옴')이라 학생 화면은 이 표기를 쓴다
 export const STUDENT_APP_STATUS = { NONE: '작성 전', DRAFT: '작성 중', SUBMITTED: '접수 대기', RECEIVED: '접수 완료', FIX_REQUESTED: '보완 요청', MATCHED: '매칭' }
 export const studentAppStatus = (status) => STUDENT_APP_STATUS[status] ?? status ?? ''
+
+// 표준 현장실습학기제 규칙(2026-2 학생 모집안내 · 백엔드 app.internship과 같은 값). 응답(practice.courseName·credits)이 없는 곳에서만 쓴다
+export const PROGRAM = { course: '표준 현장실습 D', credits: 12, scholarship: '월 20만 원 × 최대 3개월' }

@@ -6,14 +6,14 @@
 현장실습 공고를 AI로 구조화해 학생에게는 지원할 수 있는 자리와 이유(**원문 근거** 포함)·1~3지망 빈 자리 제안을, 현장실습지원센터에는 모집 중 현황판을 보여주는 서비스의 웹 화면. 앱이 아닌 PC 웹 전용(10/1 회의, 모바일 대응 없음). 백엔드·API 계약은 `skuniv-team11/Backend`(`docs/api/`). 제출 11/1, 1차 평가 11/2~11/9(공개 링크), 최종 발표 11/12.
 
 ## 스택·명령
-React 19 · Vite · React Router 7 · JavaScript(JSX) · styled-components. Vercel 배포.
+React 19 · Vite · React Router 7 · JavaScript(JSX) · styled-components. Cloudflare Pages 배포(`develop` → https://fieldrun.pages.dev, 브랜치마다 미리보기).
 ```
 npm ci
 npm run lint       # oxlint — 통과해야 끝
 npm run build      # vite build — 통과해야 끝
 scripts/verify.sh  # 위 두 개 + 비밀 검사. CI와 같은 검사
 ```
-작업 중에는 로컬에서 Render API까지 바로 확인한다 — `npm run dev`(localhost:5173)·`npm run build` 후 `npm run preview`(localhost:4173) 둘 다 된다(백엔드 `CORS_ORIGINS`가 localhost도 허용). 병합 전 최종 확인과 PR 스크린샷은 Vercel 미리보기 주소에서 한다.
+작업 중에는 로컬에서 Render API까지 바로 확인한다 — `npm run dev`(localhost:5173)·`npm run build` 후 `npm run preview`(localhost:4173) 둘 다 된다(백엔드 `CORS_ORIGINS`가 localhost도 허용). 병합 전 최종 확인과 PR 스크린샷은 Cloudflare Pages 미리보기 주소(`<브랜치>.fieldrun.pages.dev`)에서 한다.
 
 ## 화면과 라우트 (v2 화면 설계 기준, 10/26)
 학생 화면과 센터 화면 모두 PC 웹 1280px 기준이고 모바일 대응은 하지 않는다(10/1 회의). 로그인이 있고(백엔드 ADR-0008), [체험 학생으로 시작](시점: 지원 중 · 실습 중 · 실습 마친 뒤)·[센터 담당자로 보기]는 가입 없는 체험 계정을 만든다. 같은 브라우저의 체험 학생과 체험 센터는 한 묶음이다(백엔드 ADR-0033). 체험 계정도 가입 계정과 같은 화면을 쓴다.
@@ -65,6 +65,6 @@ scripts/verify.sh  # 위 두 개 + 비밀 검사. CI와 같은 검사
 - 커밋·PR은 한국어, `feat|fix|docs|refactor|test|chore(fe): 요약` (`docs/conventions.md`).
 
 ## 알아두면 막히지 않는 것
-- 하위 경로 새로고침 404는 `vercel.json` rewrite로 해결돼 있다. 지우지 않는다.
-- Vercel 미리보기 주소는 매번 바뀐다. 백엔드 `CORS_ORIGINS` 패턴에 맞는지 확인한다.
+- 하위 경로 새로고침은 Cloudflare Pages SPA 동작(`404.html`이 없을 때)으로 된다. `public/404.html`을 만들지 않는다. `vercel.json`은 예전 Vercel용(지금 안 씀).
+- 미리보기 주소(`*.fieldrun.pages.dev`)는 백엔드 `CORS_ORIGINS` 패턴에 들어 있다.
 - 백엔드(Render Free)가 잠들어 있으면 첫 요청이 1분 가까이 걸린다. 로딩 상태를 둔다.

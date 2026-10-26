@@ -12,7 +12,7 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 | 브랜치 | 용도 | 규칙 |
 |---|---|---|
 | `develop` | 개발 기준(기본 브랜치) | 직접 push 금지. PR + CI(`ci-ok`) 통과 후 squash merge(커밋 메시지는 PR 제목) |
-| `main` | 배포(Vercel·Render) | `develop`에서 fast-forward push로만 올린다: `git push origin origin/develop:refs/heads/main`. PR로 올리면 squash 때문에 갈라진다. 백엔드 Render 빌드 시간(월 500분) 때문에 하루 1~2번 |
+| `main` | 최종 반영(백엔드 Render 배포는 `main`) | `develop`에서 fast-forward push로만 올린다: `git push origin origin/develop:refs/heads/main`. PR로 올리면 squash 때문에 갈라진다. 백엔드 Render 빌드 시간(월 500분) 때문에 하루 1~2번 |
 | `feat/<영역>-<주제>` | 작업 | 예: `feat/be-eligibility`, `feat/fe-profile`, `fix/fe-cors` |
 
 ## 커밋
@@ -31,10 +31,11 @@ git config user.email "<숫자>+<아이디>@users.noreply.github.com"   # GitHub
 ## 환경변수
 | 이름 | 어디 | 비고 |
 |---|---|---|
-| `CORS_ORIGINS` | Render | Vercel 운영·미리보기 주소 패턴 |
+| `CORS_ORIGINS` | Render | `https://fieldrun.pages.dev,https://*.fieldrun.pages.dev,http://localhost:5173,http://localhost:4173`(Cloudflare Pages 운영·미리보기 + 로컬) |
 | `ANTHROPIC_API_KEY` | Render, 백엔드 `pipeline/`(추출) | 절대 커밋·로그 금지 |
 | `JWT_SECRET` | Render | 로그인 토큰 서명 키(HS256, 백엔드 ADR-0008). Blueprint가 무작위 값을 만든다. 절대 커밋·로그 금지 |
 | `DB_URL`, `DB_USER`, `DB_PASSWORD` | Render | 백엔드 DB 연결(`jdbc:postgresql://HOST:PORT/DB`, 백엔드 README 'DB') |
-| `VITE_API_BASE_URL` | Vercel(Production·Preview) | `https://coop-radar-api.onrender.com`. 브라우저에 노출됨. 주소만 |
+| `VITE_API_BASE_URL` | Cloudflare Pages(넣지 않으면 기본값) | `https://coop-radar-api.onrender.com`. 브라우저에 노출됨. 주소만 |
+| `VITE_PUBLIC_ORIGIN` | (선택) | 학과(부)장 승인 링크의 화면 주소. 기본 `https://fieldrun.pages.dev` |
 | `KAKAO_REST_API_KEY` | Render | 카카오 디벨로퍼스 REST API 키. 통근 조회(백엔드 ADR-0007). 절대 커밋·로그 금지 |
 | `VOYAGE_API_KEY`, `NTS_SERVICE_KEY`, `NCS_SERVICE_KEY`, `JUSO_COORD_API_KEY` | 로컬(`pipeline/`) | 공공데이터포털은 Decoding 키. `JUSO_COORD_API_KEY`는 도로명주소 좌표제공 API 승인키(10/1 대기. 재개 때 도로명주소 검색 API 승인키도 함께 받는다). `ODSAY_API_KEY`는 더 쓰지 않는다(백엔드 ADR-0002 개정) |

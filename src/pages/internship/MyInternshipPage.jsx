@@ -10,7 +10,7 @@ import { Modal, SidePanel } from '../../components/Shell'
 import { ErrorBox, InstitutionLogo, Loading, NeedLogin, VerdictBadge, VirtualTag } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
-import { fmtDate, fmtDateTime, studentAppStatus, won } from '../../lib/format'
+import { fmtDate, fmtDateTime, PROGRAM, studentAppStatus, won } from '../../lib/format'
 import '../plan/PlanPage.css'
 import './MyInternship.css'
 
@@ -224,7 +224,7 @@ export function MyInternshipPage() {
   const documents = data.documents
   const virtual = Boolean(application?.virtual)
   const stageOf = (code) => stages.find((s) => s.code === code)
-  const stateBadge = (s) => [s.state === 'DONE' ? '완료' : s.state === 'NOW' ? '지금' : '예정', STATE_TONE[s.state]]
+  const stateBadge = (s) => [L('stageState', s.state), STATE_TONE[s.state]]
   const sheetLabel = (s) => (s.state === 'NOW' ? '하기' : s.state === 'DONE' ? '보기' : '미리 보기')
   const next = data.next
 
@@ -296,16 +296,16 @@ export function MyInternshipPage() {
     } else if (code === 'MATCH') {
       panel.items = [placement
         ? { title: '매칭 결과', sub: `${placement.rank}지망 · ${placement.institution?.name} ${placement.title}`, badge: [`${md(placement.matchedAt)} 매칭`, 'blue'], virtual, actions: [{ to: `/jobs/${placement.jobId}`, label: '직무 보기' }] }
-        : { title: '매칭 결과', sub: submitted ? `${md(s.endsOn)}까지 센터가 정해요 · 확정되면 이 화면에 바로 보여요` : '지원서를 내야 매칭 대상이 돼요', badge: ['예정', 'gray'] }]
+        : { title: '매칭 결과', sub: submitted ? `${md(s.endsOn)}까지 센터가 정해요 · 확정되면 이 화면에 바로 보여요` : '지원서를 내야 매칭 대상이 돼요', badge: [L('stageState', 'NEXT'), 'gray'] }]
       panel.notes.push('센터가 매칭 · 선발 화면에서 확정하면 이 화면에 바로 바뀌어요. 메일 · 문자 알림은 보내지 않아요.')
     } else if (code === 'SELECT') {
       const iv = placement?.interview
       panel.items.push(iv?.at
         ? { title: '면접', sub: `${fmtDateTime(iv.at)} · ${L('interviewMode', iv.mode)}`, badge: [L('interviewMode', iv.mode), 'blue'], virtual }
-        : { title: '면접 일정', sub: '기관이 정하면 센터가 넣어 여기 보여요', badge: ['예정', 'gray'] })
+        : { title: '면접 일정', sub: '기관이 정하면 센터가 넣어 여기 보여요', badge: [L('stageState', 'NEXT'), 'gray'] })
       panel.items.push(placement?.result
         ? { title: '최종 선발', sub: `${placement.institution?.name} ${placement.title}${placement.team ? ` · ${placement.team}` : ''}`, badge: [`${md(placement.notifiedAt)} ${L('selectionResult', placement.result)}`, placement.result === 'PASS' ? 'green' : 'gray'], virtual }
-        : { title: '최종 선발', sub: `${md(s.endsOn)}까지 결과를 알려 드려요`, badge: ['예정', 'gray'] })
+        : { title: '최종 선발', sub: `${md(s.endsOn)}까지 결과를 알려 드려요`, badge: [L('stageState', 'NEXT'), 'gray'] })
       const jobId = placement?.jobId
       if (!placement?.result && jobId) panel.items.push({ title: '면접 준비', sub: '직무 상세의 같은 팀 선배 수기 · 진로취업상담의 면접 상담', badge: ['준비', 'gray'], actions: [{ to: `/jobs/${jobId}`, label: '선배 수기' }] })
       if (placement?.result === 'FAIL') panel.warn = '2026-2는 2차 모집이 없어요. 진로취업상담에서 다음 학기 일정을 안내받을 수 있어요.'
@@ -333,7 +333,7 @@ export function MyInternshipPage() {
       panel.notes.push('중간점검서는 서식과 상태만 보여 줘요(시연). 실제 제출은 센터 안내에 따라요.')
     } else if (code === 'CLOSE') {
       if (!documents) {
-        panel.items = ['REPORT', 'CREDIT', 'SURVEY'].map((k) => ({ title: L('studentDocument', k), sub: '합격을 알린 뒤에 서류 칸이 열려요', badge: ['예정', 'gray'] }))
+        panel.items = ['REPORT', 'CREDIT', 'SURVEY'].map((k) => ({ title: L('studentDocument', k), sub: '합격을 알린 뒤에 서류 칸이 열려요', badge: [L('stageState', 'NEXT'), 'gray'] }))
       } else {
         const d = documents
         const reportActions = d.report ? [{ to: '/career', label: '리포트 보기' }] : d.careerReportId ? [{ onClick: () => askMark('REPORT'), label: '냄 표시', real: true, busy: docBusy === 'REPORT' }] : [{ to: '/career', label: '리포트 만들기', real: true }]
@@ -359,9 +359,9 @@ export function MyInternshipPage() {
       }
     } else if (code === 'CREDIT') {
       panel.items = [
-        { title: '학점', sub: `${practice ? `${practice.courseName} ${practice.credits}학점` : '현장실습 교과목'} · P/NP라 평점에는 들어가지 않아요`, badge: stateBadge(s) },
+        { title: '학점', sub: `${practice ? `${practice.courseName} ${practice.credits}학점` : `${PROGRAM.course} ${PROGRAM.credits}학점`} · P/NP라 평점에는 들어가지 않아요`, badge: stateBadge(s) },
         ...(documents ? [{ title: '학과(부)장 승인', sub: '학점 인정 승인', badge: [L('approvalStatus', documents.creditApproval?.status ?? 'NONE'), documents.creditApproval?.status === 'APPROVED' ? 'green' : 'gray'] }] : []),
-        { title: '대학 장학금', sub: '월 20만 원 × 최대 3개월 · 학점 인정 뒤 일괄', badge: stateBadge(s) },
+        { title: '대학 장학금', sub: `${PROGRAM.scholarship} · 학점 인정 뒤 일괄`, badge: stateBadge(s) },
         { title: '커리어 리포트', sub: '보고서에서 찾은 능력단위 · 넓혀 갈 직무 · 이어지는 직업', badge: documents?.careerReportId ? ['있음', 'green'] : ['만들기 전', 'gray'], actions: [{ to: '/career', label: documents?.careerReportId ? '보기' : '만들기', real: !documents?.careerReportId }] },
       ]
     }

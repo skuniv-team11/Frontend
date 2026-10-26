@@ -145,12 +145,25 @@ function InteractiveCareerBook({ loggedIn }) {
 }
 
 // 위쪽 배너 슬라이드(옛 화면 그대로) — 4초마다 넘어가고, 누르면 그 직무 상세로
-function JobsBanner() {
+// 배너 직무가 마감이면 같은 기관의 모집 중 직무로 바꾸고(제목·팀은 판정 응답 값), 모집 중 직무가 없으면 그 배너는 뺀다.
+// 판정(#14)을 받기 전에는 배너를 그대로 보여 준다.
+const openBanners = (jobs, round) => {
+  if (!jobs) return arrangedJobBanners
+  const open = jobs.filter((job) => !isClosed(job.closing, round))
+  return arrangedJobBanners.flatMap((banner) => {
+    if (open.some((job) => job.jobId === banner.jobId)) return [banner]
+    const other = open.find((job) => job.institution?.id === banner.institution.id)
+    return other ? [{ ...banner, jobId: other.jobId, title: other.title, detail: other.team ?? banner.detail }] : []
+  })
+}
+
+function JobsBanner({ jobs, round }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const [active, setActive] = useState(() => Number.isInteger(location.state?.jobsBannerIndex) ? location.state.jobsBannerIndex : 0)
+  const [rawActive, setActive] = useState(() => Number.isInteger(location.state?.jobsBannerIndex) ? location.state.jobsBannerIndex : 0)
   const [paused, setPaused] = useState(false)
-  const banners = useMemo(() => [...arrangedJobBanners.map((banner) => ({ kind: 'job', ...banner })), { kind: 'promo', key: 'service-promo', image: coopRadarCareerBanner }], [])
+  const banners = useMemo(() => [...openBanners(jobs, round).map((banner) => ({ kind: 'job', ...banner })), { kind: 'promo', key: 'service-promo', image: coopRadarCareerBanner }], [jobs, round])
+  const active = rawActive % banners.length
   useEffect(() => {
     if (paused || banners.length < 2) return undefined
     const timer = window.setInterval(() => setActive((current) => (current + 1) % banners.length), 4000)
@@ -511,7 +524,7 @@ export function JobsPage() {
   if (!loggedIn) return <><InteractiveCareerBook loggedIn={false} /><LoginRequired /></>
   if (eligibility.loading && !eligibility.data) return <JobsLoading message="내 조건에 맞는 직무를 찾고 있어요" detail="저장한 프로필로 공고의 지원 조건을 하나씩 비교하고 있어요. 서버가 잠들어 있으면 1분 가까이 걸려요." />
   const error = eligibility.error
-  if (error?.code === 'PROFILE_NOT_FOUND') return <Blocked><h3>저장한 프로필이 없어요</h3><p>학과·학년·이수 학기·평점을 저장하면 회차 직무 40개의 지원 판정을 바로 보여 드려요. 저장은 동의할 때만 해요.</p><Link className="v2-btn" to="/me" state={{ editProfile: true }}>내 정보에서 프로필 저장하기 →</Link></Blocked>
+  if (error?.code === 'PROFILE_NOT_FOUND') return <Blocked><h3>저장한 프로필이 없어요</h3><p>학과·학년·이수 학기·평점을 저장하면 이번 회차 직무마다 지원 판정을 바로 보여 드려요. 저장은 동의할 때만 해요.</p><Link className="v2-btn" to="/me" state={{ editProfile: true }}>내 정보에서 프로필 저장하기 →</Link></Blocked>
   if (error?.code === 'FORBIDDEN_ROLE') return <Blocked><h3>학생 계정에서 볼 수 있어요</h3><p>직무 판정은 학생 계정 화면이에요. 센터 담당자는 현황판에서 직무별 현황을 볼 수 있어요.</p><Link className="v2-btn line" to="/center">현황판으로 →</Link></Blocked>
   if (error?.status === 401) return <Blocked><h3>로그인 정보가 없거나 만료됐어요</h3><p>체험 계정은 24시간 뒤 지워져요. 다시 로그인하거나 예시 프로필로 시작해 주세요.</p><Link className="v2-btn" to="/login">다시 로그인하기 →</Link></Blocked>
   if (error) return <Blocked><h3>판정 결과를 불러오지 못했어요</h3><p>{error.code === 'INVALID_INPUT' ? `프로필 값을 확인해 주세요. ${error.fields.map((field) => field.reason).join(' · ')}` : error.code === 'NETWORK' ? '서버에 연결하지 못했어요. 서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요.' : '잠시 뒤 다시 시도해 주세요.'}</p><button type="button" className="v2-btn line" onClick={eligibility.reload}>다시 불러오기</button></Blocked>
@@ -528,7 +541,7 @@ export function JobsPage() {
   return <main className="content wide jobs-page jobs-page-ready">
     <InteractiveCareerBook loggedIn />
     <div className="jobs-page-inner">
-      <JobsBanner />
+      <JobsBanner jobs={eligibility.data?.jobs} round={round.data} />
       <div className="jobs-heading"><PageTitle title={title} /><div className="result-summary"><div><small>추천</small><b>{recCount}</b></div><div><small>지원 가능</small><b>{summary.eligible}</b></div><div><small>확인 필요</small><b>{summary.needsCheck}</b></div><div><small>전체</small><b>{summary.total}</b></div></div></div>
 
       <ExploreArea explore={explore} codes={codes} rowsById={rowsById} savedOf={savedOf} rankOf={rankOf} busyId={busyId} onSave={save} onReason={setReasonItem} toastJobId={toast?.jobId} />
@@ -551,7 +564,7 @@ export function JobsPage() {
               <div className="job-major"><Badge>{MAJOR_LABEL[job.majorMatch] ?? label(codes, 'majorMatch', job.majorMatch)}</Badge>{job.alertCount > 0 && <DecisionPreview type="document" reasons={job.reasons} count={job.alertCount}><Badge tone="orange">문서 검토</Badge></DecisionPreview>}</div>
               <div>{job.verdict === 'NEEDS_CHECK' ? <DecisionPreview type="check" reasons={job.reasons}><VerdictBadge verdict={job.verdict} /></DecisionPreview> : <VerdictBadge verdict={job.verdict} />}</div>
               <span className={`job-closing ${closed ? 'is-closed' : 'is-open'}`}>{closingText(job.closing, round.data)}</span>
-              <div className="job-actions"><button type="button" className={`save-button ${saved ? 'saved' : ''}`} disabled={busyId !== null} title={saved ? '다시 누르면 담기를 취소해요(지망 순위도 지워져요)' : undefined} onClick={(event) => { event.stopPropagation(); save(job.jobId) }}><SaveLabel busy={busyId === job.jobId} saved={saved} rank={rankOf(job.jobId)} /></button></div>
+              <div className="job-actions"><button type="button" className={`save-button ${saved ? 'saved' : ''}`} disabled={busyId !== null} title={saved ? '다시 누르면 담기를 취소해요(지망 순위도 빠져요 · 이미 낸 지원서의 지망은 그대로예요)' : undefined} onClick={(event) => { event.stopPropagation(); save(job.jobId) }}><SaveLabel busy={busyId === job.jobId} saved={saved} rank={rankOf(job.jobId)} /></button></div>
             </div>
           })}
           {shown.length > SHOW && <button type="button" className="v2-more-row" onClick={() => setShowAll((value) => !value)}>{showAll ? '접기 ↑' : `나머지 ${shown.length - SHOW}개 더 보기 ↓`}</button>}

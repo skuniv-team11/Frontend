@@ -30,6 +30,19 @@ export const clearCenterToken = () => write(localStorage, CENTER_TOKEN_KEY, null
 
 // 체험 묶음(같은 브라우저의 체험 학생 ↔ 체험 센터). 개인정보가 아닌 묶음 id와 시점만 둔다.
 const DEMO_KEY = 'demoSession'
+// 로그아웃·탈퇴: 학생(가입) 토큰 · 센터 토큰 · 체험 묶음을 함께 지운다(한 곳에서)
+export const clearSession = () => { clearToken(); clearCenterToken(); saveDemoSession(null) }
+
+// 토큰의 역할(JWT payload의 role). 화면 분기에만 쓰고 권한은 서버가 본다
+export const tokenRole = (token) => {
+  try {
+    const part = String(token).split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(part.padEnd(part.length + ((4 - (part.length % 4)) % 4), '='))).role ?? null
+  } catch {
+    return null
+  }
+}
+
 export const getDemoSession = () => { try { return JSON.parse(read(localStorage, DEMO_KEY) ?? 'null') } catch { return null } }
 export const saveDemoSession = (session) => write(localStorage, DEMO_KEY, session ? JSON.stringify(session) : null)
 

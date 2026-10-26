@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { clearCenterToken, clearToken, errorMessage, getDemoSession, getToken, saveDemoSession } from '../api/client'
+import { clearSession, errorMessage, getDemoSession, getToken } from '../api/client'
+import { fmtDate } from '../lib/format'
 import { advanceDemo } from '../api/center'
 import { getMe, getMyProfile } from '../api/me'
 
@@ -53,7 +54,7 @@ export function Header({ center = false, hidden = false }) {
   const [menuAccount, setMenuAccount] = useState(null)
   const profileMenuRef = useRef(null)
   const logout = () => {
-    clearToken(); clearCenterToken(); saveDemoSession(null)
+    clearSession()
     window.location.replace('/')
   }
 
@@ -117,6 +118,7 @@ export function Header({ center = false, hidden = false }) {
 export function DemoBanner({ onSwitch }) {
   const demo = getDemoSession()
   if (!demo?.stage || !getToken()) return null
-  const label = { APPLYING: '지원 중 · 7월 23일', PRACTICING: '실습 중 · 10월 14일', DONE: '실습 마친 뒤 · 12월 17일' }[demo.stage] ?? demo.stage
+  // 날짜는 체험 계정을 만들 때 받은 시점의 날(demoToday)
+  const label = [{ APPLYING: '지원 중', PRACTICING: '실습 중', DONE: '실습 마친 뒤' }[demo.stage] ?? demo.stage, demo.demoToday ? fmtDate(demo.demoToday) : null].filter(Boolean).join(' · ')
   return <div className="v2-demo-banner">체험 계정 · 시점 {label} · 가상 데이터가 섞여 있어요 <button type="button" onClick={onSwitch}>시점 바꾸기</button></div>
 }

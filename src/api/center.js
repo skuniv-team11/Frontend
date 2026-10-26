@@ -1,4 +1,4 @@
-import { clearCenterToken, getCenterToken, request, requestFile } from './client'
+import { clearCenterToken, getCenterToken, getToken, request, requestFile, tokenRole } from './client'
 import { guestCenter } from './auth'
 
 // 센터 화면은 센터 토큰으로 부른다(학생 토큰과 따로). 없으면 같은 브라우저의 체험 학생과 같은 묶음으로 체험 센터를 만든다.
@@ -13,6 +13,9 @@ export const ensureCenterSession = () => {
 
 // 토큰이 만료(24시간)됐거나 정리됐으면(401) 새로 만들어 한 번만 다시 부른다.
 async function centerCall(path, options = {}, call = request) {
+  // 센터 계정으로 로그인했으면 그 토큰(가입 센터 — 묶음 없는 실제 지원서). 아니면 체험 센터
+  const main = getToken()
+  if (main && tokenRole(main) === 'CENTER') return call(path, { ...options, token: main })
   const token = await ensureCenterSession()
   try {
     return await call(path, { ...options, token })
