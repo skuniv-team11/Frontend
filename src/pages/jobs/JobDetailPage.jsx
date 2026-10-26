@@ -421,7 +421,7 @@ export function JobDetailPage() {
       </div>
       <p className="job-detail-views">조회 {detail.views.toLocaleString('ko-KR')} · 오늘 조회 {detail.todayViews.toLocaleString('ko-KR')}</p>
     </div></div>
-    {isStudent && <button type="button" className={`job-detail-save ${saved ? 'is-saved' : ''}`} disabled={busy} title={saved ? '다시 누르면 담기를 취소해요(지망 순위도 지워져요)' : undefined} onClick={toggleSave}>{busy ? <i className="job-detail-button-spinner" aria-label="처리 중" /> : saved ? `담김${rank ? ` · ${rank}지망` : ''}` : '담기'}</button>}
+    {isStudent && <button type="button" className={`job-detail-save ${saved ? 'is-saved' : ''}`} disabled={busy} title={saved ? '다시 누르면 담기를 취소해요(지망 순위도 빠져요 · 이미 낸 지원서의 지망은 그대로예요)' : undefined} onClick={toggleSave}>{busy ? <i className="job-detail-button-spinner" aria-label="처리 중" /> : saved ? `담김${rank ? ` · ${rank}지망` : ''}` : '담기'}</button>}
     </header>
     <section className="job-detail-highlights"><div><span>실습지원비</span><strong>{stipend}</strong></div><div><span>실습 기간</span><strong>{period}</strong></div><div><span>모집 인원</span><strong>{conditions.headcount}명</strong></div><div><span>근무지</span><strong>{workplace ?? '미기재'}</strong></div></section>
 

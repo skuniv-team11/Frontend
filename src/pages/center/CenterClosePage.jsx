@@ -5,7 +5,7 @@ import { getCurrentRound, label } from '../../api/reference'
 import { Empty, ErrorBox, Loading, VirtualTag } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
-import { fmtDateTime } from '../../lib/format'
+import { fmtDateTime, PROGRAM } from '../../lib/format'
 import { CenterDemoBanner, ErrorLine, md, stageOf, studentLine, useDemoReload } from './centerKit'
 import './CenterPage.css'
 import './CenterV2.css'
@@ -104,7 +104,7 @@ export function CenterClosePage() {
           {data.remindedAt && <p className="cv2-hint">마지막 알림 {fmtDateTime(data.remindedAt)}</p>}
         </section>
         <section className="fx-card tight"><h3 className="fx-h3">학점 인정 · 장학금 명단</h3>
-          <p className="fx-small">서류가 다 모이고 학과(부)장이 승인한 학생만 들어가요. 표준 현장실습 D 12학점 · 대학 지원금 월 20만 원 × 최대 3개월(학생 모집안내).</p>
+          <p className="fx-small">서류가 다 모이고 학과(부)장이 승인한 학생만 들어가요. {PROGRAM.course} {PROGRAM.credits}학점 · 대학 지원금 {PROGRAM.scholarship}(학생 모집안내).</p>
           <button type="button" className="fx-btn sm primary" style={{ marginTop: 10 }} disabled={counts.ready === 0 || Boolean(busy)} onClick={download}>{busy === 'csv' ? '만드는 중…' : `명단 내려받기 · CSV ${counts.ready}명`}</button>
           {counts.ready === 0 && rows.length > 0 && <p className="cv2-hint">아직 서류가 다 모인 학생이 없어요.</p>}
         </section>

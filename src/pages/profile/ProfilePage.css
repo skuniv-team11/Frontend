@@ -441,3 +441,11 @@ body:has(.me-page) .modal-backdrop:has(.profile-department-modal) {
 .certificate-options { align-items: center; }
 .certificate-options .interest-row { flex-wrap: wrap; }
 .certificate-note { margin: 6px 0 0; color: #7b8491; font-size: 12px; line-height: 1.6; text-align: center; }
+
+.profile-content .profile-inline-message { margin: 14px auto 0; color: #5f6876; font-size: 13px; font-weight: 700; text-align: center; animation: profile-inline-in .2s ease-out both; }
+.profile-content .profile-inline-message.danger { color: #bd3535; }
+@keyframes profile-inline-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.profile-content .interest-custom { display: flex; width: min(760px, 100%); margin: 16px auto 0; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; color: #657080; font-size: 12px; font-weight: 700; }
+.profile-content .interest-custom span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 6px 6px 12px; border: 1px dashed #b9c1ce; border-radius: 999px; color: #3b3e45; background: #fff; }
+.profile-content .interest-custom button { width: 20px; height: 20px; border: 0; border-radius: 50%; color: #7d8795; background: transparent; cursor: pointer; }
+.profile-content .interest-custom button:hover { color: #bd3535; background: #f6f1f1; }
