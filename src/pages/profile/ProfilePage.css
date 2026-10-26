@@ -141,7 +141,10 @@
 }
 .embedded-profile .profile-form-actions .profile-next { margin-left: auto; }
 .profile-content .check { cursor: pointer; user-select: none; }
-.profile-content .form-grid + .check { margin-top: 26px; transform: translateY(12px); }
+.profile-content .profile-consent { display: flex; width: min(760px, 100%); margin: 26px auto 0; justify-content: center; align-items: center; gap: 8px; color: #4b5563; font-size: 13px; font-weight: 600; }
+.profile-content .profile-consent.is-missing { color: #bd3535; }
+.profile-content .profile-consent.is-missing input { outline: 2px solid #f0a5a5; outline-offset: 2px; }
+.profile-content .profile-consent-hint { margin: 8px auto 0; color: #bd3535; font-size: 12px; font-weight: 600; text-align: center; }
 .profile-content .check input { cursor: pointer; }
 
 .profile-content .form-card input:not([type='checkbox']),
