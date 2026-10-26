@@ -1,225 +1,426 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { getToken, resolveApiAssetUrl } from '../../api/client'
-import { getCommute, getJob } from '../../api/jobs'
-import { getEligibility, getRecommendationReason, toProfileBody } from '../../api/matching'
-import { getMyProfile } from '../../api/myInfo'
-import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
-import { getCodes } from '../../api/reference'
+import { resolveApiAssetUrl } from '../../api/client'
+import { getExploreWhy, getMyExplore } from '../../api/explore'
+import { getCommute, getJob, getJobCareer } from '../../api/jobs'
+import { getMyProfile } from '../../api/me'
+import { addPlanItem, planErrorMessage, removePlanItem } from '../../api/plan'
+import { getCurrentRound, label } from '../../api/reference'
 import { Badge, Toast } from '../../components/Shell'
+import { Empty, VerdictBadge } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
+import { useCodes, useSession } from '../../hooks/useSession'
 import { requestScrollRestore } from '../../layout/scrollPosition'
+import { fmtDate, won, MAJOR_LABEL, MAJOR_NOTE } from '../../lib/format'
 import './JobDetailPage.css'
+import './JobDetailV2.css'
 
-const formatDay = (day) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일`
-// closesOn은 '이 날부터 지원 불가'라서 화면에는 하루 전 날짜를 마감일로 보여 준다(백엔드 docs/api)
+// 직무 상세(S4) — #17 상세 · #32 '왜 나에게 맞나요'(AI) · #33 이어지는 길 · #18 통근 · #20/#21 담기
+const SECTIONS = [['job-requirements', '지원 조건'], ['job-overview', '하는 일'], ['job-conditions', '실습 조건'], ['job-evidence', '공고 정보'], ['job-institution', '기관 정보']]
+const UNIT_PREVIEW = 4
+const SCHOOL_RULE_NOTE = '학교 규정(2026-2 학생 모집안내): 4학기 이상 이수 · 졸업예정자는 방학 과정 불가. 휴학·수료·학사학위취득유예·대학원생, 현장실습 학점 18학점 초과, 재직 중, 부정 실습 제재 이력이 있으면 참여할 수 없어요.'
+const NCS_SOURCE = 'NCS 능력단위(한국산업인력공단, 2026-09-30 적재) · 직업 연계: 한국고용정보원 직업능력 코드매핑정보(2025-11-26)'
+
+// closesOn은 '이 날부터 지원 불가'라서 화면에는 하루 전 날짜를 마감일로 보여 준다
 const dayBefore = (day) => new Date(Date.parse(`${day}T00:00:00Z`) - 86400000).toISOString().slice(0, 10)
-const won = (amount) => `${amount.toLocaleString('ko-KR')}원`
-const verdictTone = { ELIGIBLE: 'green', NEEDS_CHECK: 'orange', INELIGIBLE: 'gray' }
-const reasonResultLabel = { MET: '충족', NOT_MET: '미충족', CHECK: '확인 필요', INFO: '참고' }
+const todayKst = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+// 모집 판정 기준일(README '기준일') — 리플레이 중이면 replay.defaultAsOf, 아니면 오늘. 마감 = closesOn ≤ 기준일 또는 기준일이 모집 종료일 뒤
+const isClosed = (closing, round) => {
+  if (!round) return false
+  const asOf = round.replay?.defaultAsOf ?? todayKst()
+  if (closing?.closesOn && closing.closesOn <= asOf) return true
+  return Boolean(round.recruitEnd && asOf > round.recruitEnd)
+}
+const shorten = (text, max) => {
+  if (!text) return ''
+  const clean = text.replace(/\s+/g, ' ').trim()
+  return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean
+}
+// 수기 팀 비교(README '같은 팀'): 띄어쓰기·숫자·괄호·끝의 팀/부/실/본부를 떼고 한쪽이 다른 쪽을 품으면 같은 팀
+const teamKey = (text) => (text ?? '').replace(/\([^)]*\)/g, '').replace(/[\s\d()]/g, '').replace(/(팀|부|실|본부)$/, '')
+const sameTeam = (a, b) => { const x = teamKey(a); const y = teamKey(b); return Boolean(x && y && (x.includes(y) || y.includes(x))) }
 
-function DetailDecisionPreview({ type, reasons = [], alerts = [], label, children }) {
-  const anchorRef=useRef(null)
-  const popoverRef=useRef(null)
-  const timerRef=useRef(null)
-  const [preview,setPreview]=useState(null)
-  useLayoutEffect(()=>{
-    if(!preview?.anchor||!popoverRef.current)return
-    const rect=preview.anchor
-    const popover=popoverRef.current.getBoundingClientRect()
-    const edge=16
-    const gap=10
-    const roomRight=window.innerWidth-rect.right-edge
-    const roomLeft=rect.left-edge
-    if(roomRight>=popover.width||roomLeft>=popover.width){
-      const placeRight=roomRight>=popover.width
-      const left=placeRight?rect.right+gap:rect.left-popover.width-gap
-      const top=rect.top+popover.height<=window.innerHeight-edge?Math.max(edge,rect.top):Math.max(edge,rect.bottom-popover.height)
-      setPreview({left,top,placement:placeRight?'right':'left'})
+// AI·카카오 호출은 화면이 자리 잡은 뒤에 보낸다 — 개발 모드(StrictMode)의 '마운트 → 해제 → 마운트'에서 첫 요청이 서버까지 가 한도를 쓰지 않게
+const deferred = (call, signal) => new Promise((resolve, reject) => {
+  const timer = window.setTimeout(() => call().then(resolve, reject), 60)
+  signal?.addEventListener('abort', () => { window.clearTimeout(timer); reject(new DOMException('aborted', 'AbortError')) })
+})
+
+const loadRound = (signal) => getCurrentRound(signal)
+const loadProfile = (signal) => getMyProfile(signal)
+const loadExplore = (signal) => getMyExplore(signal)
+
+function DetailDecisionPreview({ type, reasons = [], alerts = [], codes, children }) {
+  const anchorRef = useRef(null)
+  const popoverRef = useRef(null)
+  const timerRef = useRef(null)
+  const [preview, setPreview] = useState(null)
+  useLayoutEffect(() => {
+    if (!preview?.anchor || !popoverRef.current) return
+    const rect = preview.anchor
+    const popover = popoverRef.current.getBoundingClientRect()
+    const edge = 16
+    const gap = 10
+    const roomRight = window.innerWidth - rect.right - edge
+    const roomLeft = rect.left - edge
+    if (roomRight >= popover.width || roomLeft >= popover.width) {
+      const placeRight = roomRight >= popover.width
+      const left = placeRight ? rect.right + gap : rect.left - popover.width - gap
+      const top = rect.top + popover.height <= window.innerHeight - edge ? Math.max(edge, rect.top) : Math.max(edge, rect.bottom - popover.height)
+      setPreview({ left, top, placement: placeRight ? 'right' : 'left' })
       return
     }
-    const roomBelow=window.innerHeight-rect.bottom-edge
-    const above=roomBelow<popover.height
-    const left=Math.max(edge,Math.min(rect.left,window.innerWidth-popover.width-edge))
-    setPreview({left,top:above?rect.top-gap:rect.bottom+gap,placement:above?'above':'below'})
-  },[preview])
-  const show=()=>{
+    const above = window.innerHeight - rect.bottom - edge < popover.height
+    const left = Math.max(edge, Math.min(rect.left, window.innerWidth - popover.width - edge))
+    setPreview({ left, top: above ? rect.top - gap : rect.bottom + gap, placement: above ? 'above' : 'below' })
+  }, [preview])
+  const show = () => {
     window.clearTimeout(timerRef.current)
-    timerRef.current=window.setTimeout(()=>{
-      const rect=anchorRef.current?.getBoundingClientRect()
-      if(rect)setPreview({left:rect.left,top:rect.bottom+10,placement:'measuring',anchor:rect})
-    },180)
+    timerRef.current = window.setTimeout(() => {
+      const rect = anchorRef.current?.getBoundingClientRect()
+      if (rect) setPreview({ left: rect.left, top: rect.bottom + 10, placement: 'measuring', anchor: rect })
+    }, 180)
   }
-  const hide=()=>{window.clearTimeout(timerRef.current);setPreview(null)}
-  useEffect(()=>()=>window.clearTimeout(timerRef.current),[])
-  const title=type==='document'?'문서 검토 내용':'판정 근거'
-  return <span ref={anchorRef} className="job-detail-preview-anchor" onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide} tabIndex="0">{children}{preview&&createPortal(<aside ref={popoverRef} className={`job-detail-preview is-${preview.placement}`} style={{left:preview.left,top:preview.top}} role="tooltip"><h3>{title}</h3>{type==='document'?<div>{alerts.map((alert,index)=><article key={alert.id??index}><b>{alert.label??label('alertKind',alert.kind??alert.code)??'문서 확인 필요'}</b><p>{alert.description??alert.detail??'원문 문서에서 추가 확인이 필요한 내용을 찾았어요.'}</p>{alert.quoteA&&<blockquote>“{alert.quoteA}”</blockquote>}{alert.quoteB&&<blockquote>“{alert.quoteB}”</blockquote>}<small>{[alert.documentTitle,alert.pageA&&`${alert.pageA}쪽`,alert.pageB&&`${alert.pageB}쪽`].filter(Boolean).join(' · ')}</small></article>)}</div>:<div>{reasons.map((reason,index)=><article key={`${reason.layer}-${reason.item}-${index}`}><b>{reason.item}</b><dl><div><dt>필요 조건</dt><dd>{reason.requirement}</dd></div><div><dt>내 조건</dt><dd>{reason.mine}</dd></div></dl><small>{reasonResultLabel[reason.result]??reason.result}</small></article>)}</div>}</aside>,document.body)}</span>
+  const hide = () => { window.clearTimeout(timerRef.current); setPreview(null) }
+  useEffect(() => () => window.clearTimeout(timerRef.current), [])
+  return <span ref={anchorRef} className="job-detail-preview-anchor" onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide} tabIndex="0">{children}{preview && createPortal(<aside ref={popoverRef} className={`job-detail-preview is-${preview.placement}`} style={{ left: preview.left, top: preview.top }} role="tooltip">
+    <h3>{type === 'document' ? '문서 검토 내용' : '판정 근거'}</h3>
+    {type === 'document'
+      ? <div>{alerts.map((alert, index) => <article key={alert.id ?? index}><b>{label(codes, 'alertKind', alert.kind)}</b><p>{alert.description}</p>{alert.quoteA && <blockquote>“{alert.quoteA}”</blockquote>}{alert.quoteB && <blockquote>“{alert.quoteB}”</blockquote>}<small>{[alert.documentTitle, alert.pageA && `${alert.pageA}쪽`, alert.pageB && `${alert.pageB}쪽`].filter(Boolean).join(' · ')}</small></article>)}</div>
+      : <div>{reasons.map((reason, index) => <article key={`${reason.layer}-${reason.item}-${index}`}><b>{reason.item}</b><dl><div><dt>필요 조건</dt><dd>{reason.requirement}</dd></div><div><dt>내 조건</dt><dd>{reason.mine}</dd></div></dl><small>{label(codes, 'reasonResult', reason.result)}</small></article>)}</div>}
+  </aside>, document.body)}</span>
 }
 
 function DetailInstitutionLogo({ institution }) {
-  const [failedSource,setFailedSource]=useState(null)
-  const source=resolveApiAssetUrl(institution.logoPath)
-  const fallback=(institution.name?.trim()?.[0]??'기').toUpperCase()
-  return <div className="job-detail-institution-logo">{source&&source!==failedSource?<img src={source} alt={`${institution.name} 로고`} onError={()=>setFailedSource(source)}/>:<><b aria-hidden="true">{fallback}</b><small>{institution.name}</small></>}</div>
-}
-
-// 통근 칸. 출발지는 저장한 프로필의 사는 곳(없거나 센터 계정이면 서경대). 결과는 이 화면 상태로만 들고 저장하지 않는다(AGENTS.md).
-function CommuteCard({ jobId, hasCoordinates, label, workplace }) {
-  const profile = useRequest(getMyProfile, Boolean(getToken()))
-  const homeAreaCode = profile.data?.homeAreaCode ?? null
-  const loadCommute = useCallback((signal) => getCommute(jobId, homeAreaCode, signal), [jobId, homeAreaCode])
-  const commute = useRequest(loadCommute, hasCoordinates && !profile.loading)
-  const body = !hasCoordinates ? <p>근무지 주소가 없어 통근 시간을 계산할 수 없어요.</p>
-    : profile.loading || commute.loading ? <p role="status">통근 시간을 불러오는 중… 카카오맵 대중교통 기준으로 계산하고 있어요.</p>
-    : commute.error ? <p>통근 시간을 불러오지 못했어요. <button className="link-button" onClick={commute.reload}>다시 불러오기</button></p>
-    : !commute.data.available ? <p>{commute.data.origin.label}에서 출발 · 카카오맵 대중교통 기준<br/>통근 시간을 불러오지 못했어요({label('commuteUnavailable', commute.data.unavailableReason)}). <button className="link-button" onClick={commute.reload}>다시 불러오기</button></p>
-    : <><p><b>{commute.data.origin.label}</b>에서 출발 · {label('commuteProvider', commute.data.provider)} 대중교통 기준{commute.data.origin.type === 'SCHOOL' && ' (사는 곳을 저장하지 않아 서경대에서 출발로 계산했어요)'}</p><div><strong>약 {commute.data.minutes}분</strong><span>환승 {commute.data.transfers}회{commute.data.fareWon != null && ` · 요금 ${commute.data.fareWon.toLocaleString('ko-KR')}원`}</span></div></>
-  return <section className="commute"><h2>통근</h2><p className="commute-workplace"><b>근무지</b> · {workplace||'주소 미기재'}</p><div className="commute-body">{body}</div></section>
-}
-
-function DetailError({ error }) {
-  if (error.code === 'JOB_NOT_FOUND') return <p className="notice">없는 직무예요. <Link className="link-button" to="/jobs">직무 찾기로 돌아가기 →</Link></p>
-  if (error.status === 401) return <p className="notice">로그인하면 직무 상세를 볼 수 있어요. <Link className="link-button" to="/login">로그인하기 →</Link></p>
-  if (error.code === 'NETWORK') return <p className="notice danger">서버에 연결하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.</p>
-  return <p className="notice danger">직무 정보를 불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.</p>
+  const [failed, setFailed] = useState(null)
+  const source = resolveApiAssetUrl(institution.logoPath)
+  return <div className="job-detail-institution-logo">{source && source !== failed ? <img src={source} alt={`${institution.name} 로고`} onError={() => setFailed(source)} /> : <><b aria-hidden="true">{institution.name?.[0] ?? '기'}</b><small>{institution.name}</small></>}</div>
 }
 
 function DetailLoading({ complete }) {
-  return <main className="job-detail-loading-page"><section className={`job-detail-loading ${complete?'is-complete':''}`} role="status"><div className="job-detail-loading-mark" aria-hidden="true">{complete?'✓':<i/>}</div><strong>{complete?'분석이 완료됐어요':'LOADING'}</strong><p>{complete?'정리한 정보와 원문 근거를 보여드릴게요.':'직무 정보를 읽고 있어요.'}</p><small>{complete?'':'공고의 지원 조건을 하나씩 확인하고 있습니다.'}</small></section></main>
+  return <main className="job-detail-loading-page"><section className={`job-detail-loading ${complete ? 'is-complete' : ''}`} role="status"><div className="job-detail-loading-mark" aria-hidden="true">{complete ? '✓' : <i />}</div><strong>{complete ? '불러왔어요' : 'LOADING'}</strong><p>{complete ? '정리한 정보와 원문 근거를 보여 드릴게요.' : '직무 정보를 읽고 있어요.'}</p><small>{complete ? '' : '서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요.'}</small></section></main>
 }
 
 function AiCitationsSkeleton() {
-  return <div className="job-detail-ai-citations job-detail-ai-skeleton-citations" aria-hidden="true"><h3>원문 근거</h3><div>{[0,1].map(index=><article key={index}><i/><span/><span/><small/></article>)}</div></div>
-}
-
-function AiReasonsSkeleton() {
-  return <div className="job-detail-ai-reasons job-detail-ai-skeleton-reasons" aria-hidden="true"><h3 className="job-detail-ai-criteria-title">조건·기준</h3>{[0,1,2,3].map(index=><article key={index}><i/><div><span/><span/></div><b/></article>)}</div>
+  return <div className="job-detail-ai-citations job-detail-ai-skeleton-citations" aria-hidden="true"><h3>근거 · 내 글 → 공고</h3><div>{[0, 1].map((index) => <article key={index}><i /><span /><span /><small /></article>)}</div></div>
 }
 
 function AiTypewriterText({ text }) {
-  return <p className="job-detail-ai-typewriter" aria-label={text}>{[...text].map((character,index)=><span key={`${character}-${index}`} style={{'--character-index':index}} aria-hidden="true">{character}</span>)}</p>
+  return <p className="job-detail-ai-typewriter" aria-label={text}>{[...text].map((character, index) => <span key={index} style={{ '--character-index': Math.min(index, 400) }} aria-hidden="true">{character}</span>)}</p>
+}
+
+// '왜 나에게 맞나요'(#32) — 탐색 결과가 있어야 만든다. 처음이면 5~7초
+function WhyBlock({ why, explore, detail, codes }) {
+  if (why.loading) return <>
+    <div className="job-detail-ai-summary is-loading" role="status"><b>AI</b><i className="job-detail-ai-text-spinner" aria-hidden="true" /><p>내 탐색 글과 이 공고를 함께 읽고 있어요. 처음 만들 때는 5~7초 걸려요.</p></div>
+    <AiCitationsSkeleton />
+  </>
+  const error = why.error
+  if (error?.code === 'EXPLORE_NOT_FOUND') return <div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>직무 탐색을 하면 이 자리가 내 경험과 어떻게 이어지는지 설명해 드려요</b><p>해 본 일 · 하고 싶은 일을 적으면 AI가 내 글과 이 공고에서 이어지는 구절을 찾아 짝지어 보여 줘요. 아래 조건 · 기준(규칙)은 탐색 없이도 볼 수 있어요.</p></div><Link className="v2-btn sm" to="/explore">직무 탐색 하러 가기 →</Link></div>
+  if (error?.code === 'EXPLORE_NOT_CANDIDATE') return <div className="jd-ai-empty is-muted"><span className="v2-ai">AI</span><div><b>지원할 수 없거나 마감된 자리라 설명을 만들지 않아요</b><p>AI 설명은 지원할 수 있고 모집 중인 자리에만 만들어요. 무엇 때문인지는 아래 조건 · 기준과 모집 상태에서 볼 수 있어요.</p></div></div>
+  if (error) return <div className="jd-ai-empty is-error" role="alert"><span className="v2-ai">AI</span><div><b>설명을 불러오지 못했어요</b><p>{error.code === 'NETWORK' ? '서버에 연결하지 못했어요.' : '잠시 뒤 다시 시도해 주세요.'} 아래 조건 · 기준은 그대로 볼 수 있어요.</p></div><button type="button" className="v2-btn sm gray" onClick={why.reload}>다시 불러오기</button></div>
+  if (!why.data) return null
+  const { why: body, fit, fallbackReason } = why.data
+  if (!body) return <div className="jd-ai-empty is-muted"><span className="v2-ai">AI</span><div><b>지금은 설명을 만들지 못했어요{fallbackReason ? `(${label(codes, 'exploreFallback', fallbackReason)})` : ''}</b><p>AI 한도나 응답 문제일 수 있어요. 잠시 뒤 다시 열면 그때 만들어요. 아래 조건 · 기준(규칙)은 그대로 볼 수 있어요.</p></div><button type="button" className="v2-btn sm gray" onClick={why.reload}>다시 만들기</button></div>
+
+  const item = explore?.items?.find((entry) => String(entry.jobId) === String(detail.id))
+  // 공고 구절이 든 운영계획서·쪽 — 탐색 결과의 같은 직무 짝에서 찾는다(없으면 구절만)
+  const where = (jobQuote) => {
+    const link = item?.links?.find((entry) => entry.jobQuote === jobQuote)
+    return link?.documentTitle ? ` · ${link.documentTitle}${link.page != null ? ` ${link.page}쪽` : ''}` : ''
+  }
+  const senior = detail.seniorNotes.find((note) => sameTeam(note.teamText, detail.team) && (note.outcomes?.length || note.activities?.length))
+  const seniorQuote = senior?.outcomes?.[0] ?? senior?.activities?.[0]
+  const cards = [...body.points.map((point, index) => ({ key: `p${index}`, span: `근거 ${index + 1}`, quote: point.studentQuote, note: <>→ 공고 “{point.jobQuote}”{where(point.jobQuote)}</> })),
+    ...(seniorQuote ? [{ key: 'senior', span: '같은 팀 선배가 한 일', quote: seniorQuote, note: `선배 수기 · ${senior.documentTitle} · ${senior.page}쪽` }] : [])]
+  const text = [body.summary, ...body.points.map((point) => point.text)].join(' ')
+  return <>
+    <div className="job-detail-ai-summary"><b>AI</b><AiTypewriterText text={text} /></div>
+    <div className="job-detail-ai-citations"><h3>근거 · 내 글 → 공고</h3><div style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)},minmax(0,1fr))` }}>{cards.map((card) => <article key={card.key}><span>{card.span}</span><blockquote>“{card.quote}”</blockquote><p>{card.note}</p></article>)}</div></div>
+    {(body.tryNew?.length > 0 || body.prepare) && <div className="job-detail-ai-citations jd-ai-next"><h3>이 실습에서</h3><div style={{ gridTemplateColumns: `repeat(${Math.min((body.tryNew?.length ?? 0) + (body.prepare ? 1 : 0), 3)},minmax(0,1fr))` }}>
+      {body.tryNew?.map((entry, index) => <article key={`t${index}`}><span>새로 해 볼 일</span><blockquote>{entry.text}</blockquote><p>공고 “{entry.jobQuote}”{where(entry.jobQuote)}</p></article>)}
+      {body.prepare && <article><span>미리 채우면 좋은 것</span><blockquote>{body.prepare.text}</blockquote><p>공고 “{body.prepare.jobQuote}”{where(body.prepare.jobQuote)}</p></article>}
+    </div></div>}
+    <p className="v2-foot jd-ai-foot">{fit === 'NONE' ? '이 자리는 탐색 결과(추천 5곳) 밖이라 덜 이어지는 까닭도 함께 적었어요 · ' : ''}설명은 {explore?.createdAt ? `${fmtDate(explore.createdAt)} ` : ''}탐색 결과를 바탕으로 만들어 저장한 것 · 인용 구절은 내 글과 공고 원문에 그대로 있는 것만 · 지원 조건 판정은 아래 조건 · 기준(규칙)이에요</p>
+  </>
+}
+
+function AiDecision({ detail, why, explore, codes, isStudent }) {
+  const mine = detail.myEligibility
+  if (!isStudent) return null
+  if (!mine) return <section className="job-detail-ai-decision"><div className="job-detail-ai-heading"><div><span>AI DECISION</span><h2>왜 나에게 맞나요</h2></div></div><div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>프로필을 저장하면 조건 · 기준과 '왜 나에게 맞나요'를 볼 수 있어요</b><p>학과 · 학년 · 이수 학기 · 평점을 저장하면 이 직무의 지원 판정을 규칙으로 바로 보여 드려요.</p></div><Link className="v2-btn sm" to="/me" state={{ editProfile: true }}>프로필 저장하기 →</Link></div></section>
+  const fit = why.data?.fit
+  return <section className={`job-detail-ai-decision ${why.loading ? 'is-loading' : ''}`}>
+    <div className="job-detail-ai-heading"><div><span>AI DECISION</span><h2>왜 나에게 맞나요</h2></div><span className="jd-ai-badges">
+      {fit && fit !== 'NONE' && <Badge tone="blue">{label(codes, 'exploreFit', fit)}</Badge>}
+      {fit === 'NONE' && <Badge>탐색 결과 밖 자리</Badge>}
+      <DetailDecisionPreview type="verdict" reasons={mine.reasons} codes={codes}><VerdictBadge verdict={mine.verdict} /></DetailDecisionPreview>
+    </span></div>
+    <WhyBlock why={why} explore={explore} detail={detail} codes={codes} />
+    <div className="job-detail-ai-reasons"><h3 className="job-detail-ai-criteria-title">조건 · 기준 <small className="jd-rule-tag">규칙 판정 · 저장한 프로필 기준</small></h3>
+      {mine.reasons.map((reason, index) => <article style={{ '--reason-index': index }} key={`${reason.layer}-${reason.item}-${index}`}>
+        <div>{label(codes, 'reasonLayer', reason.layer) !== reason.item && <small>{label(codes, 'reasonLayer', reason.layer)}</small>}<h3>{reason.item}</h3></div>
+        <dl><div><dt>필요 조건</dt><dd>{reason.requirement}</dd></div><div><dt>내 조건</dt><dd>{reason.mine}</dd></div>{reason.citation && <div className="jd-cite"><dt>출처</dt><dd>{reason.citation.documentTitle}{reason.citation.page != null ? ` ${reason.citation.page}쪽` : ''} · “{reason.citation.quote}”</dd></div>}</dl>
+        {reason.layer === 'MAJOR' ? <><p className="jd-major-note">{MAJOR_NOTE}</p><b className="is-info">{MAJOR_LABEL[mine.majorMatch] ?? label(codes, 'majorMatch', mine.majorMatch)}</b></>
+          : <b className={`is-${reason.result.toLowerCase()}`}>{label(codes, 'reasonResult', reason.result)}</b>}
+      </article>)}
+    </div>
+  </section>
+}
+
+// 이 실습으로 이어지는 길(#33) — NCS 세분류 · 능력단위 · 넓혀 갈 직무 3개 · 이어지는 직업
+function CareerPath({ career, why, explore, detail, codes }) {
+  const [allUnits, setAllUnits] = useState(false)
+  const head = <div className="v2-career-head"><div><span>CAREER PATH</span><h2>이 실습으로 이어지는 길</h2></div>{explore ? <Link className="v2-link" to="/explore/result">내 탐색 결과 →</Link> : <Link className="v2-link" to="/explore">직무 탐색 →</Link>}</div>
+  if (career.loading) return <section className="v2-career">{head}<div className="jd-career-state" role="status"><span className="v2-spinner" aria-hidden="true" />이어지는 길을 불러오는 중이에요…</div></section>
+  if (career.error) return <section className="v2-career">{head}<div className="jd-career-state is-error" role="alert">이어지는 길을 불러오지 못했어요. <button type="button" className="v2-btn sm gray" onClick={career.reload}>다시 불러오기</button></div></section>
+  const data = career.data
+  if (!data) return null
+  if (!data.ncs) return <section className="v2-career">{head}<p className="v2-muted">이 직무는 아직 NCS 세분류가 정해지지 않았어요.</p></section>
+  const { ncs } = data
+  const units = allUnits ? ncs.units : ncs.units.slice(0, UNIT_PREVIEW)
+  const item = explore?.items?.find((entry) => String(entry.jobId) === String(detail.id))
+  const linked = why.data?.why?.points?.length ? why.data.why.points.map((point) => ({ job: point.jobQuote, student: point.studentQuote }))
+    : item?.links?.length ? item.links.filter((link) => link.jobQuote).map((link) => ({ job: link.jobQuote, student: `${label(codes, 'exploreBasis', link.basis)} · ${link.studentQuote}` })) : []
+  const occupationText = (list) => list.map((job) => job.name).join(' · ')
+  const nowJobs = new Set(data.occupations.map((job) => job.code))
+  const jobType = detail.conditions.jobType
+  return <section className="v2-career">
+    {head}
+    <div className="v2-flow">
+      <div className="v2-flow-col"><span>① 지금</span><h4>내 글과 이어진 일</h4>
+        {linked.length > 0 ? <ul>{linked.slice(0, 3).map((entry, index) => <li key={index}>{entry.job}<small>{shorten(entry.student, 46)}</small></li>)}</ul>
+          : <p className="v2-muted">{explore ? '이 자리는 탐색 결과에 들지 않아 이어진 구절이 없어요. 위 설명에서 이어지는 정도를 볼 수 있어요.' : '직무 탐색을 하면 내 경험 글과 이어진 이 자리의 일이 여기에 보여요.'}</p>}
+      </div>
+      <span className="v2-arrow" aria-hidden="true">→</span>
+      <div className="v2-flow-col is-here"><span>② 이 자리에서</span><h4>쓰는 능력 {ncs.units.length}가지</h4>
+        <p className="jd-ncs-path">NCS '{ncs.name}' 기준</p>
+        <ul>{units.map((unit) => <li key={unit.code} title={unit.definition ?? undefined}>{unit.name}</li>)}</ul>
+        {ncs.units.length > UNIT_PREVIEW && <button type="button" className="jd-more" onClick={() => setAllUnits((value) => !value)}>{allUnits ? '접기 ↑' : `능력단위 ${ncs.units.length - UNIT_PREVIEW}개 더 보기 ↓`}</button>}
+      </div>
+      <span className="v2-arrow" aria-hidden="true">→</span>
+      <div className="v2-flow-col"><span>③ 실습 뒤</span><h4>넓혀 갈 직무 · 일자리</h4>
+        <div className="fx-stack jd-next-stack">
+          {data.expand.map((entry) => <div className="v2-next" key={entry.code}><b>{entry.name} <em className={`jd-rel is-${entry.relation.toLowerCase()}`}>{label(codes, 'ncsRelation', entry.relation)}</em></b>{(() => { const extra = entry.occupations.filter((job) => !nowJobs.has(job.code)); return extra.length > 0 && <small>더 갈 수 있는 일자리: {occupationText(extra.slice(0, 3))}</small> })()}</div>)}
+          {data.occupations.length > 0 && <p className="v2-muted jd-occ">이 직무로 갈 수 있는 일자리: {occupationText(data.occupations.slice(0, 5))}{data.occupations.length > 5 ? ` 외 ${data.occupations.length - 5}개` : ''}</p>}
+          {jobType === 'EXPERIENCE' && <p className="v2-muted jd-occ">이 자리는 직무체험형이라 이 회사 채용 약속은 없어요.</p>}
+          {jobType === 'HIRING' && <p className="v2-muted jd-occ">이 자리는 채용연계형이에요. 채용 조건은 운영계획서 원문으로 확인해 주세요.</p>}
+        </div>
+      </div>
+    </div>
+    <p className="v2-foot">출처 · {NCS_SOURCE} · 넓혀 갈 직무는 팀이 고른 것</p>
+  </section>
+}
+
+// 통근 칸 — 출발지는 저장한 프로필의 사는 곳(없으면 서경대). 결과는 이 화면 상태로만 들고 저장하지 않는다(AGENTS.md)
+function CommuteCard({ jobId, hasCoordinates, workplace, profile, codes, ready }) {
+  const homeAreaCode = profile?.homeAreaCode ?? null
+  const loadCommute = useCallback((signal) => deferred(() => getCommute(jobId, homeAreaCode, signal), signal), [jobId, homeAreaCode])
+  const commute = useRequest(loadCommute, hasCoordinates && ready)
+  const originGuess = profile?.homeArea?.name ?? '서경대'
+  const source = <>에서 출발 · {label(codes, 'commuteProvider', 'KAKAO_MAP') || '카카오맵'} 대중교통 기준</>
+  let body
+  if (!hasCoordinates) body = <p>근무지 주소가 없어 통근 시간을 계산할 수 없어요.</p>
+  else if (!ready || commute.loading) body = <><p><b>{originGuess}</b>{source}</p><div className="jd-commute-wait" role="status"><span className="v2-spinner" aria-hidden="true" />통근 시간을 불러오는 중…</div></>
+  else if (commute.error) body = <><p><b>{originGuess}</b>{source}</p><div className="jd-commute-wait is-error" role="alert">통근 시간을 불러오지 못했어요. <button type="button" className="link-button" onClick={commute.reload}>다시 불러오기</button></div></>
+  else if (!commute.data?.available) body = <><p><b>{commute.data?.origin?.label ?? originGuess}</b>{source}</p><div className="jd-commute-wait is-error">불러오지 못했어요({label(codes, 'commuteUnavailable', commute.data?.unavailableReason)}). <button type="button" className="link-button" onClick={commute.reload}>다시 불러오기</button></div></>
+  else body = <><p><b>{commute.data.origin.label}</b>{source}{commute.data.origin.type === 'SCHOOL' && <small className="jd-commute-note">사는 곳을 저장하지 않아 서경대에서 출발로 계산했어요</small>}</p><div><strong>약 {commute.data.minutes}분</strong><span>환승 {commute.data.transfers}회{commute.data.fareWon != null && ` · 요금 ${won(commute.data.fareWon)}`}</span></div></>
+  return <section className="commute"><h2>통근</h2><p className="commute-workplace"><b>근무지</b> · {workplace || '주소 미기재'}</p><div className="commute-body">{body}</div></section>
+}
+
+function EvidenceSection({ detail, codes }) {
+  const [open, setOpen] = useState(false)
+  const { evidence, alerts } = detail
+  return <section className="job-detail-section job-detail-evidence-section" id="job-evidence"><span className="job-detail-section-number">04</span><div className="job-detail-section-body"><p className="job-detail-kicker">POSTING INFORMATION</p><h2>공고 정보</h2>
+    {alerts.length > 0 && <div className="job-detail-alerts jd-alerts-top"><h3>검토 알림 {alerts.length}건</h3>{alerts.map((alert, index) => <article key={alert.id ?? index}><div><Badge tone="orange">{label(codes, 'alertKind', alert.kind)}</Badge><p>{alert.description}</p></div>{alert.quoteA && <blockquote>“{alert.quoteA}”</blockquote>}{alert.quoteB && <blockquote>“{alert.quoteB}”</blockquote>}<small>{[alert.documentTitle, alert.pageA && `${alert.pageA}쪽`, alert.pageB && `${alert.pageB}쪽`].filter(Boolean).join(' · ')}</small></article>)}</div>}
+    {evidence.length === 0 ? <p>AI가 운영계획서에서 뽑은 항목이 없어요.</p>
+      : <button type="button" className="v2-fold" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? '운영계획서 원문 항목 접기 ↑' : `운영계획서 원문 항목 ${evidence.length}개 펼치기 ↓`}</button>}
+    {open && <div className="job-detail-evidence-list jd-evidence">{evidence.map((entry, index) => <article style={{ '--evidence-index': Math.min(index, 12) }} key={`${entry.fieldKey}-${index}`}><h3>{entry.label}</h3><div><strong>{entry.rawValue || '미기재'}</strong>{entry.quote && entry.quote !== entry.rawValue && <blockquote>“{entry.quote}”</blockquote>}<small>{entry.documentTitle}{entry.page != null ? ` · ${entry.page}쪽` : ''}</small></div></article>)}</div>}
+    <p className="job-detail-caution">AI가 운영계획서에서 뽑은 값이라 원문과 다를 수 있어요. 원문 PDF는 띄우지 않고 문서명 · 쪽 · 인용만 보여 줘요. 최종 지원 전 센터 공지로 확인하세요.</p>
+  </div></section>
+}
+
+function SeniorNote({ note, team }) {
+  const [open, setOpen] = useState(false)
+  const same = sameTeam(note.teamText, team)
+  const hasFull = note.companyIntro || note.results
+  return <article className="jd-senior-note">
+    <div className="jd-senior-head"><b>{note.termCode} · {note.teamText}</b>{same && <Badge tone="blue">같은 팀</Badge>}</div>
+    {note.oneLine && <p className="jd-senior-line">“{note.oneLine}”</p>}
+    <div className="job-detail-senior-columns">
+      <section><h4>실습 내용</h4>{note.activities?.length ? <ul>{note.activities.map((activity, index) => <li key={index}>{activity}</li>)}</ul> : <p>기록된 실습 내용이 없어요.</p>}</section>
+      <section><h4>실습 결과</h4>{note.outcomes?.length ? <ul>{note.outcomes.map((outcome, index) => <li key={index}>{outcome}</li>)}</ul> : <p>{note.results ? shorten(note.results, 90) : '기록된 실습 결과가 없어요.'}</p>}</section>
+    </div>
+    {note.reflection && <div className="jd-senior-reflection"><h4>참여 소감</h4><p>{note.reflection}</p></div>}
+    {open && <div className="jd-senior-full">
+      {note.companyIntro && <section><h4>기관 · 부서 소개</h4><p>{note.companyIntro}</p></section>}
+      {note.results && <section><h4>실습 결과</h4><p>{note.results}</p></section>}
+    </div>}
+    <div className="jd-senior-foot"><small>출처 · {note.documentTitle} · {note.page}쪽</small>{hasFull && <button type="button" className="jd-more" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? '전문 접기 ↑' : '수기 전문 보기 ↓'}</button>}</div>
+  </article>
+}
+
+function InstitutionSection({ detail, codes }) {
+  const { institution, photos, seniorNotes } = detail
+  const rows = [
+    ['기관명', institution.name],
+    ['규모', [label(codes, 'size', institution.size), label(codes, 'listing', institution.listing)].filter(Boolean).join(' · ')],
+    ['업태 · 종목', [institution.businessType, institution.businessItem].filter(Boolean).join(' · ') || '미기재'],
+    ['주소', institution.address ?? '미기재'],
+    ['사업자 상태', institution.ntsStatus ? `${label(codes, 'ntsStatus', institution.ntsStatus)}${institution.ntsCheckedOn ? ` (${institution.ntsCheckedOn} 확인)` : ''}` : '미확인'],
+  ]
+  const photoSource = photos[0] ? `${photos[0].documentTitle}${photos[0].page != null ? ` · ${photos[0].page}쪽` : ''}` : ''
+  return <section className="job-detail-section" id="job-institution"><span className="job-detail-section-number">05</span><div className="job-detail-section-body"><p className="job-detail-kicker">INSTITUTION</p><h2>기관 정보</h2>
+    <dl className="job-detail-rows">{rows.map(([title, value]) => <div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl>
+    {photos.length > 0 && <div className="jd-photos"><h3>회사 전경 및 활동사진</h3><div className="jd-photo-grid" style={{ gridTemplateColumns: `repeat(${photos.length === 4 ? 4 : Math.min(photos.length, 3)},minmax(0,1fr))` }}>{photos.map((photo) => <figure key={photo.seq}><img src={resolveApiAssetUrl(photo.path)} width={photo.width} height={photo.height} style={{ aspectRatio: `${photo.width} / ${photo.height}` }} alt={photo.caption ?? `${institution.name} 소개서 사진 ${photo.seq}`} loading="lazy" />{photo.caption && <figcaption>{photo.caption}</figcaption>}</figure>)}</div><small className="jd-photo-source">출처 · {photoSource} · 소개서에 실린 사진 그대로예요</small></div>}
+    {seniorNotes.length > 0 && <div className="job-detail-senior"><h3>선배 수기 <small className="jd-rule-tag">우수 참여수기 기준</small></h3><p className="jd-senior-caution">학교가 고른 우수 수기라 좋은 점 위주예요. 기관을 평가하는 데 쓰지 않아요. 이름 · 학과 · 사진은 싣지 않아요.</p>{seniorNotes.map((note, index) => <SeniorNote key={`${note.termCode}-${note.page}-${index}`} note={note} team={detail.team} />)}</div>}
+  </div></section>
 }
 
 export function JobDetailPage() {
-  const {id}=useParams()
-  const location=useLocation()
-  const navigate=useNavigate()
-  const goBack=()=>{
-    if(location.key==='default'){navigate('/jobs',{replace:true});return}
+  const { id } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const codes = useCodes()
+  const session = useSession()
+  const isStudent = session.isStudent
+  const goBack = () => {
+    if (location.key === 'default') { navigate('/jobs', { replace: true }); return }
     requestScrollRestore(location.state?.returnScrollY)
     navigate(-1)
   }
-  const loadJob=useCallback((signal)=>getJob(id,signal),[id])
-  const job=useRequest(loadJob)
-  // 조회수는 상세 응답에 같이 온다(views·todayViews, 이번 조회까지 센 값). 따로 부르던 GET /views(#25)는 백엔드에서 지웠다(ADR-0036)
-  const views={data:job.data?.views!=null?{views:job.data.views,todayViews:job.data.todayViews??0}:null}
-  const profile=useRequest(getMyProfile,Boolean(getToken()))
-  const profileBody=useMemo(()=>profile.data?toProfileBody(profile.data):null,[profile.data])
-  const loadEligibility=useCallback((signal)=>getEligibility(profileBody,signal),[profileBody])
-  const eligibility=useRequest(loadEligibility,Boolean(profileBody))
-  const loadAiReason=useCallback((signal)=>getRecommendationReason(id,profileBody,signal),[id,profileBody])
-  const aiReason=useRequest(loadAiReason,Boolean(profileBody&&job.data))
-  const codes=useRequest(getCodes)
-  const label=(group,value)=>codes.data?.[group]?.[value]??value
-  const [detailReady,setDetailReady]=useState(false)
-  const [activeSection,setActiveSection]=useState('job-requirements')
-  const [showBackToTop,setShowBackToTop]=useState(false)
-  const detailNavRef=useRef(null)
-  const activeScrollTimer=useRef(null); const activeScrollLock=useRef(false)
-  useEffect(()=>()=>window.clearTimeout(activeScrollTimer.current),[])
-  useEffect(()=>{
-    if(!job.data)return undefined
-    const timer=window.setTimeout(()=>setDetailReady(true),450)
-    return()=>window.clearTimeout(timer)
-  },[job.data])
-  useEffect(()=>{
-    if(!detailReady)return undefined
-    const sectionIds=['job-requirements','job-overview','job-conditions','job-evidence','job-institution']
-    let frame=0
-    const updateActiveSection=()=>{
+  const loadJob = useCallback((signal) => getJob(id, signal), [id])
+  const job = useRequest(loadJob)
+  const loadCareer = useCallback((signal) => getJobCareer(id, signal), [id])
+  const career = useRequest(loadCareer, Boolean(job.data))
+  const round = useRequest(loadRound)
+  const profile = useRequest(loadProfile, isStudent)
+  const explore = useRequest(loadExplore, isStudent)
+  const hasEligibility = Boolean(job.data?.myEligibility)
+  const loadWhy = useCallback((signal) => deferred(() => getExploreWhy(id, signal), signal), [id])
+  const why = useRequest(loadWhy, isStudent && hasEligibility)
+
+  const [detailReady, setDetailReady] = useState(false)
+  const [activeSection, setActiveSection] = useState('job-requirements')
+  const [showBackToTop, setShowBackToTop] = useState(false)
+  const navRef = useRef(null)
+  const scrollTimer = useRef(null)
+  const scrollLock = useRef(false)
+  useEffect(() => () => window.clearTimeout(scrollTimer.current), [])
+  useEffect(() => {
+    if (!job.data) return undefined
+    const timer = window.setTimeout(() => setDetailReady(true), 450)
+    return () => window.clearTimeout(timer)
+  }, [job.data])
+  useEffect(() => {
+    if (!detailReady) return undefined
+    let frame = 0
+    const update = () => {
       window.cancelAnimationFrame(frame)
-      frame=window.requestAnimationFrame(()=>{
-        if(activeScrollLock.current)return
-        const sections=sectionIds.map(sectionId=>document.getElementById(sectionId)).filter(Boolean)
-        if(!sections.length)return
-        if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4){setActiveSection(sections.at(-1).id);return}
-        const current=sections.filter(section=>section.getBoundingClientRect().top<=150).at(-1)??sections[0]
-        setActiveSection(current.id)
+      frame = window.requestAnimationFrame(() => {
+        setShowBackToTop(Boolean(navRef.current && navRef.current.getBoundingClientRect().top <= 66))
+        if (scrollLock.current) return
+        const sections = SECTIONS.map(([sectionId]) => document.getElementById(sectionId)).filter(Boolean)
+        if (!sections.length) return
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) { setActiveSection(sections.at(-1).id); return }
+        setActiveSection((sections.filter((section) => section.getBoundingClientRect().top <= 150).at(-1) ?? sections[0]).id)
       })
     }
-    updateActiveSection()
-    window.addEventListener('scroll',updateActiveSection,{passive:true})
-    window.addEventListener('resize',updateActiveSection)
-    return()=>{window.cancelAnimationFrame(frame);window.removeEventListener('scroll',updateActiveSection);window.removeEventListener('resize',updateActiveSection)}
-  },[detailReady])
-  useEffect(()=>{
-    if(!detailReady)return undefined
-    let frame=0
-    const updateBackToTop=()=>{
-      window.cancelAnimationFrame(frame)
-      frame=window.requestAnimationFrame(()=>setShowBackToTop(Boolean(detailNavRef.current&&detailNavRef.current.getBoundingClientRect().top<=66)))
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => { window.cancelAnimationFrame(frame); window.removeEventListener('scroll', update); window.removeEventListener('resize', update) }
+  }, [detailReady])
+
+  // 담기(#20) · 빼기(#21). 처음 값은 상세의 planned · planRank
+  const [savedOverride, setSavedOverride] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [toast, setToast] = useState(null)
+  const toastId = useRef(0)
+  const saved = savedOverride ?? Boolean(job.data?.planned)
+  const rank = savedOverride === null ? job.data?.planRank ?? null : null
+  const toggleSave = async () => {
+    if (busy) return
+    const wasSaved = saved
+    setBusy(true)
+    try {
+      if (wasSaved) await removePlanItem(Number(id))
+      else await addPlanItem(Number(id))
+      setSavedOverride(!wasSaved)
+      setToast({ id: ++toastId.current, type: wasSaved ? 'removed' : 'added', message: wasSaved ? '담기를 취소했어요' : '직무를 담았어요' })
+    } catch (caught) {
+      setToast({ id: ++toastId.current, type: 'error', message: planErrorMessage(caught, wasSaved ? '빼기' : '담기') })
+    } finally {
+      setBusy(false)
     }
-    updateBackToTop();window.addEventListener('scroll',updateBackToTop,{passive:true});window.addEventListener('resize',updateBackToTop)
-    return()=>{window.cancelAnimationFrame(frame);window.removeEventListener('scroll',updateBackToTop);window.removeEventListener('resize',updateBackToTop)}
-  },[detailReady])
-  // 담고 내 지망으로 간다. 이미 담겨 있어도(200) 그대로 이동한다
-  const plan=useRequest(getMyPlan,Boolean(getToken()))
-  const [adding,setAdding]=useState(false); const [savedOverride,setSavedOverride]=useState(null); const [addError,setAddError]=useState(''); const [saveToast,setSaveToast]=useState(null); const saveToastId=useRef(0)
-  const planSaved=Boolean(plan.data?.items?.some(item=>String(item.jobId)===String(id)))
-  const saved=savedOverride??planSaved
-  const addToPlan=async()=>{if(adding||plan.loading)return;const isSaved=saved;setAdding(true);setAddError('');try{if(isSaved)await removePlanItem(Number(id));else{await addPlanItem(Number(id));setSaveToast({id:++saveToastId.current})}setSavedOverride(!isSaved)}catch(caught){setAddError(planErrorMessage(caught,isSaved?'빼기':'담기'))}finally{setAdding(false)}}
+  }
 
-  if(job.loading||(job.data&&!detailReady))return <DetailLoading complete={Boolean(job.data)}/>
-  if(job.error)return <main className="content two-column"><section><button className="back job-detail-back-button" type="button" onClick={goBack}>← 뒤로가기</button><DetailError error={job.error}/></section></main>
+  if (job.loading || (job.data && !detailReady)) return <DetailLoading complete={Boolean(job.data)} />
+  if (job.error) return <main className="job-detail-page"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button><div className="job-detail-shell">
+    {job.error.code === 'JOB_NOT_FOUND' ? <Empty title="없는 직무예요" action={<Link className="v2-btn" to="/jobs">직무 찾기로 돌아가기 →</Link>}>이번 회차에 없는 직무 번호예요.</Empty>
+      : job.error.status === 401 ? <Empty title="로그인하면 직무 상세를 볼 수 있어요" action={<Link className="v2-btn" to="/login">로그인 · 체험 계정 →</Link>}>체험 계정은 24시간 뒤 지워져요.</Empty>
+      : <Empty title="직무 정보를 불러오지 못했어요" action={<button type="button" className="v2-btn line" onClick={job.reload}>다시 불러오기</button>}>{job.error.code === 'NETWORK' ? '서버에 연결하지 못했어요. 서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요.' : '잠시 뒤 다시 시도해 주세요.'}</Empty>}
+  </div></main>
+  const detail = job.data
+  if (!detail) return null
+  const { institution, conditions, requirements, closing } = detail
+  const closed = isClosed(closing, round.data)
+  const stipend = conditions.stipend?.amount ? `${label(codes, 'stipendBasis', conditions.stipend.basis)} ${won(conditions.stipend.amount)}` : '미기재'
+  const period = conditions.period ? `${conditions.period.start} ~ ${conditions.period.end}` : '미기재'
+  const workplace = detail.workplace.address ?? institution.address
+  const requirementRows = [
+    ['학년', label(codes, 'gradeRule', requirements.gradeRule) || '조건 없음'],
+    ['학점', requirements.gpaMin != null ? `평점 ${Number(requirements.gpaMin).toFixed(1)} 이상` : '조건 없음'],
+    ['선호 전공', requirements.majorOpen ? '전공 무관' : <>{requirements.majorText}{requirements.majorAliases.length > 0 && <span className="jd-alias">{requirements.majorAliases.map((alias) => <small key={alias.label}>‘{alias.label}’ → {alias.departments.length ? alias.departments.map((department) => department.name).join(', ') : '학과 확정 전'}</small>)}</span>}</>],
+    ['포트폴리오', label(codes, 'requirement', requirements.portfolio)],
+    ['자격증', `${label(codes, 'requirement', requirements.certificate)}${requirements.certificateText ? ` · ${requirements.certificateText}` : ''}`],
+  ]
+  const conditionRows = [
+    ['실습 기간', period],
+    ['실습 시간', `${conditions.workHoursText ?? '미기재'}${conditions.weeklyHours ? ` · 주 ${conditions.weeklyHours}시간` : ''}`],
+    ['실습 요일', (conditions.weekdays ?? []).map((day) => label(codes, 'weekday', day)).join(', ') || '미기재'],
+    ['실습지원비', conditions.stipend?.amount ? `${stipend}${conditions.stipend.minWageRatio != null ? ` (최저임금 대비 ${conditions.stipend.minWageRatio}%)` : ''}` : '미기재'],
+    ['복리후생', (conditions.benefits ?? []).map((benefit) => label(codes, 'benefit', benefit)).join(', ') || '없음'],
+    ['모집 인원', `${conditions.headcount}명`],
+    ['연장 실습', label(codes, 'overtime', conditions.overtime) || '미기재'],
+    ['모집 마감', closed ? `마감${closing.closesOn ? ` (${fmtDate(dayBefore(closing.closesOn))}까지)` : ''}` : closing.closesOn ? `${fmtDate(dayBefore(closing.closesOn))}까지${closing.closeReason ? ` · ${label(codes, 'closeReason', closing.closeReason)}` : ''}${closing.closesOnIsVirtual ? ' · 가상 날짜' : ''}` : '모집 기간 끝까지'],
+  ]
+  const scrollTo = (event, sectionId) => {
+    event.preventDefault()
+    window.clearTimeout(scrollTimer.current)
+    scrollLock.current = true
+    setActiveSection(sectionId)
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    scrollTimer.current = window.setTimeout(() => { scrollLock.current = false }, 850)
+  }
 
-  const detail=job.data; const {institution,conditions,requirements,closing}=detail
-  const aiDecision=eligibility.data?.jobs.find(item=>String(item.jobId)===String(id))
-  const requirementRows=[
-    ['학년',label('gradeRule',requirements.gradeRule)],
-    ['학점',requirements.gpaMin!=null?`평점 ${requirements.gpaMin} 이상`:'조건 없음'],
-    ['선호 전공',requirements.majorOpen?'전공 무관':`${requirements.majorText}${requirements.majorAliases.length?` → ${requirements.majorAliases.flatMap(alias=>alias.departments.map(department=>department.name)).join(', ')}`:''}`],
-    ['포트폴리오',label('requirement',requirements.portfolio)],
-    ['자격증',`${label('requirement',requirements.certificate)}${requirements.certificateText?` · ${requirements.certificateText}`:''}`],
-  ]
-  const conditionRows=[
-    ['실습 과정',label('course',conditions.course)],
-    ['실습 유형',label('jobType',conditions.jobType)],
-    ['실습 기간',conditions.period?`${conditions.period.start} ~ ${conditions.period.end}`:'미기재'],
-    ['실습 시간',`${conditions.workHoursText??'미기재'}${conditions.weeklyHours?` · 주 ${conditions.weeklyHours}시간`:''}`],
-    ['실습 요일',(conditions.weekdays??[]).map(day=>label('weekday',day)).join(', ')||'미기재'],
-    ['연장 실습',label('overtime',conditions.overtime)],
-    ['근로계약',conditions.laborContract?'있음':'없음'],
-    ['실습지원비',conditions.stipend?.amount?`${label('stipendBasis',conditions.stipend.basis)} ${won(conditions.stipend.amount)}${conditions.stipend.minWageRatio!=null?` (최저임금 대비 ${conditions.stipend.minWageRatio}%)`:''}`:'미기재'],
-    ['복리후생',(conditions.benefits??[]).map(benefit=>label('benefit',benefit)).join(', ')||'없음'],
-    ['모집 인원',`${conditions.headcount}명`],
-    ['모집 마감',closing.closesOn?`${formatDay(dayBefore(closing.closesOn))}${closing.closesOnIsVirtual?' · 가상 날짜':''}`:'상시 모집 또는 미기재'],
-    ['마감 기준',closing.closeReason?label('closeReason',closing.closeReason):'미기재'],
-  ]
-  const institutionRows=[
-    ['기관명',institution.name],
-    ['규모',`${label('size',institution.size)} · ${label('listing',institution.listing)}`],
-    ['업태',institution.businessType??'미기재'],
-    ['종목',institution.businessItem??'미기재'],
-    ['주소',institution.address??'미기재'],
-    ['사업자 상태',`${label('ntsStatus',institution.ntsStatus)}${institution.ntsCheckedOn?` (${institution.ntsCheckedOn} 확인)`:''}`],
-  ]
-  const aiCopyLoading=profile.loading||Boolean(profile.data&&aiReason.loading)
-  const aiCriteriaLoading=profile.loading||eligibility.loading
+  return <main className="job-detail-page"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button><div className="job-detail-shell">
+    <header className="job-detail-hero"><div className="job-detail-hero-main"><DetailInstitutionLogo institution={institution} /><div className="job-detail-hero-copy">
+      <span className="job-detail-eyebrow">{institution.name} · {detail.team}</span><h1>{detail.title}</h1>
+      <div className="job-detail-meta">
+        <Badge tone="blue">{label(codes, 'jobType', conditions.jobType)}</Badge><Badge>{label(codes, 'course', conditions.course)}</Badge>
+        {closed ? <Badge>마감</Badge> : closing.closesOn && <Badge tone="orange">{fmtDate(dayBefore(closing.closesOn))} 마감{closing.closesOnIsVirtual ? '(가상)' : ''}</Badge>}
+        {detail.alerts.length > 0 && <DetailDecisionPreview type="document" alerts={detail.alerts} codes={codes}><Badge tone="orange">문서 검토 {detail.alerts.length}건</Badge></DetailDecisionPreview>}
+      </div>
+      <p className="job-detail-views">조회 {detail.views.toLocaleString('ko-KR')} · 오늘 조회 {detail.todayViews.toLocaleString('ko-KR')}</p>
+    </div></div>
+    {isStudent && <button type="button" className={`job-detail-save ${saved ? 'is-saved' : ''}`} disabled={busy} title={saved ? '다시 누르면 담기를 취소해요(지망 순위도 지워져요)' : undefined} onClick={toggleSave}>{busy ? <i className="job-detail-button-spinner" aria-label="처리 중" /> : saved ? `담김${rank ? ` · ${rank}지망` : ''}` : '담기'}</button>}
+    </header>
+    <section className="job-detail-highlights"><div><span>실습지원비</span><strong>{stipend}</strong></div><div><span>실습 기간</span><strong>{period}</strong></div><div><span>모집 인원</span><strong>{conditions.headcount}명</strong></div><div><span>근무지</span><strong>{workplace ?? '미기재'}</strong></div></section>
 
-    return <main className="job-detail-page"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button><div className="job-detail-shell"><header className="job-detail-hero"><div className="job-detail-hero-main"><DetailInstitutionLogo institution={institution}/><div className="job-detail-hero-copy"><span className="job-detail-eyebrow">{institution.name} · {detail.team}</span><h1>{detail.title}</h1><div className="job-detail-meta"><Badge tone="blue">{label('jobType',conditions.jobType)}</Badge><Badge>{label('course',conditions.course)}</Badge>{closing.closesOn&&<Badge tone="orange">{formatDay(dayBefore(closing.closesOn))} 마감{closing.closesOnIsVirtual?'(가상)':''}</Badge>}{detail.alerts.length>0&&<DetailDecisionPreview type="document" alerts={detail.alerts} label={label}><Badge tone="orange">문서 검토 {detail.alerts.length}건</Badge></DetailDecisionPreview>}</div>{views.data&&<p className="job-detail-views">조회 {views.data.views.toLocaleString('ko-KR')} · 오늘 조회 {views.data.todayViews.toLocaleString('ko-KR')}</p>}</div></div><button className={`job-detail-save ${saved?'is-saved':''}`} disabled={adding||plan.loading} onClick={addToPlan}>{adding?<i className="job-detail-button-spinner" aria-label="처리 중"/>:saved?'담았어요':'담기'}</button></header>
-    <section className="job-detail-highlights"><div><span>실습지원비</span><strong>{conditions.stipend?.amount?`${label('stipendBasis',conditions.stipend.basis)} ${won(conditions.stipend.amount)}`:'미기재'}</strong></div><div><span>실습 기간</span><strong>{conditions.period?`${conditions.period.start} ~ ${conditions.period.end}`:'미기재'}</strong></div><div><span>모집 인원</span><strong>{conditions.headcount}명</strong></div><div><span>근무지</span><strong>{detail.workplace.address??institution.address??'미기재'}</strong></div></section>
-    {(profile.loading||profile.data)&&<section className={`job-detail-ai-decision ${aiCopyLoading||aiCriteriaLoading?'is-loading':''}`}><div className="job-detail-ai-heading"><div><span>AI DECISION</span><h2>AI가 판단한 근거</h2></div>{aiDecision&&<DetailDecisionPreview type="verdict" reasons={aiDecision.reasons??[]} label={label}><Badge tone={verdictTone[aiDecision.verdict]}>{label('verdict',aiDecision.verdict)}</Badge></DetailDecisionPreview>}</div>{aiCopyLoading?<><div className="job-detail-ai-summary is-loading" role="status"><b>AI</b><i className="job-detail-ai-text-spinner" aria-hidden="true"/><p>이 직무의 분석 내용을 정리하고 있어요.</p></div><AiCitationsSkeleton/></>:aiReason.data?.text?<><div className="job-detail-ai-summary"><b>AI</b><AiTypewriterText text={aiReason.data.text}/></div>{aiReason.data.citations?.length>0&&<div className="job-detail-ai-citations"><h3>원문 근거</h3><div>{aiReason.data.citations.map((citation,index)=><article key={`${citation.documentTitle}-${citation.page}-${index}`}><span>근거 {index+1}</span><blockquote>“{citation.quote}”</blockquote><p>{label('sourceType',citation.sourceType)} · {citation.documentTitle} · {citation.page}쪽</p></article>)}</div></div>}</>:null}{aiCriteriaLoading?<AiReasonsSkeleton/>:eligibility.error?<p className="job-detail-ai-state">판단 근거를 불러오지 못했어요. <button className="link-button" onClick={eligibility.reload}>다시 불러오기</button></p>:aiDecision?.reasons?.length?<div className="job-detail-ai-reasons"><h3 className="job-detail-ai-criteria-title">조건·기준</h3>{aiDecision.reasons.map((reason,index)=><article style={{'--reason-index':index}} key={`${reason.layer}-${reason.item}-${index}`}><div><h3>{reason.item}</h3></div><dl><div><dt>필요 조건</dt><dd>{reason.requirement}</dd></div><div><dt>내 조건</dt><dd>{reason.mine}</dd></div></dl><b className={`is-${reason.result.toLowerCase()}`}>{reasonResultLabel[reason.result]??reason.result}</b></article>)}</div>:<p className="job-detail-ai-state">표시할 판단 근거가 없어요.</p>}</section>}
-    {addError&&<p className="notice danger" role="alert">{addError}</p>}
-    <nav ref={detailNavRef} className="job-detail-nav" aria-label="직무 상세 바로가기">{[['job-requirements','지원 조건'],['job-overview','하는 일'],['job-conditions','실습 조건'],['job-evidence','공고 정보'],['job-institution','기관 정보']].map(([sectionId,name])=><a className={activeSection===sectionId?'is-active':''} aria-current={activeSection===sectionId?'location':undefined} href={`#${sectionId}`} key={sectionId} onClick={event=>{event.preventDefault();window.clearTimeout(activeScrollTimer.current);activeScrollLock.current=true;setActiveSection(sectionId);document.getElementById(sectionId)?.scrollIntoView({behavior:'smooth',block:'start'});activeScrollTimer.current=window.setTimeout(()=>{activeScrollLock.current=false},850)}}>{name}</a>)}</nav>
+    <AiDecision detail={detail} why={why} explore={explore.data} codes={codes} isStudent={isStudent} />
+    <CareerPath career={career} why={why} explore={explore.data} detail={detail} codes={codes} />
+
+    <nav ref={navRef} className="job-detail-nav" aria-label="직무 상세 바로가기">{SECTIONS.map(([sectionId, name]) => <a className={activeSection === sectionId ? 'is-active' : ''} aria-current={activeSection === sectionId ? 'location' : undefined} href={`#${sectionId}`} key={sectionId} onClick={(event) => scrollTo(event, sectionId)}>{name}</a>)}</nav>
     <div className="job-detail-content">
-      <section className="job-detail-section" id="job-requirements"><span className="job-detail-section-number">01</span><div className="job-detail-section-body"><p className="job-detail-kicker">REQUIREMENTS</p><h2>지원 조건</h2><dl className="job-detail-rows">{requirementRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl></div></section>
-      <section className="job-detail-section" id="job-overview"><span className="job-detail-section-number">02</span><div className="job-detail-section-body"><p className="job-detail-kicker">ROLE</p><h2>이런 일을 해요</h2><p className="job-detail-lead">{detail.overview}</p><div className="job-detail-two-up"><div><h3>교육 목표</h3><p>{detail.educationGoal}</p></div><div><h3>요구 역량</h3><p>{detail.competencies}</p></div></div>{detail.weeklyPlan.length>0&&<div className="job-detail-weekly"><h3>주차별 계획</h3>{detail.weeklyPlan.map(week=><div key={week.seq}><b>{week.weeksLabel}</b><span>{week.content}</span></div>)}</div>}</div></section>
-      <section className="job-detail-section" id="job-conditions"><span className="job-detail-section-number">03</span><div className="job-detail-section-body"><p className="job-detail-kicker">CONDITIONS</p><h2>실습 조건</h2><dl className="job-detail-rows is-grid">{conditionRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl><CommuteCard jobId={detail.id} hasCoordinates={detail.workplace.hasCoordinates} workplace={detail.workplace.address??institution.address} label={label}/></div></section>
-      <section className="job-detail-section job-detail-evidence-section" id="job-evidence"><span className="job-detail-section-number">04</span><div className="job-detail-section-body"><p className="job-detail-kicker">POSTING INFORMATION</p><h2>공고 정보</h2><div className="job-detail-evidence-list">{detail.evidence.map((item,index)=><article style={{'--evidence-index':index}} key={`${item.fieldKey}-${index}`}><h3>{item.label}</h3><strong>{item.rawValue||'미기재'}</strong></article>)}</div>{detail.alerts.length>0&&<div className="job-detail-alerts"><h3>문서 검토 {detail.alerts.length}건</h3>{detail.alerts.map((alert,index)=><article key={alert.id??index}><div><Badge tone="orange">{alert.label??label('alertKind',alert.kind??alert.code)??'문서 확인 필요'}</Badge><p>{alert.description??alert.detail??'원문 문서에서 추가 확인이 필요한 내용을 찾았어요.'}</p></div>{alert.quoteA&&<blockquote>“{alert.quoteA}”</blockquote>}{alert.quoteB&&<blockquote>“{alert.quoteB}”</blockquote>}<small>{[alert.documentTitle,alert.pageA&&`${alert.pageA}쪽`,alert.pageB&&`${alert.pageB}쪽`].filter(Boolean).join(' · ')}</small></article>)}</div>}<p className="job-detail-caution">표시된 값은 원문과 다를 수 있어요. 최종 지원 전 원문을 확인하세요.</p></div></section>
-      <section className="job-detail-section" id="job-institution"><span className="job-detail-section-number">05</span><div className="job-detail-section-body"><p className="job-detail-kicker">INSTITUTION</p><h2>기관 정보</h2><dl className="job-detail-rows">{institutionRows.map(([title,value])=><div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl>{detail.seniorNotes.length>0&&<div className="job-detail-senior"><h3>선배 수기</h3>{detail.seniorNotes.map((note,index)=><article key={`${note.termCode}-${index}`}><b>{note.termCode} · {note.teamText}</b><div className="job-detail-senior-columns"><section><h4>실습 내용</h4>{note.activities?.length?<ul>{note.activities.map(activity=><li key={activity}>{activity}</li>)}</ul>:<p>기록된 실습 내용이 없어요.</p>}</section><section><h4>실습 결과</h4>{note.outcomes?.length?<ul>{note.outcomes.map(outcome=><li key={outcome}>{outcome}</li>)}</ul>:<p>기록된 실습 결과가 없어요.</p>}</section></div><small>{note.documentTitle} · {note.page}쪽</small></article>)}</div>}</div></section>
+      <section className="job-detail-section" id="job-requirements"><span className="job-detail-section-number">01</span><div className="job-detail-section-body"><p className="job-detail-kicker">REQUIREMENTS</p><h2>지원 조건</h2><dl className="job-detail-rows">{requirementRows.map(([title, value]) => <div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl><p className="jd-school-rule">{SCHOOL_RULE_NOTE}</p></div></section>
+      <section className="job-detail-section" id="job-overview"><span className="job-detail-section-number">02</span><div className="job-detail-section-body"><p className="job-detail-kicker">ROLE</p><h2>이런 일을 해요</h2><p className="job-detail-lead jd-pre">{detail.overview || '직무 개요가 운영계획서에 없어요.'}</p><div className="job-detail-two-up"><div><h3>교육 목표</h3><p className="jd-pre">{detail.educationGoal || '미기재'}</p></div><div><h3>요구 역량</h3><p className="jd-pre">{detail.competencies || '미기재'}</p></div></div>{detail.weeklyPlan.length > 0 && <div className="job-detail-weekly"><h3>주차별 계획</h3>{detail.weeklyPlan.map((week) => <div key={week.seq}><b>{week.weeksLabel}</b><span>{week.content}</span></div>)}</div>}</div></section>
+      <section className="job-detail-section" id="job-conditions"><span className="job-detail-section-number">03</span><div className="job-detail-section-body"><p className="job-detail-kicker">CONDITIONS</p><h2>실습 조건</h2><dl className="job-detail-rows is-grid">{conditionRows.map(([title, value]) => <div key={title}><dt>{title}</dt><dd>{value}</dd></div>)}</dl><CommuteCard jobId={detail.id} hasCoordinates={detail.workplace.hasCoordinates} workplace={workplace} profile={profile.data} codes={codes} ready={!session.loading && (!isStudent || !profile.loading)} /></div></section>
+      <EvidenceSection detail={detail} codes={codes} />
+      <InstitutionSection detail={detail} codes={codes} />
     </div>
-    <button className={`job-detail-back-to-top ${showBackToTop?'is-visible':''}`} type="button" aria-hidden={!showBackToTop} tabIndex={showBackToTop?0:-1} onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}><span aria-hidden="true">↑</span> 위로가기</button>
-    {saveToast&&<Toast key={saveToast.id} className="first-save-toast" onAnimationEnd={()=>setSaveToast(current=>current?.id===saveToast.id?null:current)}><span className="first-save-toast-icon" aria-hidden="true">✓</span><div><b>직무를 담았어요</b><small>내 지망에서 담은 직무를 확인할 수 있어요.</small></div><Link to="/plan">내 지망 보기</Link></Toast>}
+    <button className={`job-detail-back-to-top ${showBackToTop ? 'is-visible' : ''}`} type="button" aria-hidden={!showBackToTop} tabIndex={showBackToTop ? 0 : -1} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span aria-hidden="true">↑</span> 위로가기</button>
+    {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습에서 볼 수 있어요.'}</small></div><Link to="/internship">내 현장실습 보기</Link></Toast>}
   </div></main>
 }

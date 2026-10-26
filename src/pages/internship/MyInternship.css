@@ -1,0 +1,105 @@
+/* 내 현장실습 — 프로토타입 MyInternship.dc.html의 mi-* 그대로(+ 상태 표시 몇 개) */
+.mi-head{display:flex;margin-bottom:18px;align-items:flex-end;justify-content:space-between;gap:24px}
+.mi-head .page-title p{margin:8px 0 0;color:#626b78;font-size:14px}
+.mi-day{display:flex;align-items:center;gap:10px}
+.mi-day small{color:#89929f;font-size:12px;font-weight:800}
+.mi-track{padding:20px 22px 18px;border:1px solid #e1e6ee;border-radius:20px;background:#fff;box-shadow:0 14px 34px rgb(39 49 72 / 4%)}
+.mi-phases{display:grid;margin-bottom:10px;gap:8px}
+.mi-phases span{padding:5px 10px;border-radius:8px;color:#5b6472;background:#f4f6f9;font-size:11px;font-weight:900;letter-spacing:.02em}
+.mi-phases span.on{color:#2440c8;background:#eef2ff}
+.mi-nodes{display:grid;margin:0;padding:0;grid-template-columns:repeat(11,minmax(0,1fr));list-style:none}
+.mi-nodes li{position:relative}
+.mi-nodes li::before{position:absolute;top:19px;left:-50%;width:100%;height:2px;background:#e6e9ef;content:''}
+.mi-nodes li:first-child::before{display:none}
+.mi-nodes li.done::before,.mi-nodes li.now::before{background:#3154f4}
+.mi-node{position:relative;display:flex;width:100%;padding:8px 2px 10px;flex-direction:column;align-items:center;gap:6px;border:0;border-radius:12px;background:transparent;font-family:inherit;text-align:center;cursor:pointer}
+.mi-node i{position:relative;z-index:1;display:grid;width:24px;height:24px;border:2px solid #d5dbe6;border-radius:50%;color:#fff;background:#fff;font-size:11px;font-style:normal;font-weight:900;place-items:center}
+.mi-nodes li.done .mi-node i{border-color:#3154f4;background:#3154f4}
+.mi-nodes li.now .mi-node i{border-color:#3154f4;color:#3154f4;box-shadow:0 0 0 5px rgb(49 84 244 / 15%)}
+.mi-node b{color:#30353d;font-size:12px;letter-spacing:-.3px}
+.mi-nodes li.now .mi-node b{color:#3154f4}
+.mi-node small{color:#929aa7;font-size:10px;font-weight:700}
+.mi-node.sel{background:#f5f7ff;box-shadow:inset 0 0 0 1px #c9d4ff}
+.mi-node:hover:not(.sel){background:#fafbfd}
+.mi-hint{margin:10px 2px 0;color:#89929f;font-size:12px;font-weight:700}
+.mi-panel{margin-top:16px}
+.mi-stage-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.mi-stage-head>span{flex-shrink:0;white-space:nowrap}
+.mi-stage-head h2{margin:6px 0 0;font-size:22px;letter-spacing:-.8px}
+.mi-stage-head p{margin:8px 0 0;color:#5b6472;font-size:13px;line-height:1.7}
+.mi-items{margin-top:14px}
+.mi-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:14px 0;border-top:1px solid #edf0f4}
+.mi-item b{display:block;font-size:14px;letter-spacing:-.3px}
+.mi-item b .v2-virtual{margin-left:6px}
+.mi-item small{display:block;margin-top:3px;color:#6b7380;font-size:12px;line-height:1.55}
+.mi-item a{text-decoration:none}
+.mi-item-r{display:flex;align-items:center;gap:8px}
+.mi-item-r .badge{margin:0;white-space:nowrap}
+.mi-actions{display:flex;margin-top:16px;gap:8px}
+.mi-note{margin-top:14px}
+.mi-side h3{margin:0;font-size:15px;letter-spacing:-.3px}
+.mi-side p{margin:6px 0 0;color:#5b6472;font-size:12px;line-height:1.65}
+.mi-side a{text-decoration:none}
+.mi-do{display:inline-flex;height:32px;padding:0 12px;align-items:center;border:1px solid #c9d4ff;border-radius:9px;color:#3154f4;background:#fff;font-family:inherit;font-size:12px;font-weight:800;white-space:nowrap;cursor:pointer}
+.mi-do.real{color:#fff;background:#3154f4;border-color:#3154f4}
+.mi-do:disabled{opacity:.5;cursor:default}
+.mi-error{margin:10px 0 0;color:#c53535;font-size:12px;font-weight:700;line-height:1.6}
+.mi-error a{color:#3154f4;text-decoration:underline}
+
+/* 담은 직무(지망 관리) — 옛 PlanPage.css의 plan-board를 카드 안에 넣는다 */
+.mi-pick{margin-top:16px}
+.mi-pick .plan-board{border:0;box-shadow:none;background:transparent;animation:none}
+.mi-pick .plan-board-toolbar{min-height:0;padding:0 0 12px}
+.mi-pick .plan-board-toolbar h2{font-size:17px}
+.mi-pick .plan-board-toolbar small{color:#7d8795;font-size:12px;font-weight:700}
+.mi-pick .pick-list{padding:0}
+.mi-pick .plan-pick{min-height:96px;padding:16px 4px 16px 10px;cursor:default}
+.mi-pick .plan-pick h3 a:hover{color:#3154f4}
+.mi-pick .plan-pick-main h3{margin:4px 0 10px}
+.mi-pick .plan-add-candidate{min-height:72px}
+.mi-pick .plan-error{margin:0 0 10px}
+.mi-pick-sync{display:flex;margin-bottom:10px;padding:12px 14px;align-items:center;justify-content:space-between;gap:12px;border-radius:12px;color:#2b3a7a;background:#f5f7ff;font-size:12px;font-weight:700}
+.mi-alt{display:flex;min-width:0;padding:12px 2px;align-items:flex-start;gap:10px;border-top:1px solid #edf0f4}
+.mi-alt:first-of-type{margin-top:10px}
+.mi-alt .plan-alternative-copy small{font-size:10px}
+.mi-alt .plan-alternative-copy b{font-size:13px}
+.mi-alt .plan-alternative-meta .badge{font-size:10px}
+.mi-alt .plan-alternative-meta span{font-size:11px}
+.mi-alt:hover b{color:#3154f4}
+.mi-place{display:flex;margin-top:12px;align-items:center;gap:12px}
+.mi-place .plan-institution-logo{width:44px;height:44px;flex-basis:44px}
+.mi-place small{display:block;color:#6678bf;font-size:11px;font-weight:800}
+.mi-place b{display:block;margin-top:2px;font-size:14px;letter-spacing:-.3px}
+
+/* 옆 패널(서식 미리 보기) */
+.side-panel.mi-sheet{width:540px;padding:30px 30px 24px}
+.mi-sheet>h2{margin:4px 0 0;padding-right:36px;font-size:20px;letter-spacing:-.7px}
+.mi-sheet .mi-sheet-sub{margin:8px 0 6px;color:#5b6472;font-size:12px;line-height:1.7}
+.mi-sheet .mi-sheet-sub .badge{margin-right:6px}
+.mi-sec{padding:14px 0;border-top:1px solid #edf0f4}
+.mi-sec h3{margin:0 0 8px;font-size:14px;letter-spacing:-.3px}
+.mi-sec p{margin:0;color:#5b6472;font-size:12px;line-height:1.65}
+.mi-kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;padding:6px 0;font-size:12px}
+.mi-kv span{color:#89929f;font-weight:800}
+.mi-kv b{font-weight:700;line-height:1.55}
+.mi-q{padding:12px 0;border-top:1px solid #edf0f4}
+.mi-q:first-child{border-top:0}
+.mi-q b{display:block;font-size:13px;line-height:1.55}
+.mi-q small{display:inline-block;margin-top:4px;color:#3154f4;font-size:11px;font-weight:800}
+.mi-opts{display:flex;margin-top:8px;flex-direction:column;gap:5px}
+.mi-opt{padding:8px 10px;border:1px solid #e1e6ee;border-radius:9px;color:#30353d;background:#fff;font-family:inherit;font-size:12px;font-weight:650;text-align:left;cursor:pointer}
+.mi-opt.on{border-color:#3154f4;background:#f5f7ff;box-shadow:inset 0 0 0 1px #3154f4;color:#2440c8}
+.mi-sheet-foot{display:flex;margin-top:12px;padding-top:14px;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #edf0f4}
+
+/* 확인 대화 상자 */
+.mi-confirm h2{margin:0 0 8px;font-size:19px;letter-spacing:-.6px}
+.mi-confirm .fx-row{justify-content:center;margin-top:18px}
+.mi-head .page-title>span{font-size:11px;font-weight:850;letter-spacing:.12em}
+.mi-head .page-title h1{margin:8px 0 0;font-size:32px;letter-spacing:-1.6px}
+.mi-panel .fx-aside .fx-card+.fx-card{margin-top:0}
+.mi-pick .plan-board-toolbar{padding-top:4px}
+.mi-pick .plan-board-toolbar h2 small{margin-left:4px;color:#89929f;font-size:12px;font-weight:800}
+.mi-pick .plan-institution-logo,.mi-place .plan-institution-logo,.mi-alt .plan-institution-logo{display:grid;overflow:visible;border:0;border-radius:0;background:transparent;place-items:center}
+.mi-pick .plan-institution-logo{width:54px;height:54px;flex:0 0 54px}
+.mi-alt .plan-institution-logo{width:36px;height:36px;flex:0 0 36px}
+.mi-pick .plan-institution-logo img,.mi-place .plan-institution-logo img,.mi-alt .plan-institution-logo img{width:auto;height:auto;max-width:78%;max-height:78%;object-fit:scale-down}

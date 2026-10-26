@@ -1,0 +1,88 @@
+/* 직무 상세 v2 — 프로토타입(JobDetail.dc.html)의 화면 전용 스타일 + 상태 표시. 공통 CSS(styles/*)는 고치지 않는다 */
+
+/* 프로토타입 helmet 그대로 */
+.job-detail-ai-typewriter { white-space: normal; }
+.v2-fold { display: flex; width: 100%; height: 52px; margin-top: 6px; align-items: center; justify-content: center; gap: 8px; border: 1px dashed #cfd5df; border-radius: 14px; color: #4d5662; background: #fafbfc; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.v2-fold:hover { border-color: #b9c6ff; color: #3154f4; }
+
+.jd-pre { white-space: pre-line; }
+.jd-rule-tag { margin-left: 8px; padding: 3px 7px; border-radius: 6px; color: #68717e; background: #f1f3f6; font-size: 10px; font-weight: 800; letter-spacing: 0; vertical-align: 2px; }
+.jd-more { padding: 6px 0 0; border: 0; color: #3154f4; background: transparent; font-family: inherit; font-size: 12px; font-weight: 800; text-align: left; cursor: pointer; }
+.jd-more:hover { text-decoration: underline; }
+.first-save-toast-icon.error { color: #c53535; background: #fdeeee; }
+
+/* 왜 나에게 맞나요 */
+.jd-ai-badges { display: flex; align-items: center; gap: 6px; }
+.jd-ai-badges .badge.blue { color: #2440c8; background: #eef2ff; }
+.jd-ai-empty { display: flex; grid-column: 1 / -1; padding: 22px 26px; align-items: center; gap: 16px; border: 1px dashed #b9c6ff; border-radius: 16px; background: #f7f9ff; }
+.jd-ai-empty > div { flex: 1; min-width: 0; }
+.jd-ai-empty b { display: block; color: #20242b; font-size: 15px; letter-spacing: -.4px; }
+.jd-ai-empty p { margin: 6px 0 0; color: #5b6472; font-size: 13px; line-height: 1.7; }
+.jd-ai-empty.is-muted { border-color: #d9dee7; background: #fafbfc; }
+.jd-ai-empty.is-muted .v2-ai { color: #68717e; background: #eef0f3; }
+.jd-ai-empty.is-error { border-color: #f0d2d2; border-style: solid; background: #fff; }
+.jd-ai-empty.is-error b { color: #9b3a3a; }
+.jd-ai-next { margin-top: 18px; }
+.jd-ai-foot { grid-column: 1 / -1; margin: 14px 0 0; }
+.job-detail-ai-reasons article > div small { display: block; margin-bottom: 4px; }
+.job-detail-ai-reasons .jd-cite dt { font-size: 11px; }
+.job-detail-ai-reasons .jd-cite dd { color: #89929f; font-size: 11px; font-weight: 600; line-height: 1.55; }
+
+/* 이어지는 길 */
+.jd-career-state { display: flex; min-height: 120px; align-items: center; justify-content: center; gap: 10px; color: #5b6472; font-size: 13px; font-weight: 700; }
+.jd-career-state .v2-spinner { width: 20px; height: 20px; border-width: 2px; }
+.jd-career-state.is-error { color: #9b3a3a; }
+.jd-ncs-path { display: flex; margin: -2px 0 2px; flex-direction: column; gap: 3px; color: #5b6472; font-size: 11px; font-weight: 800; }
+.jd-ncs-path small { color: #89929f; font-size: 11px; font-weight: 650; line-height: 1.5; }
+.jd-next-stack { gap: 8px; }
+.v2-next b { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.jd-rel { flex-shrink: 0; padding: 2px 6px; border-radius: 5px; color: #5b6472; background: #fff; font-size: 10px; font-style: normal; font-weight: 800; }
+.jd-rel.is-same_small { color: #2440c8; background: #eef2ff; }
+.jd-rel.is-same_middle { color: #16734c; background: #eaf7f0; }
+.jd-rel.is-other { color: #8a4b0b; background: #fff3e4; }
+.jd-occ { margin: 2px 0 0; }
+
+/* 지원 조건 · 공고 정보 */
+.jd-alias { display: flex; margin-top: 6px; flex-direction: column; gap: 2px; }
+.jd-alias small { color: #89929f; font-size: 11px; font-weight: 650; }
+.job-detail-section .jd-school-rule { margin: 18px 0 0; padding: 13px 16px; border-radius: 10px; color: #6b7380; background: #f6f7f9; font-size: 12px; line-height: 1.7; }
+.jd-alerts-top { margin: 0 0 22px; }
+.jd-evidence { margin-top: 12px; }
+.jd-evidence article { align-items: start; }
+.jd-evidence article > div { min-width: 0; }
+.jd-evidence blockquote { margin: 6px 0 4px; padding-left: 10px; border-left: 2px solid #dfe5ff; color: #5b6472; font-size: 12px; line-height: 1.6; }
+.jd-evidence small { color: #9aa2ae; font-size: 11px; font-weight: 650; }
+
+/* 통근 */
+.jd-commute-wait { display: flex !important; align-items: center !important; gap: 9px !important; color: #5b6472; font-size: 13px; font-weight: 700; }
+.jd-commute-wait .v2-spinner { width: 18px; height: 18px; border-width: 2px; }
+.jd-commute-wait.is-error { color: #9b3a3a; }
+.jd-commute-wait .link-button { padding: 0; }
+.jd-commute-note { display: block; margin-top: 4px; color: #89929f; font-size: 11px; }
+
+/* 기관 정보 — 소개서 사진 · 선배 수기 전문 */
+.jd-photos { margin-top: 34px; }
+.jd-photos > h3 { margin: 0 0 12px; color: #59626f; font-size: 14px; }
+.jd-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 12px; }
+.jd-photo-grid figure { margin: 0; overflow: hidden; border: 1px solid #e7eaf0; border-radius: 14px; background: #fafbfc; }
+.jd-photo-grid img { display: block; width: 100%; height: auto; object-fit: cover; background: #eef0f3; }
+.jd-photo-grid figcaption { padding: 10px 12px; color: #5b6472; font-size: 12px; font-weight: 650; line-height: 1.5; }
+.jd-photo-source { display: block; margin-top: 8px; color: #9aa2ae; font-size: 11px; }
+.job-detail-senior > h3 { margin: 0 0 6px; color: #20242b; font-size: 16px; }
+.job-detail-section .jd-senior-caution { margin: 0 0 6px; color: #89929f; font-size: 12px; }
+.jd-senior-head { display: flex; align-items: center; gap: 8px; }
+.jd-senior-head b { font-size: 14px; letter-spacing: -.3px; }
+.jd-senior-head .badge { margin: 0; padding: 3px 7px; border-radius: 6px; color: #2440c8; background: #eef2ff; }
+.job-detail-section .jd-senior-line { margin: 8px 0 0; color: #3e4651; font-size: 14px; font-weight: 700; }
+.jd-senior-full { display: grid; margin: 4px 0 12px; gap: 10px; }
+.jd-senior-full section { padding: 16px 18px; border: 1px solid #edf0f4; border-radius: 13px; }
+.jd-senior-full h4 { margin: 0 0 6px; color: #59626f; font-size: 12px; }
+.job-detail-section .jd-senior-full p { margin: 0; color: #4d5662; font-size: 13px; line-height: 1.85; white-space: pre-line; }
+.jd-senior-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.jd-senior-foot .jd-more { padding: 0; }
+/* 선호 전공 줄: 판정에 넣지 않는 참고 — 결과 자리에 내 전공 위치, 아래 한 줄 설명 */
+.job-detail-ai-reasons .jd-major-note{grid-column:1/-1;margin:6px 0 0;color:#7b8491;font-size:12px;line-height:1.6}
+/* 선배 수기 참여 소감 — 접지 않고 실습 내용·결과 아래에 바로 */
+.jd-senior-reflection { margin: 12px 0 10px; padding: 14px 18px; border-left: 3px solid #c9d4ff; border-radius: 0 12px 12px 0; background: #f7f9ff; }
+.jd-senior-reflection h4 { margin: 0 0 6px; color: #2440c8; font-size: 12px; }
+.job-detail-section .jd-senior-reflection p { margin: 0; color: #3e4651; font-size: 13px; line-height: 1.85; white-space: pre-line; }

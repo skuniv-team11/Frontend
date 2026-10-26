@@ -1,0 +1,27 @@
+/* 로컬 v2 화면 공통 — 프로토타입(v2.css·fx.css)에 없는 상태 표시만 둔다 */
+.v2-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:180px;padding:34px;text-align:center;color:#3e4651}
+.v2-state b{font-size:15px;letter-spacing:-.3px}
+.v2-state small,.v2-state p{margin:0;color:#7b8491;font-size:13px;line-height:1.7}
+.v2-state.is-error b{color:#c53535}
+.v2-spinner{width:26px;height:26px;border:3px solid #dfe5ff;border-top-color:#3154f4;border-radius:50%;animation:v2-spin .8s linear infinite}
+@keyframes v2-spin{to{transform:rotate(360deg)}}
+.v2-virtual{display:inline-flex;height:18px;padding:0 6px;align-items:center;border-radius:4px;color:#8a6a00;background:#fff4c9;font-size:10px;font-weight:900;vertical-align:1px}
+.v2-page-head{display:flex;margin-bottom:22px;align-items:flex-end;justify-content:space-between;gap:24px}
+.v2-page-head .page-title p{margin:8px 0 0;color:#626b78;font-size:14px}
+.institution-logo>b{display:grid;width:100%;height:100%;place-items:center;color:#3154f4;font-size:15px;font-weight:900}
+
+/* 상단 메뉴: 센터·시연 */
+.topbar .v2-top-actions{display:flex;align-items:center;gap:10px}
+.topbar .v2-switch{display:inline-flex;height:32px;padding:0 12px;align-items:center;border:1px solid #d5dbe6;border-radius:99px;color:#3e4651;background:#fff;font-size:12px;font-weight:800;cursor:pointer}
+.topbar .v2-switch:hover{border-color:#3154f4;color:#3154f4}
+.v2-demo-menu{position:relative}
+.v2-demo-pop{position:absolute;top:40px;right:0;z-index:40;display:flex;width:250px;padding:8px;flex-direction:column;gap:4px;border:1px solid #e1e6ee;border-radius:14px;background:#fff;box-shadow:0 18px 40px rgb(32 36 43 / 14%)}
+.v2-demo-pop p{margin:6px 8px 4px;color:#7b8491;font-size:11px;font-weight:700;line-height:1.5}
+.v2-demo-pop button{display:flex;height:38px;padding:0 10px;align-items:center;justify-content:space-between;border:0;border-radius:9px;color:#20242b;background:transparent;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left}
+.v2-demo-pop button:hover{background:#f5f7ff;color:#3154f4}
+.v2-demo-pop button:disabled{opacity:.5;cursor:default}
+.v2-demo-banner{display:flex;padding:9px 16px;align-items:center;justify-content:center;gap:10px;border-bottom:1px solid #f0d57a;color:#5a4500;background:#fff4c9;font-size:12px;font-weight:800}
+.v2-demo-banner button{border:0;color:#5a4500;background:transparent;font:inherit;text-decoration:underline;cursor:pointer}
+
+/* 승인 화면(공개, 상단 메뉴 없음) */
+.v2-public{min-height:100vh;background:#f7f8fa}

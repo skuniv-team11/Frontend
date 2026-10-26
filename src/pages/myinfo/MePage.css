@@ -112,3 +112,8 @@
   .me-panel,
   .me-saved-practice { animation-duration: .01ms; animation-delay: 0s; }
 }
+
+/* 내 정보 v2 — 안내 문구(토스트 .notice가 아닌 화면 안 글) · 다섯째 줄 */
+.me-muted { margin: 0; color: #6f7987; font-size: 13px; line-height: 1.7; }
+.me-saved-profile dl > div:nth-child(5) { animation-delay: .4s; }
+.me-account-actions { margin-top: 16px; }

@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { Header } from './Header'
+import { DemoBanner, Header } from './Header'
+import { StageSwitch } from './StageSwitch'
 import { getScrollPosition, saveScrollPosition, takeScrollRestoreRequest } from './scrollPosition'
 import './RootLayout.css'
 
@@ -66,8 +67,11 @@ export function RootLayout({ center = false }) {
     }
   }, [location.key])
 
+  const [switching, setSwitching] = useState(false)
   return <div className={`shell ${isLogin ? 'login-shell' : ''} ${isHome ? 'home-shell' : ''}`}>
     <Header center={center} hidden={isLogin} />
+    {!center && !isLogin && !isHome && <DemoBanner onSwitch={() => setSwitching(true)} />}
     <Outlet />
+    {switching && <StageSwitch close={() => setSwitching(false)} />}
   </div>
 }
