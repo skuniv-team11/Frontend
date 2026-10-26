@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { deleteCareerReport } from '../../api/career'
-import { clearToken, errorMessage, getToken } from '../../api/client'
+import { clearSession, errorMessage, getToken } from '../../api/client'
 import { deleteMyExplore } from '../../api/explore'
 import { deleteAccount, deleteMyProfile, getMe, getMyProfile } from '../../api/me'
 import { getCertificates } from '../../api/reference'
@@ -64,7 +64,7 @@ export function MePage(){
     if(loggingOut)return
     setLoggingOut(true)
     await new Promise(resolve=>window.setTimeout(resolve,450))
-    clearToken()
+    clearSession()
     window.location.replace('/')
   }
   const [action,setAction]=useState(null)

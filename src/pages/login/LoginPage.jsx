@@ -59,6 +59,8 @@ export function LoginPage() {
       setAuthStage('loading')
       const request=mode==='login'?login:signup
       const data=mode==='login'?await request({email,password}):(await Promise.all([request({email,password}),new Promise(resolve=>window.setTimeout(resolve,650))]))[0]
+      // 센터 계정은 프로필이 없다 → 센터 화면으로
+      if(data.user.role==='CENTER'){leave('/center');return}
       const needsProfile=!data.user.hasProfile
       if(needsProfile)openProfile()
       else leave('/jobs')

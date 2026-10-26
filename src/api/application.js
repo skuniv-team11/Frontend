@@ -22,5 +22,6 @@ export const getApproval = (token, signal) => request(`/api/approvals/${encodeUR
 // #43 POST /api/approvals/{token} — 공개. 승인. 내용이 바뀐 링크(STALE)는 409 STATE_CONFLICT
 export const approve = (token) => request(`/api/approvals/${encodeURIComponent(token)}`, { method: 'POST', token: null })
 
-// 승인 링크의 화면 주소(학생이 학과 사무실에 전한다)
-export const approvalUrl = (token) => `${window.location.origin}/approvals/${token}`
+// 승인 링크의 화면 주소(학생이 학과 사무실에 전한다). 미리보기·로컬에서 만들어도 공개 주소로 만든다(백엔드는 하나라 그대로 열린다)
+const PUBLIC_ORIGIN = (import.meta.env.VITE_PUBLIC_ORIGIN ?? 'https://fieldrun.pages.dev').replace(/\/$/, '')
+export const approvalUrl = (token) => `${PUBLIC_ORIGIN}/approvals/${token}`
