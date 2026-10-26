@@ -120,6 +120,7 @@ function WhyBlock({ why, explore, detail, codes }) {
   if (error?.code === 'EXPLORE_NOT_FOUND') return <div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>직무 탐색을 하면 이 자리가 내 경험과 어떻게 이어지는지 설명해 드려요</b><p>해 본 일 · 하고 싶은 일을 적으면 AI가 내 글과 이 공고에서 이어지는 구절을 찾아 짝지어 보여 줘요. 아래 조건 · 기준(규칙)은 탐색 없이도 볼 수 있어요.</p></div><Link className="v2-btn sm" to="/explore">직무 탐색 하러 가기 →</Link></div>
   if (error?.code === 'EXPLORE_NOT_CANDIDATE') return <div className="jd-ai-empty is-muted"><span className="v2-ai">AI</span><div><b>지원할 수 없거나 마감된 자리라 설명을 만들지 않아요</b><p>AI 설명은 지원할 수 있고 모집 중인 자리에만 만들어요. 무엇 때문인지는 아래 조건 · 기준과 모집 상태에서 볼 수 있어요.</p></div></div>
   if (error) return <div className="jd-ai-empty is-error" role="alert"><span className="v2-ai">AI</span><div><b>설명을 불러오지 못했어요</b><p>{error.code === 'NETWORK' ? '서버에 연결하지 못했어요.' : '잠시 뒤 다시 시도해 주세요.'} 아래 조건 · 기준은 그대로 볼 수 있어요.</p></div><button type="button" className="v2-btn sm gray" onClick={why.reload}>다시 불러오기</button></div>
+  if (why.idle) return <div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>{why.fit ? '이 자리는 탐색 결과에 있어요 · 설명은 눌러서 만들어요' : '탐색 결과 밖 자리예요 · 내 글과 얼마나 이어지는지 설명을 만들 수 있어요'}</b><p>누르면 AI가 내 탐색 글과 이 공고를 함께 읽고 이어지는 구절을 짝지어 설명해요(처음 5~7초). AI 한도(계정당 1시간 10회)를 한 번 쓰고, 만든 설명은 저장돼 다시 열 때는 바로 보여요.</p></div><button type="button" className="v2-btn sm" onClick={why.start}>AI 설명 만들기</button></div>
   if (!why.data) return null
   const { why: body, fit, fallbackReason } = why.data
   if (!body) return <div className="jd-ai-empty is-muted"><span className="v2-ai">AI</span><div><b>지금은 설명을 만들지 못했어요{fallbackReason ? `(${label(codes, 'exploreFallback', fallbackReason)})` : ''}</b><p>AI 한도나 응답 문제일 수 있어요. 잠시 뒤 다시 열면 그때 만들어요. 아래 조건 · 기준(규칙)은 그대로 볼 수 있어요.</p></div><button type="button" className="v2-btn sm gray" onClick={why.reload}>다시 만들기</button></div>
@@ -150,7 +151,7 @@ function AiDecision({ detail, why, explore, codes, isStudent }) {
   const mine = detail.myEligibility
   if (!isStudent) return null
   if (!mine) return <section className="job-detail-ai-decision"><div className="job-detail-ai-heading"><div><span>AI DECISION</span><h2>왜 나에게 맞나요</h2></div></div><div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>프로필을 저장하면 조건 · 기준과 '왜 나에게 맞나요'를 볼 수 있어요</b><p>학과 · 학년 · 이수 학기 · 평점을 저장하면 이 직무의 지원 판정을 규칙으로 바로 보여 드려요.</p></div><Link className="v2-btn sm" to="/me" state={{ editProfile: true }}>프로필 저장하기 →</Link></div></section>
-  const fit = why.data?.fit
+  const fit = why.data?.fit ?? why.fit
   return <section className={`job-detail-ai-decision ${why.loading ? 'is-loading' : ''}`}>
     <div className="job-detail-ai-heading"><div><span>AI DECISION</span><h2>왜 나에게 맞나요</h2></div><span className="jd-ai-badges">
       {fit && fit !== 'NONE' && <Badge tone="blue">{label(codes, 'exploreFit', fit)}</Badge>}
@@ -298,8 +299,23 @@ export function JobDetailPage() {
   const profile = useRequest(loadProfile, isStudent)
   const explore = useRequest(loadExplore, isStudent)
   const hasEligibility = Boolean(job.data?.myEligibility)
+  // '왜 맞나요'(#32): 탐색 결과에 저장된 설명(items[].why)은 그대로 쓴다. 나머지 자리는 학생이 [AI 설명 만들기]를 눌렀을 때만 부른다 —
+  // 처음 만들 때 AI 한도(계정당 1시간 10회)를 쓰므로 상세를 열 때마다 부르지 않는다. 한 번 만든 설명은 서버에 저장돼 다시 열면 한도를 쓰지 않는다.
+  const exploreItem = explore.data?.items?.find((entry) => String(entry.jobId) === String(id))
+  const storedWhy = exploreItem?.why ?? null
+  const [askedWhyFor, setAskedWhyFor] = useState(null)
+  const asked = askedWhyFor === id
   const loadWhy = useCallback((signal) => deferred(() => getExploreWhy(id, signal), signal), [id])
-  const why = useRequest(loadWhy, isStudent && hasEligibility)
+  const fetchedWhy = useRequest(loadWhy, isStudent && hasEligibility && Boolean(explore.data) && !storedWhy && asked)
+  const noop = useCallback(() => {}, [])
+  const startWhy = useCallback(() => setAskedWhyFor(id), [id])
+  const why = !isStudent || !hasEligibility ? { data: null, loading: false, error: null, reload: noop }
+    : explore.loading && !explore.data ? { data: null, loading: true, error: null, reload: noop }
+      : explore.error ? { data: null, loading: false, error: explore.error, reload: explore.reload }
+        : storedWhy ? { data: { jobId: exploreItem.jobId, fit: exploreItem.fit, why: storedWhy, fallbackReason: null }, loading: false, error: null, reload: noop }
+          : job.data.myEligibility.verdict === 'INELIGIBLE' ? { data: null, loading: false, error: { code: 'EXPLORE_NOT_CANDIDATE' }, reload: noop }
+            : !asked ? { data: null, loading: false, error: null, idle: true, start: startWhy, fit: exploreItem?.fit ?? null, reload: noop }
+              : fetchedWhy
 
   const [detailReady, setDetailReady] = useState(false)
   const [activeSection, setActiveSection] = useState('job-requirements')

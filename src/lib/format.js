@@ -20,3 +20,7 @@ export const won = (n) => (n == null ? '' : `${Number(n).toLocaleString('ko-KR')
 // 선호 전공(판정에 넣지 않는 참고) — 목록·상세가 같은 말을 쓴다
 export const MAJOR_LABEL = { MATCH: '선호 전공 안', NEAR: '가까운 전공', OPEN: '전공 무관', NOT_LISTED: '선호 전공 밖' }
 export const MAJOR_NOTE = '지원 판정에는 넣지 않아요. 지난 매칭 73명 중 18명은 선호 전공 밖이어도 매칭됐어요. 직무 탐색 추천에서는 같은 근거 단계 안에서 선호 전공 자리를 앞에 둬요.'
+
+// 학생 화면의 지원서 상태 — codes.applicationStatus는 센터 말(SUBMITTED '새로 들어옴')이라 학생 화면은 이 표기를 쓴다
+export const STUDENT_APP_STATUS = { NONE: '작성 전', DRAFT: '작성 중', SUBMITTED: '접수 대기', RECEIVED: '접수 완료', FIX_REQUESTED: '보완 요청', MATCHED: '매칭' }
+export const studentAppStatus = (status) => STUDENT_APP_STATUS[status] ?? status ?? ''

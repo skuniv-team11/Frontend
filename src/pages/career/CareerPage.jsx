@@ -11,6 +11,7 @@ import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
 import { fmtDate, fmtDateTime } from '../../lib/format'
 import './Career.css'
+import { josa } from '../../lib/josa'
 
 // 커리어 리포트 — 수행결과보고서 '실습 내용'(#34) → 다룬 NCS 능력단위 · 다음에 채울 것 · 한 단계 위 · 넓혀 갈 직무 · 이어지는 직업.
 // 처음엔 저장본(#35, 없으면 404 → 작성 화면). 지우기는 #36.
@@ -134,7 +135,7 @@ function Report({ report, internship, codes, onRedo, onDelete }) {
         <div className="cr2-paths">{report.expand.map((e) => <article key={e.code}>
           <div className="cr2-path-top"><b>{e.name}</b><small>{L('ncsRelation', e.relation)}</small></div>
           {e.linked?.length > 0
-            ? <p className="cr2-link">내가 한 <em>{e.linked[0].from?.name}</em>{e.linked.length > 1 ? ` 등 ${e.linked.length}가지` : ''}가 이 직무의 <em>{e.linked[0].name}</em>{e.linked.length > 1 ? ' 등' : ''}으로 이어져요.</p>
+            ? <p className="cr2-link">내가 한 <em>{e.linked[0].from?.name}</em>{e.linked.length > 1 ? ` 등 ${e.linked.length}가지` : ''}{josa(e.linked.length > 1 ? '가지' : e.linked[0].from?.name, '이/가')} 이 직무의 <em>{e.linked[0].name}</em>{e.linked.length > 1 ? ' 등' : ''}{josa(e.linked.length > 1 ? '등' : e.linked[0].name, '으로/로')} 이어져요.</p>
             : <p className="cr2-link muted">아직 내가 한 일과 바로 이어지는 능력은 없어요.</p>}
           {(() => { const extra = (e.occupations ?? []).filter((o) => !nowJobs.has(o.code)); return extra.length > 0 && <p className="cr2-occ">더 갈 수 있는 일자리 · {extra.slice(0, 3).map((o) => o.name).join(' · ')}</p> })()}
         </article>)}</div>

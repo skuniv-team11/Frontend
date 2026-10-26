@@ -7,7 +7,7 @@ import { ErrorBox, Loading, NeedLogin, VerdictBadge, VirtualTag } from '../../co
 import { Modal } from '../../components/Shell'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
-import { fmtDate, fmtDateTime } from '../../lib/format'
+import { fmtDate, fmtDateTime, studentAppStatus } from '../../lib/format'
 import './Apply.css'
 
 // 지원서(별지 제5호) — #37 보기 · #38 임시 저장 · #39 지우기 · #40 승인 링크 · #41 내기
@@ -289,7 +289,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
         <p className="fx-lead">{app.status === 'MATCHED' ? '낸 지원서예요. 매칭이 확정돼 더는 고칠 수 없어요.' : locked ? '낸 지원서예요. 센터가 보완을 요청하면 여기서 고쳐서 다시 내요.' : fixing ? '보완 요청을 받은 칸을 고친 뒤 승인을 받고 다시 내 주세요.' : '프로필 · 내 지망 값은 미리 채웠어요. 빈칸만 채우면 돼요. 한 부가 1~3지망에 같이 가요.'}</p>
         {app.virtual && <p className="fx-small" style={{ margin: '6px 0 0' }}>체험 계정의 지난 기록(가상)이에요.</p>}
       </div>
-      <HeroSide app={app} locked={locked} fixing={fixing} codes={codes} />
+      <HeroSide app={app} locked={locked} fixing={fixing} />
     </section>
 
     <nav className="fx-tabs" aria-label="지원서 단계">
@@ -441,8 +441,8 @@ const fieldLabel = (field) => {
   return key
 }
 
-function HeroSide({ app, locked, fixing, codes }) {
-  const status = label(codes, 'applicationStatus', app.status)
+function HeroSide({ app, locked, fixing }) {
+  const status = studentAppStatus(app.status)
   if (locked || fixing) {
     return <div className="fx-hero-side ap-hero-side">
       <span className="fx-small" style={{ fontWeight: 800 }}>접수번호</span>

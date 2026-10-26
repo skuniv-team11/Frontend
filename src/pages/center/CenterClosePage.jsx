@@ -51,7 +51,7 @@ export function CenterClosePage() {
     return next
   })
   const remind = () => run('remind', async () => { const result = await remindClose(); close.reload(); return result }, (result) => `학생 서류를 안 낸 ${result.reminded}명에게 알렸어요. 학생 내 현장실습에 보여요.`)
-  const download = () => run('csv', async () => { const file = await downloadCreditsCsv(); saveBlob(file); return file }, (file) => `${file.filename}을 내려받았어요.`)
+  const download = () => run('csv', async () => { const file = await downloadCreditsCsv(); saveBlob(file); return file }, (file) => `${file.filename} 파일을 내려받았어요.`)
 
   const head = <>
     <CenterDemoBanner note="평가표 · 출근부는 기관이 메일로 보낸 걸 센터가 받음 표시해요" />

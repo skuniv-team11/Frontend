@@ -12,7 +12,7 @@ import { ErrorBox, InstitutionLogo, Loading, VirtualTag } from '../../components
 import { useGuestStart } from '../../hooks/useGuestStart'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes, useSession } from '../../hooks/useSession'
-import { fmtDate, VERDICT_LABEL } from '../../lib/format'
+import { fmtDate, studentAppStatus, VERDICT_LABEL } from '../../lib/format'
 import { STAGES } from '../../lib/stages'
 import './StartPage.css'
 import './StartPageProcess.css'
@@ -325,7 +325,7 @@ function todoFor(data, explore, codes) {
   const phase = (data.stages ?? []).find((stage) => stage.code === data.now)?.phase
   const placement = data.placement
   const virtual = Boolean(app?.virtual)
-  const statusText = { SUBMITTED: '센터 접수 기다리는 중', RECEIVED: '접수 완료' }[status] ?? label(codes, 'applicationStatus', status)
+  const statusText = studentAppStatus(status)
 
   if (status === 'FIX_REQUESTED') return { title: '센터가 보완을 요청했어요', sub: app.fixReason ?? '지원서를 고쳐 다시 내 주세요', to: '/apply', action: '지원서 고치기' }
   if (phase === 'APPLY' && (data.now === 'PICK' || data.now === 'APPLY')) {

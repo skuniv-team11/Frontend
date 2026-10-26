@@ -9,6 +9,7 @@ import { useRequest } from '../../hooks/useRequest'
 import { useSession } from '../../hooks/useSession'
 import { fmtDate } from '../../lib/format'
 import './Explore.css'
+import { josa } from '../../lib/josa'
 
 const MIN = 20
 const MAX = 200
@@ -79,7 +80,7 @@ function ExploreScreen() {
   const canRun = enough && shortIndex < 0 && consent && !run
 
   let need
-  if (shortIndex >= 0) need = `경험 ${shortIndex + 1}은 ${MIN}자 이상 적어 주세요(지금 ${filled[shortIndex].length}자)`
+  if (shortIndex >= 0) need = `경험 ${shortIndex + 1}${josa(String(shortIndex + 1), '은/는')} ${MIN}자 이상 적어 주세요(지금 ${filled[shortIndex].length}자)`
   else if (!enough) need = '해 본 일 1개, 또는 하고 싶은 일 3개 이상이면 찾을 수 있어요'
   else if (!consent) need = '아래 동의에 체크하면 탐색할 수 있어요'
   else need = `해 본 일 ${validExps.length}개 · 하고 싶은 일 ${picked.length}개로 찾아요`

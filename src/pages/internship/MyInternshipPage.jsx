@@ -10,7 +10,7 @@ import { Modal, SidePanel } from '../../components/Shell'
 import { ErrorBox, InstitutionLogo, Loading, NeedLogin, VerdictBadge, VirtualTag } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
-import { fmtDate, fmtDateTime, won } from '../../lib/format'
+import { fmtDate, fmtDateTime, studentAppStatus, won } from '../../lib/format'
 import '../plan/PlanPage.css'
 import './MyInternship.css'
 
@@ -286,7 +286,7 @@ export function MyInternshipPage() {
         panel.action = { to: '/apply', label: application ? '지원서 이어서 쓰기' : '지원서 쓰기' }
       } else {
         panel.items = [
-          { title: '지원서', sub: `${fmtDate(application.submittedAt)} 냄 · 접수번호 ${application.receiptNo}`, badge: [L('applicationStatus', application.status), application.status === 'SUBMITTED' ? 'blue' : 'green'], virtual, actions: [{ to: '/apply', label: '보기' }] },
+          { title: '지원서', sub: `${fmtDate(application.submittedAt)} 냄 · 접수번호 ${application.receiptNo}`, badge: [studentAppStatus(application.status), application.status === 'SUBMITTED' ? 'blue' : 'green'], virtual, actions: [{ to: '/apply', label: '보기' }] },
           { title: '학과(부)장 승인', sub: application.approval?.approvedAt ? `${fmtDate(application.approval.approvedAt)} 승인` : '', badge: [L('approvalStatus', application.approval?.status), application.approval?.status === 'APPROVED' ? 'green' : 'orange'], virtual },
           { title: '진로취업상담', sub: '이수하면 매칭 · 선발 가점이에요 · 재학 중 최대 5회', badge: [`${application.counselCount ?? 0}회`, application.counselCount ? 'green' : 'gray'] },
         ]
