@@ -6,6 +6,7 @@ import { advanceDemo } from '../api/center'
 import { getMe, getMyProfile } from '../api/me'
 
 const STUDENT_NAV = [['/', '홈', true], ['/explore', '직무 탐색'], ['/jobs', '직무 찾기'], ['/internship', '내 현장실습']]
+const ME_MENU = [['/me', '내 프로필'], ['/me?tab=saved', '담은 직무'], ['/me?tab=apply', '지원서'], ['/me?tab=career', '커리어 리포트']]
 const CENTER_NAV = [['/center', '현황판', true], ['/center/inbox', '접수함'], ['/center/match', '매칭 · 선발'], ['/center/close', '마무리']]
 const DEMO_STEPS = [['RECEIVED', '접수까지'], ['MATCHED', '매칭 확정까지'], ['SELECTED', '선발 결과 알림까지'], ['CLOSING', '마무리 서류까지']]
 
@@ -106,9 +107,8 @@ export function Header({ center = false, hidden = false }) {
             <span className="profile-summary-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2" /><path d="M5.5 19c.4-4 2.5-6 6.5-6s6.1 2 6.5 6" /></svg></span>
             <div>{menuAccount?.me ? <><b>{menuAccount.me.isGuest ? '체험 계정' : menuAccount.me.email}</b><span>{menuAccount.me.role === 'CENTER' ? '현장실습지원센터 담당자' : menuAccount.profile ? `${menuAccount.profile.department?.name ?? '학과 정보 없음'}${menuAccount.profile.grade ? ` · ${menuAccount.profile.grade}학년` : ''}` : '프로필 없음'}</span></> : <><b>계정 정보</b><span>{menuAccount?.token === token ? '정보를 불러오지 못했어요' : '불러오는 중…'}</span></>}</div>
           </div>
-          <Link to="/me" onClick={() => setProfileOpen(false)}><span>내 프로필</span><b>›</b></Link>
-          <Link to="/apply" onClick={() => setProfileOpen(false)}><span>지원서</span><b>›</b></Link>
-          <Link to="/career" onClick={() => setProfileOpen(false)}><span>커리어 리포트</span><b>›</b></Link>
+          {/* 내 정보(/me) 왼쪽 메뉴와 같은 네 개 — 누르면 /me의 그 탭이 열린다 */}
+          {ME_MENU.map(([to, text]) => <Link key={to} to={to} onClick={() => setProfileOpen(false)}><span>{text}</span><b>›</b></Link>)}
           <button className="profile-popover-logout" type="button" onClick={logout}>로그아웃</button>
         </div>}
       </div></div> : <div className="v2-top-actions"><Link className="v2-switch" to="/center">센터 화면 →</Link><Link className="top-action" to="/login">로그인</Link></div>}
