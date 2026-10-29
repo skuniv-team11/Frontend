@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../../api/client'
 import { getExploreCards, getMyExplore, runExplore } from '../../api/explore'
-import { getMyProfile } from '../../api/me'
+import { getMyProfile, toProfileBody } from '../../api/me'
 import { getCertificates } from '../../api/reference'
 import { ErrorBox, Loading, NeedLogin } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
@@ -15,7 +15,24 @@ const MIN = 20
 const MAX = 200
 const MAX_EXPS = 3
 const MAX_CARDS = 5
-const CARDS_FIRST = 12
+const CARDS_FIRST = 6 // 대표 카드 — 서버가 선호 전공 자리부터, 자리를 번갈아 놓은 순서의 앞쪽(ADR-0039)
+const WISH_MAX = 200 // 프로필 관심 분야와 같은 한도
+const SUGGEST_MAX = 3 // 같은 말이 많이 겹친 순서로 3개(대표 6개와 합쳐 3줄)
+
+// 직접 적은 '하고 싶은 일'과 같은 말이 들어간 카드 — 낱말 끝 조사를 떼고 카드 글에 들어 있는지만 본다(뜻이 비슷한 말은 AI가 잇는다)
+const PARTICLE = /(에서|으로|이랑|하고|하기|하는|관련|을|를|이|가|은|는|에|로|와|과|의|도|랑)$/
+const STOP = new Set(['해보고', '보고', '싶어요', '싶은', '싶다', '싶어', '하고', '해요', '업무', '관련', '분야'])
+const wishWords = (text) => [...new Set(String(text ?? '').split(/[\s,·/()]+/).map((w) => w.replace(PARTICLE, '')).filter((w) => w.length >= 2 && !STOP.has(w)))]
+function suggestCards(cards, text, exclude) {
+  const words = wishWords(text)
+  if (!words.length) return []
+  return cards
+    .map((card, order) => ({ card, order, score: words.filter((w) => card.text.includes(w)).length }))
+    .filter((row) => row.score > 0 && !exclude.has(row.card.id))
+    .sort((a, b) => b.score - a.score || a.order - b.order)
+    .slice(0, SUGGEST_MAX)
+    .map((row) => row.card)
+}
 
 const loadProfile = (signal) => getMyProfile(signal)
 const loadCards = (signal) => getExploreCards(signal) // 저장한 프로필로 본다(profile을 보내지 않음)
@@ -29,6 +46,7 @@ const runSteps = (total) => [
   ['근거 확인 · 순서', '인용 구절이 내 글과 공고 원문에 그대로 있는지 확인하고, 순서는 근거 단계 → 선호 전공 → 짝 수로 정해요', '코드 · 규칙', 'fx-who rule'],
   ['저장', "맞는 순서와 상위 3곳 '왜 맞나요'를 저장해요 · 볼 때마다 다시 계산하지 않아요", '저장', 'fx-who rule'],
 ]
+const clock = () => Date.now() // 누를 때(이벤트)만 부른다
 const stepAt = (seconds) => (seconds < 0.8 ? 0 : seconds < 6 ? 1 : seconds < 10 ? 2 : 3)
 
 export function ExplorePage() {
@@ -49,7 +67,8 @@ function ExploreScreen() {
   const [exps, setExps] = useState([''])
   const [picked, setPicked] = useState([])
   const [consent, setConsent] = useState(false)
-  const [showAll, setShowAll] = useState(false)
+  // 직접 적는 '하고 싶은 일' — 프로필 관심 분야로 미리 채우고, 이번 탐색에서만 관심 분야로 AI에 보낸다(저장한 프로필은 그대로)
+  const [wish, setWish] = useState(null)
   const [run, setRun] = useState(null) // { startedAt, now, finishedAt }
   const [runError, setRunError] = useState(null)
   const alive = useRef(true)
@@ -76,14 +95,16 @@ function ExploreScreen() {
   const filled = exps.map((text) => text.trim())
   const validExps = filled.filter((text) => text.length >= MIN)
   const shortIndex = filled.findIndex((text) => text.length > 0 && text.length < MIN)
+  const savedWish = profile.data?.interestText ?? ''
+  const wishText = (wish ?? savedWish).slice(0, WISH_MAX)
   const enough = validExps.length > 0 || picked.length >= 3
   const canRun = enough && shortIndex < 0 && consent && !run
 
   let need
   if (shortIndex >= 0) need = `경험 ${shortIndex + 1}${josa(String(shortIndex + 1), '은/는')} ${MIN}자 이상 적어 주세요(지금 ${filled[shortIndex].length}자)`
-  else if (!enough) need = '해 본 일 1개, 또는 하고 싶은 일 3개 이상이면 찾을 수 있어요'
+  else if (!enough) need = '해 본 일 1개, 또는 하고 싶은 일 카드 3개 이상이면 찾을 수 있어요 · 직접 적은 글은 함께 읽어요'
   else if (!consent) need = '아래 동의에 체크하면 탐색할 수 있어요'
-  else need = `해 본 일 ${validExps.length}개 · 하고 싶은 일 ${picked.length}개로 찾아요`
+  else need = `해 본 일 ${validExps.length}개 · 고른 일 ${picked.length}개${wishText.trim() ? ' · 직접 적은 글' : ''}로 찾아요`
 
   const setExp = (index, value) => setExps((current) => current.map((text, i) => (i === index ? value.slice(0, MAX) : text)))
   const togglePick = (id) => setPicked((current) => (current.includes(id) ? current.filter((x) => x !== id) : current.length >= MAX_CARDS ? current : [...current, id]))
@@ -96,15 +117,19 @@ function ExploreScreen() {
     setExps(prevExps.length ? prevExps : [''])
     const ids = (input.cards ?? []).map((text) => cardList.find((card) => card.text === text)?.id).filter(Boolean)
     setPicked([...new Set(ids)].slice(0, MAX_CARDS))
+    if (input.interestText) setWish(input.interestText.slice(0, WISH_MAX))
   }
 
   const start = async () => {
     if (!canRun) return
+    // 적은 글이 프로필 관심 분야와 다르면 이번 탐색에만 바꿔 보낸다(나머지 값은 저장한 프로필 그대로)
+    const typed = wishText.trim()
+    const profileBody = typed !== savedWish.trim() ? { ...toProfileBody(profile.data), interestText: typed || null } : undefined
     setRunError(null)
-    const startedAt = Date.now()
+    const startedAt = clock()
     setRun({ startedAt, now: startedAt, finishedAt: null })
     try {
-      await runExplore({ experiences: validExps, cardIds: picked })
+      await runExplore({ experiences: validExps, cardIds: picked, profile: profileBody })
       if (!alive.current) return
       setRun((current) => ({ ...current, now: Date.now(), finishedAt: Date.now() }))
     } catch (error) {
@@ -151,8 +176,12 @@ function ExploreScreen() {
 
   const p = profile.data
   const certLabel = (code) => certificates?.certificates?.find((c) => c.code === code)?.label ?? code
-  const visibleCards = showAll ? cardList : cardList.filter((card, i) => i < CARDS_FIRST || picked.includes(card.id))
-  const hiddenCards = cardList.length - visibleCards.length
+  const visibleCards = cardList.filter((card, i) => i < CARDS_FIRST || picked.includes(card.id))
+  const suggested = suggestCards(cardList, wishText, new Set(visibleCards.map((card) => card.id)))
+  const cardButton = (card) => {
+    const on = picked.includes(card.id)
+    return <button key={card.id} type="button" className={`ex-w ${on ? 'on' : ''}`} aria-pressed={on} disabled={!on && picked.length >= MAX_CARDS} onClick={() => togglePick(card.id)}><b>{card.text}</b><small>{on ? '✓ 고름' : ''}</small></button>
+  }
 
   return <main className="fx-page"><div className="fx-shell">{head}
     {runError && <div className="fx-callout warn ex-error" role="alert"><span className="fx-callout-icon">!</span><div><b>탐색하지 못했어요.</b> {errorMessage(runError)}
@@ -180,19 +209,27 @@ function ExploreScreen() {
         </section>
 
         <section className="fx-card ex-card">
-          <div className="fx-row between"><h2 className="fx-h2" style={{ margin: 0 }}>해 보고 싶은 일<span className="ex-tag opt">{picked.length} / {MAX_CARDS} 고름</span></h2><span className="fx-small">해 본 일과 함께 AI가 읽어요</span></div>
+          <div className="fx-row between"><h2 className="fx-h2" style={{ margin: 0 }}>해 보고 싶은 일<span className="ex-tag opt">{picked.length} / {MAX_CARDS} 고름</span></h2><span className="fx-small">직접 적거나 골라요 · 해 본 일과 함께 AI가 읽어요</span></div>
           {cards.loading && !cards.data && <Loading text="하고 싶은 일 카드를 불러오는 중…" />}
           {cards.error && <ErrorBox error={cards.error} retry={cards.reload} />}
           {cards.data && <>
-            <p className="fx-sub" style={{ margin: '6px 0 0' }}>지원 조건을 맞춘 {candidates?.total ?? 0}개 자리의 운영계획서에 적힌 하는 일이에요. 회사 이름은 가리고, 겹치는 일은 하나로 묶었어요.</p>
+            <label className="ex-wish">
+              <span className="ex-exp-head"><span>직접 적기 · 관심 분야</span><span>{wishText.length} / {WISH_MAX}자</span></span>
+              <input className="fx-input" aria-label="하고 싶은 일 직접 적기" value={wishText} maxLength={WISH_MAX} placeholder="예) 뷰티 브랜드 SNS 마케팅, 상품 기획, 패키지 디자인" onChange={(event) => setWish(event.target.value)} />
+              <small>{wish !== null && wishText.trim() !== savedWish.trim() ? '이번 탐색에만 관심 분야로 써요 · 저장한 프로필은 그대로예요' : savedWish ? '프로필의 관심 분야를 넣어 뒀어요 · 고치면 이번 탐색에만 써요' : '적은 글은 AI가 지원할 수 있는 자리의 하는 일과 이어 봐요'}</small>
+            </label>
             {cardList.length === 0
               ? <p className="rs-empty-why" style={{ marginTop: 14 }}>지원 조건을 맞춘 자리가 없어 고를 카드가 없어요. 프로필의 학년 · 이수 학기 · 평점 · 자격증을 확인해 주세요.</p>
               : <>
-                <div className="ex-want">{visibleCards.map((card) => {
-                  const on = picked.includes(card.id)
-                  return <button key={card.id} type="button" className={`ex-w ${on ? 'on' : ''}`} aria-pressed={on} disabled={!on && picked.length >= MAX_CARDS} onClick={() => togglePick(card.id)}><b>{card.text}</b><small>{on ? '✓ 고름' : ''}</small></button>
-                })}</div>
-                {(hiddenCards > 0 || showAll) && cardList.length > CARDS_FIRST && <button type="button" className="ex-more" onClick={() => setShowAll((v) => !v)}>{showAll ? '접기' : `더 보기 (${hiddenCards}개 더)`}</button>}
+                {wishWords(wishText).length > 0 && <>
+                  <p className="ex-want-label">적은 글과 같은 말이 들어간 일 {suggested.length ? `${suggested.length}개` : ''}</p>
+                  {suggested.length > 0
+                    ? <div className="ex-want">{suggested.map(cardButton)}</div>
+                    : <p className="fx-small" style={{ margin: '6px 0 0' }}>같은 말이 들어간 일이 없어요. 적은 글은 그대로 AI가 읽고 뜻이 이어지는 자리를 찾아요.</p>}
+                </>}
+                <p className="ex-want-label">대표로 고른 일 · 지원 조건을 맞춘 {candidates?.total ?? 0}개 자리의 운영계획서에서</p>
+                <div className="ex-want">{visibleCards.map(cardButton)}</div>
+                <p className="fx-small" style={{ margin: '8px 0 0' }}>회사 이름은 가리고, 겹치는 일은 하나로 묶었어요. 찾는 일이 없으면 위 칸에 직접 적어 주세요.</p>
               </>}
           </>}
         </section>
@@ -200,10 +237,6 @@ function ExploreScreen() {
 
       <aside className="fx-aside">
         <section className="fx-card tight ex-side"><h3>학과<small>프로필에서</small></h3><div className="ex-chips"><span className="ex-chip major">{p.department?.name ?? '학과 정보 없음'} · {p.grade}학년</span></div></section>
-        <section className="fx-card tight ex-side"><h3>관심 분야<small>프로필에서 · <Link className="v2-link" style={{ fontSize: 11 }} to="/me" state={{ editProfile: true }}>바꾸기</Link></small></h3>
-          <div className="ex-chips">{p.interestText ? <span className="ex-chip">{p.interestText}</span> : <span className="ex-chip empty">적지 않았어요</span>}</div>
-          <p className="fx-small" style={{ margin: '8px 0 0' }}>관심 분야는 해 본 일 · 고른 일과 함께 AI가 읽어요.</p>
-        </section>
         <section className="fx-card tight ex-side"><h3>지원 조건 확인<small>프로필에서</small></h3>
           <div className="ex-chips">
             <span className="ex-chip major">{p.grade}학년 · {p.completedSemesters}학기 이수</span>
@@ -215,7 +248,7 @@ function ExploreScreen() {
         </section>
         <label className={`ex-consent ${consent ? '' : 'off'}`}>
           <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-          <span>경험 글과 고른 일을 AI(Claude)에 보내 분석하고, 결과와 함께 저장하는 데 동의해요. 계정당 마지막 1건만 두고, [결과 지우기]나 탈퇴하면 바로 지워요.</span>
+          <span>경험 글 · 고른 일 · 직접 적은 글을 AI(Claude)에 보내 분석하고, 결과와 함께 저장하는 데 동의해요. 계정당 마지막 1건만 두고, [결과 지우기]나 탈퇴하면 바로 지워요.</span>
         </label>
         <button type="button" className="fx-btn primary lg block" disabled={!canRun} onClick={start}>탐색하기</button>
         <p className={`ex-need ${shortIndex >= 0 ? 'warn' : ''}`}>{need}</p>

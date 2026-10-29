@@ -135,3 +135,9 @@
 .rs-msg{margin:0;color:#b43c3c;font-size:12px;font-weight:700}
 .rs-modal h2{margin:0 0 8px;font-size:20px}
 .rs-modal .fx-row{justify-content:center;margin-top:18px}
+
+/* 하고 싶은 일 — 직접 적기 + 같은 말 카드 + 대표 카드 */
+.ex-wish{display:flex;margin-top:12px;flex-direction:column;gap:6px}
+.ex-wish .fx-input{width:100%}
+.ex-wish small{color:#6b7380;font-size:12px}
+.ex-want-label{margin:16px 0 0;color:#5b6472;font-size:12px;font-weight:800}
