@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getMyApplication } from '../../api/application'
 import { errorMessage, getDemoSession, getToken } from '../../api/client'
 import { getMyExplore } from '../../api/explore'
@@ -25,6 +25,15 @@ const when = (s) => {
   return s.startsOn === s.endsOn ? md(s.startsOn) : `${md(s.startsOn)} ~ ${md(s.endsOn)}`
 }
 const STATE_TONE = { DONE: 'green', NOW: 'blue', NEXT: 'gray' }
+
+// 지망 정하기와 지원서는 학교 일정이 같은 기간(7/13~7/24)이라 날짜만 보면 지망 정하기가 늘 '완료'로 보인다.
+// 신청 기간 중 1지망이 없고 아직 안 냈으면 지망 정하기를 '지금', 지원서를 '다음'으로 본다(내 상태 기준).
+function withProgress(stages, now, picks, submitted) {
+  const apply = stages.find((s) => s.code === 'APPLY')
+  const hasFirst = (picks ?? []).some((p) => p.rank === 1)
+  if (apply?.state !== 'NOW' || hasFirst || submitted) return { stages, now }
+  return { stages: stages.map((s) => (s.code === 'PICK' ? { ...s, state: 'NOW' } : s.code === 'APPLY' ? { ...s, state: 'NEXT' } : s)), now: 'PICK' }
+}
 const WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 const weekdayText = (codes, days = []) => {
   if (!days.length) return ''
@@ -77,6 +86,17 @@ function Item({ item }) {
         ? <Link key={a.label} className={`mi-do ${a.real ? 'real' : ''}`} to={a.to}>{a.label}</Link>
         : <button key={a.label} type="button" className={`mi-do ${a.real ? 'real' : ''}`} disabled={a.busy} onClick={a.onClick}>{a.busy ? '처리 중…' : a.label}</button>)}
     </div>
+  </div>
+}
+
+// 지원서를 낸 뒤 담은 직무 전체(읽기 전용) — 낸 지망과 별개로 계속 볼 수 있게
+function SavedJobs({ plan }) {
+  if (plan.loading && !plan.data) return <Loading text="담은 직무를 불러오는 중…" />
+  if (plan.error) return <ErrorBox error={plan.error} retry={plan.reload} />
+  const items = plan.data?.items ?? []
+  return <div className="mi-saved"><h3>담은 직무 <small>{items.length}개</small></h3>
+    {items.length === 0 ? <p className="fx-sub" style={{ margin: 0 }}>담은 직무가 없어요.</p>
+      : <ul>{items.map((it) => <li key={it.jobId}><span className="badge">{it.rank ? `${it.rank}지망` : '후보'}</span><Link to={`/jobs/${it.jobId}`}>{it.title}</Link><small>{it.institution?.name}</small></li>)}</ul>}
   </div>
 }
 
@@ -197,18 +217,27 @@ export function MyInternshipPage() {
   const plan = useRequest(getMyPlan, loggedIn)
   const codes = useCodes()
   const [sel, setSel] = useState(null)
+  const location = useLocation()
+  // /internship?step=pick — 담은 직무 · 지망 정하기를 바로 연다(직무 담기 알림 · 내 정보 · 지원서에서 들어올 때)
+  const wantPick = new URLSearchParams(location.search).get('step') === 'pick'
   const [sheet, setSheet] = useState(null)
   const [confirm, setConfirm] = useState(null)
   const [docBusy, setDocBusy] = useState(null)
   const [docError, setDocError] = useState('')
 
   const data = internship.data
-  const stages = data?.stages ?? []
-  const nowIndex = Math.max(0, stages.findIndex((s) => s.code === data?.now))
-  const selIndex = sel ?? nowIndex
-  const stage = stages[selIndex]
   const application = data?.application
   const submitted = SUBMITTED.includes(application?.status)
+  const { stages, now: nowCode } = withProgress(data?.stages ?? [], data?.now, data?.picks, submitted)
+  const nowIndex = Math.max(0, stages.findIndex((s) => s.code === nowCode))
+  const pickIndex = stages.findIndex((s) => s.code === 'PICK')
+  // 들어올 때 고른 단계를 고정한다 — 지망을 정하는 중에 '지금' 단계가 바뀌어도 화면이 다른 단계로 넘어가지 않게.
+  // 같은 화면에서 ?step=pick 링크로 다시 들어오면(주소 key가 바뀌면) 지망 정하기를 연다.
+  const entryIndex = wantPick && pickIndex >= 0 ? pickIndex : (sel?.index ?? nowIndex)
+  if (data && sel?.key !== location.key) setSel({ key: location.key, index: entryIndex })
+  const selIndex = sel?.key === location.key ? sel.index : entryIndex
+  const choose = (index) => setSel({ key: location.key, index })
+  const stage = stages[selIndex]
   // 지원서 칸 점검(#37)은 지원서 · 지망 단계를 볼 때만 부른다
   const needApplication = Boolean(data) && ((stage?.code === 'APPLY' && !submitted) || (stage?.code === 'PICK' && submitted))
   const app37 = useRequest(getMyApplication, loggedIn && needApplication)
@@ -230,10 +259,10 @@ export function MyInternshipPage() {
 
   // 머리 문장
   const pick = stageOf('PICK'); const apply = stageOf('APPLY')
-  let headTitle = `지금은 '${L('stage', data.now)}' 단계예요`
-  if (practice && ['PRACTICE', 'MIDCHECK'].includes(data.now)) headTitle = `실습 ${practice.week}주차예요 · ${placement.title}`
-  else if (['PICK', 'APPLY'].includes(data.now)) headTitle = submitted ? '지원서를 냈어요 · 센터 매칭을 기다려요' : next?.code === 'APPLY' && next.kind === 'END' ? (next.days > 0 ? `지원서 마감까지 ${next.days}일 남았어요` : '오늘 지원서 마감이에요') : headTitle
-  else if (placement?.result === 'PASS' && ['CLOSE', 'DEBRIEF', 'CREDIT'].includes(data.now)) headTitle = `실습을 마쳤어요 · ${placement.title}`
+  let headTitle = `지금은 '${L('stage', nowCode)}' 단계예요`
+  if (practice && ['PRACTICE', 'MIDCHECK'].includes(nowCode)) headTitle = `실습 ${practice.week}주차예요 · ${placement.title}`
+  else if (['PICK', 'APPLY'].includes(nowCode)) headTitle = submitted ? '지원서를 냈어요 · 센터 매칭을 기다려요' : nowCode === 'PICK' ? `1지망부터 정해요${next?.code === 'APPLY' && next.kind === 'END' ? ` · 지원서 마감까지 ${next.days > 0 ? `${next.days}일` : '오늘'}` : ''}` : next?.code === 'APPLY' && next.kind === 'END' ? (next.days > 0 ? `지원서 마감까지 ${next.days}일 남았어요` : '오늘 지원서 마감이에요') : headTitle
+  else if (placement?.result === 'PASS' && ['CLOSE', 'DEBRIEF', 'CREDIT'].includes(nowCode)) headTitle = `실습을 마쳤어요 · ${placement.title}`
   const headSub = `${fmtDate(data.asOf, true)} 기준 · ${placement ? `${placement.institution?.name} ${placement.team ?? placement.title}${practice ? ` · ${md(practice.startsOn)} ~ ${md(practice.endsOn)}` : ''}` : `${data.round?.termCode ?? ''} 모집 ${md(pick?.startsOn)} ~ ${md(apply?.endsOn)}`}`
   const nextStage = next && stageOf(next.code)
   const single = nextStage && nextStage.startsOn === nextStage.endsOn
@@ -253,7 +282,7 @@ export function MyInternshipPage() {
   const refresh = () => internship.reload()
 
   // 단계별 할 일
-  const panel = { items: [], notes: [], warn: null, body: null, action: null }
+  const panel = { items: [], notes: [], warn: null, body: null, after: null, action: null }
   const s = stage
   if (s) {
     const code = s.code
@@ -263,6 +292,7 @@ export function MyInternshipPage() {
         if (app37.loading && !app37.data) panel.body = <Loading text="낸 지망을 불러오는 중…" />
         else if (app37.error) panel.body = <ErrorBox error={app37.error} retry={app37.reload} />
         panel.items = picks.map((p) => ({ title: `${p.rank}지망 · ${p.institution?.name} ${p.title}`, sub: `${fmtDate(application.submittedAt)} 지원서와 함께 냄`, badge: ['냄', 'green'], virtual, actions: [{ to: `/jobs/${p.jobId}`, label: '직무 보기' }] }))
+        panel.after = <SavedJobs plan={plan} />
         panel.notes.push('지원서를 낸 뒤에는 지망이 낸 날 값으로 고정돼요. 담은 직무 순서를 바꿔도 낸 지원서에는 들어가지 않아요. 보완 요청을 받으면 다시 고쳐서 낼 수 있어요.')
       } else {
         panel.body = <PlanBoard plan={plan} picks={data.picks} onChanged={refresh} />
@@ -276,11 +306,11 @@ export function MyInternshipPage() {
         if (application?.status === 'FIX_REQUESTED') panel.warn = `센터가 보완을 요청했어요 — ${application.fixReason ?? ''} 고쳐서 다시 내면 접수번호(${application.receiptNo})는 그대로예요.`
         if (app37.loading && !a) panel.body = <Loading text="지원서 칸을 확인하는 중…" />
         else if (app37.error) panel.body = <ErrorBox error={app37.error} retry={app37.reload} />
-        const HINT = { PROFILE: '저장한 프로필(학과 · 학년 · 평점)로 학적을 채워요', PICKS: '1지망은 꼭 · 지원 불가 · 마감 직무는 빼요', APPLICANT: '성명(한 · 영) · 생년월일 · 성별 · 연락처 · 주소 · 학번', PLEDGE: '참여 서약', ESSAYS: '지원동기 · 성격 · 경력 · 기타, 문항마다 300자 이상', CONSENTS: '수집 · 이용 / 제3자 제공', SIGNATURE: '본인 서명 2자 이상', APPROVAL: '승인을 받아야 낼 수 있어요' }
+        const HINT = { PROFILE: '저장한 프로필(학과 · 학년 · 평점)로 학적을 채워요', PICKS: '1지망은 꼭 · 지원 불가 · 마감 직무는 빼요', APPLICANT: '성명(한 · 영) · 생년월일 · 성별 · 연락처 · 주소 · 학번', PLEDGE: '참여 서약', ESSAYS: '지원동기 · 성격 · 경력 · 기타, 문항마다 300자 이상', CONSENTS: '수집 · 이용 / 제3자 제공', SIGNATURE: '신청서 성명(한글)과 같은 이름으로 서명', APPROVAL: '승인을 받아야 낼 수 있어요' }
         panel.items = (a?.checklist ?? []).map((c) => {
           const approval = c.item === 'APPROVAL'
           const badge = approval && !c.done ? [L('approvalStatus', a.approval?.status ?? 'NONE'), a.approval?.status === 'REQUESTED' ? 'orange' : a.approval?.status === 'STALE' ? 'orange' : 'gray'] : c.done ? ['완료', 'green'] : ['남음', 'orange']
-          const actions = c.done ? [] : c.item === 'PROFILE' ? [{ to: '/me', label: '프로필' }] : c.item === 'PICKS' ? [{ onClick: () => setSel(stages.findIndex((x) => x.code === 'PICK')), label: '지망 정하기' }] : [{ to: '/apply', label: approval ? '요청' : '쓰기' }]
+          const actions = c.done ? [] : c.item === 'PROFILE' ? [{ to: '/me', label: '프로필' }] : c.item === 'PICKS' ? [{ onClick: () => choose(pickIndex), label: '지망 정하기' }] : [{ to: '/apply', label: approval ? '요청' : '쓰기' }]
           return { title: L('applicationItem', c.item), sub: HINT[c.item], badge, actions }
         })
         if (a) panel.items.push({ title: '진로취업상담', sub: '이수하면 매칭 · 선발 가점이에요 · 재학 중 최대 5회', badge: [`${a.counselCount ?? 0}회`, a.counselCount ? 'green' : 'gray'] })
@@ -354,7 +384,7 @@ export function MyInternshipPage() {
       if (documents) {
         const missing = ['REPORT', 'CREDIT', 'SURVEY'].filter((k) => !documents[k.toLowerCase()])
         panel.items.push(missing.length
-          ? { title: '아직 안 낸 학생 서류', sub: missing.map((k) => L('studentDocument', k)).join(' · '), badge: [`${missing.length}개`, 'orange'], actions: [{ onClick: () => setSel(stages.findIndex((x) => x.code === 'CLOSE')), label: '종료 · 제출 보기', real: true }] }
+          ? { title: '아직 안 낸 학생 서류', sub: missing.map((k) => L('studentDocument', k)).join(' · '), badge: [`${missing.length}개`, 'orange'], actions: [{ onClick: () => choose(stages.findIndex((x) => x.code === 'CLOSE')), label: '종료 · 제출 보기', real: true }] }
           : { title: '학생 서류', sub: '수행결과보고서 · 학점인정신청서 · 설문조사서', badge: ['모두 냄', 'green'] })
       }
     } else if (code === 'CREDIT') {
@@ -385,7 +415,7 @@ export function MyInternshipPage() {
     <section className="mi-track" aria-label="현장실습 타임라인">
       <div className="mi-phases" style={{ gridTemplateColumns: phases.map((p) => `${p.n}fr`).join(' ') }}>{phases.map((p) => <span key={p.code} className={p.code === nowPhase ? 'on' : ''}>{L('stagePhase', p.code)}</span>)}</div>
       <ol className="mi-nodes" style={{ gridTemplateColumns: `repeat(${stages.length}, minmax(0, 1fr))` }}>{stages.map((x, i) => <li key={x.code} className={x.state === 'DONE' ? 'done' : x.state === 'NOW' ? 'now' : ''}>
-        <button type="button" className={`mi-node ${i === selIndex ? 'sel' : ''}`} aria-pressed={i === selIndex} onClick={() => { setSel(i); setDocError('') }}><i>{x.state === 'DONE' ? '✓' : x.state === 'NOW' ? '●' : ''}</i><b>{L('stage', x.code)}</b><small>{when(x)}</small></button>
+        <button type="button" className={`mi-node ${i === selIndex ? 'sel' : ''}`} aria-pressed={i === selIndex} onClick={() => { choose(i); setDocError('') }}><i>{x.state === 'DONE' ? '✓' : x.state === 'NOW' ? '●' : ''}</i><b>{L('stage', x.code)}</b><small>{when(x)}</small></button>
       </li>)}</ol>
       <p className="mi-hint">단계를 누르면 그때 챙길 것을 아래에 보여 줘요 · 일정은 {data.round?.termCode} 학생 모집안내 기준이고 기관마다 달라질 수 있어요</p>
     </section>
@@ -396,6 +426,7 @@ export function MyInternshipPage() {
         {panel.warn && <div className="fx-callout warn mi-note"><span className="fx-callout-icon">!</span><span>{panel.warn}</span></div>}
         {panel.body}
         {panel.items.length > 0 && <div className="mi-items">{panel.items.map((it) => <Item key={it.title} item={it} />)}</div>}
+        {panel.after}
         {docError && <p className="mi-error" role="alert">{docError === 'REPORT' ? <>수행결과보고서를 내려면 실습한 자리의 커리어 리포트가 먼저 있어야 해요. <Link to="/career">커리어 리포트 만들기 →</Link></> : docError}</p>}
         {panel.notes.map((n) => <div key={n} className="fx-callout mi-note"><span className="fx-callout-icon">i</span><span>{n}</span></div>)}
         {panel.action && <div className="mi-actions"><Link className="fx-btn primary" to={panel.action.to}>{panel.action.label}</Link></div>}

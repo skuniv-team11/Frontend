@@ -573,6 +573,6 @@ export function JobsPage() {
       <p className="jb-foot">판정은 저장한 프로필로 본 규칙 판정이에요 · 모집 상태는 {round.data ? `${fmtDate(judgeDate(round.data))} 기준` : '모집 판정 기준일 기준'} · 담기는 지원이 아니고, 담은 직무와 1~3지망은 내 현장실습에서 정해요</p>
     </div>
     {reasonItem && <ReasonSheet item={reasonItem} row={rowsById[reasonItem.jobId]} codes={codes} explore={explore.data} close={() => setReasonItem(null)} />}
-    {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습에서 볼 수 있어요.'}</small></div><Link to="/internship">내 현장실습 보기</Link></Toast>}
+    {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습 > 지망 정하기에서 봐요.'}</small></div><Link to="/internship?step=pick">담은 직무 보기</Link></Toast>}
   </main>
 }

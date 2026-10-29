@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { Fragment, useCallback, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { errorMessage } from '../../api/client'
 import { deleteMyExplore, getMyExplore } from '../../api/explore'
@@ -61,7 +61,8 @@ function ResultScreen() {
 
   const data = explore.data
   const items = data?.items ?? []
-  const pathJobId = selectedJob ?? items[0]?.jobId ?? null
+  // 실습 뒤 길은 누른 자리 카드 바로 아래에 펼친다(처음엔 접힘, 다시 누르면 접힘)
+  const pathJobId = items.some((item) => item.jobId === selectedJob) ? selectedJob : null
   const loadCareer = useCallback((signal) => getJobCareer(pathJobId, signal), [pathJobId])
   const career = useRequest(loadCareer, Boolean(pathJobId))
 
@@ -145,11 +146,13 @@ function ResultScreen() {
         <div className="rs-sec"><h2>맞는 현장실습</h2><small>{label(codes, 'exploreJudgedWith', data.judgedWith)} · 다른 학생이 몇 명 담았는지는 보여 주지 않아요</small></div>
         {planMessage && <p className="rs-msg" role="alert" style={{ marginBottom: 10 }}>{planMessage}</p>}
         <section className="rs-seats">
-          {items.map((item) => <SeatCard key={item.jobId} item={item} codes={codes} input={input} rule={rule}
-            selected={item.jobId === pathJobId} onSelect={() => setSelectedJob(item.jobId)}
-            saved={plannedIds.has(item.jobId)} planReady={Boolean(plan.data)} busy={busyJob === item.jobId} onToggle={() => togglePlan(item)} />)}
+          {items.map((item) => <Fragment key={item.jobId}>
+            <SeatCard item={item} codes={codes} input={input} rule={rule}
+              selected={item.jobId === pathJobId} onSelect={() => setSelectedJob((cur) => (cur === item.jobId ? null : item.jobId))}
+              saved={plannedIds.has(item.jobId)} planReady={Boolean(plan.data)} busy={busyJob === item.jobId} onToggle={() => togglePlan(item)} />
+            {pathItem?.jobId === item.jobId && <CareerPath item={pathItem} career={career} codes={codes} />}
+          </Fragment>)}
         </section>
-        {pathItem && <CareerPath item={pathItem} career={career} codes={codes} />}
       </>}
 
     <InputSummary input={input} items={items} title={items.length ? '내 글이 이어진 곳' : '탐색에 쓴 내 글'} />
@@ -230,7 +233,7 @@ function SeatCard({ item, codes, input, rule, selected, onSelect, saved, planRea
     <div className="rs-foot">
       <Link className="v2-link" to={`/jobs/${item.jobId}`}>직무 상세 보기 →</Link>
       <div>
-        <button type="button" className={`rs-pick ${selected ? 'on' : ''}`} onClick={onSelect}>{selected ? '실습 뒤 길 보는 중' : '실습 뒤 길 보기'}</button>
+        <button type="button" className={`rs-pick ${selected ? 'on' : ''}`} onClick={onSelect}>{selected ? '실습 뒤 길 접기' : '실습 뒤 길 보기'}</button>
         <button type="button" className={`v2-btn sm ${saved ? '' : 'line'}`} disabled={busy || !planReady} onClick={onToggle} title={saved ? '다시 누르면 담기를 취소해요' : undefined}>{busy ? '처리 중…' : saved ? '담김 ✓' : '담기'}</button>
       </div>
     </div>
@@ -241,7 +244,7 @@ function CareerPath({ item, career, codes }) {
   const data = career.data
   const ncs = data?.ncs
   return <section className="rs-path">
-    <header><div><span>AFTER PRACTICE</span><h2>{item.institution?.name} {item.title} — 실습 뒤 넓혀 갈 직무 · 일자리</h2></div><span className="fx-small">{item.rank}위 자리 기준 · 다른 자리는 [실습 뒤 길 보기]로 바꿔요</span></header>
+    <header><div><span>AFTER PRACTICE</span><h2>{item.institution?.name} {item.title} — 실습 뒤 넓혀 갈 직무 · 일자리</h2></div><span className="fx-small">{item.rank}위 자리 기준 · [실습 뒤 길 접기]로 닫아요</span></header>
     {career.loading && !data && <Loading text="실습 뒤 길을 불러오는 중…" />}
     {career.error && <ErrorBox error={career.error} retry={career.reload} />}
     {data && !ncs && <p className="rs-empty-why">이 직무는 아직 이어지는 길을 정리하지 않았어요.</p>}

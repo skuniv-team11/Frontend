@@ -81,6 +81,10 @@ function toBody(form) {
 
 const sameBody = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 
+// 본인 서명은 신청서의 성명(한글)과 같아야 낼 수 있다(공백은 보지 않음, 2자 이상 — 백엔드 ADR-0042와 같은 규칙)
+const noSpace = (value) => String(value ?? '').replace(/\s+/g, '')
+const signedAsApplicant = (signature, nameKo) => { const sign = noSpace(signature); return [...sign].length >= 2 && sign === noSpace(nameKo) }
+
 export function ApplyPage() {
   const loggedIn = Boolean(getToken())
   const app = useRequest(getMyApplication, loggedIn)
@@ -257,7 +261,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
   const leftApplicant = APPLICANT_REQUIRED.filter((key) => !clean(form.applicant[key])).length + (form.pledge ? 0 : 1)
   const essayDone = form.essays.filter((text) => essayChars(text) >= ESSAY_MIN).length
   const consentDone = form.consents.collect === true && form.consents.thirdParty === true
-  const signed = String(form.signature).trim().length >= 2
+  const signed = signedAsApplicant(form.signature, form.applicant.nameKo)
   const badge = (ok, text) => ({ text, cls: ok ? 'ok' : 'todo' })
   const tabBadges = locked
     ? TABS.map((_, i) => (i === 1 ? { text: '선택', cls: 'opt' } : badge(true, '완료')))
@@ -319,7 +323,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
           </dl></div>
 
           <div className="ap-sec">
-            <div className="fx-row between"><h3>지망</h3><span className="fx-src blue">{locked ? '낸 날 기준' : '내 지망'}</span></div>
+            <div className="fx-row between"><h3>이 신청서에 들어가는 지망</h3><span className="fx-src blue">{locked ? '낸 날 기준' : '읽기 전용 · 내 현장실습에서 정함'}</span></div>
             <div className="ap-picks">
               {[1, 2, 3].map((rank) => {
                 const pick = picks.find((p) => p.rank === rank)
@@ -328,8 +332,8 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
               })}
             </div>
             <div className="ap-pick-foot">
-              <p className="fx-small" style={{ margin: 0 }}>{practice ? `실습 ${fmtDate(practice.startsOn)} ~ ${fmtDate(practice.endsOn)} · ` : ''}{locked ? '낸 지망은 바꿀 수 없어요' : '순서는 내 현장실습의 지망 관리에서 바꿔요'}</p>
-              {!locked && <Link className="fx-btn sm" to="/internship">지망 관리 →</Link>}
+              <p className="fx-small" style={{ margin: 0 }}>{practice ? `실습 ${fmtDate(practice.startsOn)} ~ ${fmtDate(practice.endsOn)} · ` : ''}{locked ? '낸 지망은 바꿀 수 없어요' : '지망은 내 현장실습 > 지망 정하기 한 곳에서만 바꿔요'}</p>
+              {!locked && <Link className="fx-btn sm" to="/internship?step=pick">지망 바꾸기 →</Link>}
             </div>
           </div>
 
@@ -373,12 +377,14 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
         {tab === 4 && <>
           <div className="ap-sec"><h3>본인 서명</h3>
             {locked ? <p className="fx-sub" style={{ margin: 0 }}>{form.signature ? `‘${form.signature}’(으)로 서명했어요.` : '서명하지 않았어요.'}</p> : <>
-              <p className="fx-sub" style={{ margin: '0 0 10px' }}>이름을 쓰면 신청서 · 동의서의 전자서명이 돼요.</p>
-              <input className="fx-input ap-sign" aria-label="서명할 이름" placeholder="이름" maxLength={30} value={form.signature} onChange={(e) => setForm((f) => ({ ...f, signature: e.target.value }))} />
-              {fieldErrors.signature && <small className="ap-err">{fieldErrors.signature}</small>}
+              <p className="fx-sub" style={{ margin: '0 0 10px' }}>신청서의 성명(한글){clean(form.applicant.nameKo) ? ` ‘${clean(form.applicant.nameKo)}’` : ''}과 같게 쓰면 신청서 · 동의서의 전자서명이 돼요.</p>
+              <input className="fx-input ap-sign" aria-label="서명할 이름" placeholder={clean(form.applicant.nameKo) ?? '이름'} maxLength={30} value={form.signature} onChange={(e) => setForm((f) => ({ ...f, signature: e.target.value }))} />
+              {fieldErrors.signature ? <small className="ap-err">{fieldErrors.signature}</small>
+                : !clean(form.applicant.nameKo) ? <small className="ap-err">신청서 탭에서 성명(한글)을 먼저 적어 주세요.</small>
+                  : clean(form.signature) && !signed ? <small className="ap-err">신청서의 성명(한글)과 달라요. 같은 이름이어야 낼 수 있어요.</small> : null}
             </>}
           </div>
-          <ApprovalBlock app={app} approval={approval} codes={codes} locked={locked} dirty={dirty} busy={busy} refreshing={refreshing} copied={copied} makeLink={makeLink} reload={reload} copyLink={copyLink} />
+          <ApprovalBlock app={app} approval={approval} codes={codes} locked={locked} dirty={dirty} busy={busy} refreshing={refreshing} copied={copied} makeLink={makeLink} reload={reload} copyLink={copyLink} signed={signed} />
         </>}
       </section>
 
@@ -518,7 +524,7 @@ function CheckRow({ check, app, codes, missing, go }) {
     PLEDGE: check.done ? '서약함' : '신청서 탭 맨 아래',
     ESSAYS: `4문항 ${ESSAY_MIN}자 이상`,
     CONSENTS: '수집 · 이용 / 제3자 제공 모두 예',
-    SIGNATURE: check.done ? `‘${app.signature}’` : '이름 2자 이상',
+    SIGNATURE: check.done ? `‘${app.signature}’` : '신청서 성명(한글)과 같은 이름',
     APPROVAL: approval === 'APPROVED' ? `${fmtDate(app.approval.approvedAt)} 승인됨` : approval === 'REQUESTED' ? '링크를 만들었어요 · 승인 기다리는 중' : approval === 'STALE' ? '내용이 바뀌어 다시 요청해야 해요' : '승인을 받아야 낼 수 있어요',
   }[check.item]
   const [text, tone] = check.done ? ['완료', 'green'] : check.item === 'APPROVAL' && approval === 'REQUESTED' ? ['승인 대기', 'blue'] : check.item === 'APPROVAL' && approval === 'STALE' ? ['다시 요청', 'orange'] : ['남음', 'orange']
@@ -527,7 +533,7 @@ function CheckRow({ check, app, codes, missing, go }) {
   return <button type="button" className={`ap-check${missing ? ' is-missing' : ''}`} onClick={go}>{inner}</button>
 }
 
-function ApprovalBlock({ app, approval, codes, locked, dirty, busy, refreshing, copied, makeLink, reload, copyLink }) {
+function ApprovalBlock({ app, approval, codes, locked, dirty, busy, refreshing, copied, makeLink, reload, copyLink, signed }) {
   const status = approval.status ?? 'NONE'
   const url = approval.token && status !== 'STALE' ? approvalUrl(approval.token) : null
   const dept = app.academic?.department?.name ?? '학과(부)'
@@ -542,9 +548,10 @@ function ApprovalBlock({ app, approval, codes, locked, dirty, busy, refreshing, 
       <a className="fx-btn sm" href={url} target="_blank" rel="noreferrer">새 탭에서 열기 ↗</a>
     </div>}
     {!locked && <div className="fx-row wrap ap-appr-actions">
-      {status !== 'APPROVED' && <button type="button" className="fx-btn sm primary" disabled={Boolean(busy)} onClick={makeLink}>{busy === 'link' ? '만드는 중…' : status === 'NONE' ? '학과(부)장 승인 링크 만들기' : '새 링크 만들기'}</button>}
+      {status !== 'APPROVED' && <button type="button" className="fx-btn sm primary" disabled={Boolean(busy) || !signed} title={signed ? undefined : '본인 서명을 신청서 성명과 같게 적은 뒤 만들어요'} onClick={makeLink}>{busy === 'link' ? '만드는 중…' : status === 'NONE' ? '학과(부)장 승인 링크 만들기' : '새 링크 만들기'}</button>}
       {approval.token && <button type="button" className="fx-btn sm ghost" disabled={refreshing} onClick={reload}>{refreshing ? '확인 중…' : '승인 상태 새로 고침'}</button>}
     </div>}
+    {!locked && !signed && status !== 'APPROVED' && <p className="fx-small fx-orange" style={{ margin: '8px 0 0', fontWeight: 700 }}>본인 서명을 신청서의 성명(한글)과 같게 적은 뒤 링크를 만들어요. 승인은 지금 내용으로 받아서, 승인 뒤 서명을 고치면 다시 받아야 해요.</p>}
     {!locked && dirty && status !== 'NONE' && <p className="fx-small fx-orange" style={{ margin: '8px 0 0', fontWeight: 700 }}>바꾼 내용을 저장하면 이 승인은 '다시 요청'이 돼요.</p>}
     {!locked && <p className="fx-small" style={{ margin: '10px 0 0' }}>{status === 'NONE' ? '링크를 만들면 지금 저장한 내용으로 승인을 받아요(바뀐 내용이 있으면 먼저 저장해요). ' : ''}학과(부)장은 로그인 없이 링크로 열어 승인해요. 시연에서는 [새 탭에서 열기]로 직접 승인을 눌러 볼 수 있어요.</p>}
     <p className="fx-small" style={{ margin: '6px 0 0' }}>학과(부)장 승인을 받은 뒤 신청 기간 안에 내요. 복수전공 학점을 인정받으려면 두 학과(부)장 모두 승인해야 해요.</p>

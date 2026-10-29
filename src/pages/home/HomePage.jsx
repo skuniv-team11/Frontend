@@ -65,6 +65,8 @@ const groupState = (stages, phases) => {
   if (list.length && list.every((stage) => stage.state === 'DONE')) return 'DONE'
   return 'NEXT'
 }
+// 탐색은 선택이다. 지원하기 단계가 지났거나 매칭된 자리가 있으면, 탐색을 안 했어도 '아직 안 했어요'가 아니라 건너뛴 것으로 본다
+const exploreSkipped = (data) => Boolean(data?.placement) || groupState(data?.stages ?? [], ['APPLY']) === 'DONE'
 const ddayText = (days) => (days === 0 ? 'D-day' : days > 0 ? `D-${days}` : `D+${-days}`)
 const weeksBetween = (start, end) => {
   if (!start || !end) return null
@@ -250,9 +252,11 @@ function StudentHome() {
   const internship = useRequest(loadInternship)
   const explore = useRequest(loadExplore)
   const exploreMissing = explore.error?.code === 'EXPLORE_NOT_FOUND'
+  // 탐색 없이 지원 단계를 지난 학생에게는 '탐색 결과' 빈 칸을 보여 주지 않는다
+  const hideExplore = exploreMissing && exploreSkipped(internship.data)
   return <>
     <Journey codes={codes} internship={internship} explore={explore.data} exploreReady={!explore.loading} />
-    <ExploreJobs codes={codes} explore={explore} missing={exploreMissing} />
+    {!hideExplore && <ExploreJobs codes={codes} explore={explore} missing={exploreMissing} />}
     <Stories />
   </>
 }
@@ -284,9 +288,10 @@ function JourneySteps({ data, codes, explore, exploreReady }) {
   const steps = JOURNEY.map((group, i) => {
     if (i === 0) {
       const done = Boolean(explore)
-      return { ...group, cls: done ? 'is-done' : '', mark: done ? '✓' : '1', to: done ? '/explore/result' : '/explore',
-        desc: done ? (explore.items?.length ? `맞는 현장실습 ${explore.items.length}곳 · 넓혀 갈 직무` : '이어진 자리 없음 · 다시 탐색할 수 있어요') : '해 본 일 · 하고 싶은 일로 맞는 현장실습 찾기',
-        when: !exploreReady ? '' : done ? `${fmtDate(explore.createdAt)} 완료` : '아직 안 했어요' }
+      const skipped = !done && exploreSkipped(data)
+      return { ...group, cls: done ? 'is-done' : '', mark: done ? '✓' : skipped ? '–' : '1', to: done ? '/explore/result' : '/explore',
+        desc: done ? (explore.items?.length ? `맞는 현장실습 ${explore.items.length}곳 · 넓혀 갈 직무` : '이어진 자리 없음 · 다시 탐색할 수 있어요') : skipped ? '탐색 없이 지원했어요 · 지금도 해 볼 수 있어요' : '해 본 일 · 하고 싶은 일로 맞는 현장실습 찾기',
+        when: !exploreReady ? '' : done ? `${fmtDate(explore.createdAt)} 완료` : skipped ? '선택 · 건너뜀' : '아직 안 했어요' }
     }
     const state = states[i]
     const cls = state === 'DONE' ? 'is-done' : state === 'NOW' ? 'is-now' : ''
@@ -339,7 +344,7 @@ function todoFor(data, explore, codes) {
     if (status === 'NONE' || status === 'DRAFT') {
       if (!explore && picks.length === 0) return { title: '직무 탐색으로 맞는 자리부터 찾아요', sub: '해 본 일 · 하고 싶은 일로 지원할 수 있는 자리 중에서 골라요', to: '/explore', action: '직무 탐색하기' }
       if (picks.length === 0) return { title: '마음에 드는 직무를 담고 1~3지망을 정해요', sub: '정한 지망 순위가 지원서에 그대로 들어가요', to: explore?.items?.length ? '/explore/result' : '/jobs', action: '직무 담으러 가기' }
-      if (ranked.length === 0) return { title: '1~3지망을 정해요', sub: `담은 직무 ${picks.length}개 · 정한 순위가 지원서에 그대로 들어가요`, to: '/internship', action: '지망 정하기' }
+      if (ranked.length === 0) return { title: '1~3지망을 정해요', sub: `담은 직무 ${picks.length}개 · 정한 순위가 지원서에 그대로 들어가요`, to: '/internship?step=pick', action: '지망 정하기' }
       return { title: '지원서를 내면 지원이 끝나요', sub: `1~3지망 정함 · 지원서 ${statusText}`, to: '/apply', action: status === 'DRAFT' ? '지원서 이어 쓰기' : '지원서 쓰기' }
     }
     return { title: '지원서를 냈어요', sub: `접수번호 ${app.receiptNo ?? '—'} · ${statusText} · 마감 뒤 센터가 매칭해요`, to: '/internship', action: '진행 보기', virtual }

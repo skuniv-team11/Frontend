@@ -107,7 +107,7 @@
 .rs-pick{height:32px;padding:0 12px;border:1px solid #c9d4ff;border-radius:9px;color:#3154f4;background:#fff;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}
 .rs-pick.on{color:#fff;background:#3154f4;border-color:#3154f4}
 .rs-pick:disabled{opacity:.55;cursor:wait}
-.rs-path{margin-top:18px;padding:26px 28px;border:1px solid #e1e6ee;border-radius:22px;background:#fff}
+.rs-path{margin-top:-2px;padding:26px 28px;border:1px solid #e1e6ee;border-radius:22px;background:#fff}
 .rs-path>header{display:flex;margin-bottom:16px;align-items:flex-end;justify-content:space-between;gap:16px}
 .rs-path>header>div>span{color:#3154f4;font-size:10px;font-weight:900;letter-spacing:.13em}
 .rs-path>header h2{margin:6px 0 0;font-size:20px;letter-spacing:-.8px}
