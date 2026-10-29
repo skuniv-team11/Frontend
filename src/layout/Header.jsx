@@ -93,7 +93,8 @@ export function Header({ center = false, hidden = false }) {
   const nav = center ? CENTER_NAV : STUDENT_NAV
 
   return <header aria-hidden={hidden} className={`topbar ${isHomeTop && !center ? 'home-topbar' : ''} ${hidden ? 'topbar-hidden' : ''}`}>
-    <Link className="brand" to={center ? '/center' : '/'}>현장뛰자<span>.</span>{center && <small style={{ marginLeft: 8, color: '#626b78', fontSize: 12, fontWeight: 800 }}>현장실습지원센터</small>}</Link>
+    {/* 로고는 어느 화면에서든 메인(/)으로, 센터 이름표는 현황판으로 */}
+    <span style={{ display: 'inline-flex', alignItems: 'baseline' }}><Link className="brand" to="/">현장뛰자<span>.</span></Link>{center && <Link to="/center" style={{ marginLeft: 8, color: '#626b78', fontSize: 12, fontWeight: 800 }}>현장실습지원센터</Link>}</span>
     <nav>{nav.map(([to, text, end]) => <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive || (to === '/internship' && /^\/(apply|career)/.test(location.pathname)) || (to === '/explore' && location.pathname.startsWith('/explore')) || (to === '/center/inbox' && location.pathname.startsWith('/center/inbox')) ? 'active' : '')}>{text}</NavLink>)}</nav>
     {center ? <div className="v2-top-actions"><DemoMenu /><Link className="v2-switch" to="/">학생 화면 →</Link></div>
       : loggedIn ? <div className="v2-top-actions"><Link className="v2-switch" to="/center">센터 화면 →</Link><div className="profile-menu" ref={profileMenuRef}>

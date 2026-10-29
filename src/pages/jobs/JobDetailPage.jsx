@@ -437,6 +437,6 @@ export function JobDetailPage() {
       <InstitutionSection detail={detail} codes={codes} />
     </div>
     <button className={`job-detail-back-to-top ${showBackToTop ? 'is-visible' : ''}`} type="button" aria-hidden={!showBackToTop} tabIndex={showBackToTop ? 0 : -1} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span aria-hidden="true">↑</span> 위로가기</button>
-    {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습에서 볼 수 있어요.'}</small></div><Link to="/internship">내 현장실습 보기</Link></Toast>}
+    {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습 > 지망 정하기에서 봐요.'}</small></div><Link to="/internship?step=pick">담은 직무 보기</Link></Toast>}
   </div></main>
 }

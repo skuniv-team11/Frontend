@@ -88,14 +88,14 @@ export function MePage(){
     finally{setRunning(false)}
   }
   // 옛 '담은 실습'(/me?view=saved)은 내 현장실습의 지망 정하기로 옮겼다
-  if(new URLSearchParams(location.search).get('view')==='saved')return <Navigate to="/internship" replace/>
+  if(new URLSearchParams(location.search).get('view')==='saved')return <Navigate to="/internship?step=pick" replace/>
   const spec=action&&ACTIONS[action]
   return <main className="me-page">
     <aside className="me-sidebar">
       <div className="me-identity"><span className="me-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 19c.4-4 2.5-6 6.5-6s6.1 2 6.5 6"/></svg></span><AccountSummary me={me} profile={profile}/></div>
       <nav className="me-nav" aria-label="내 정보 메뉴">
         <button className="active" type="button" onClick={()=>navigate('/me')}>내 프로필</button>
-        {isStudent&&<Link to="/internship">내 현장실습 · 담은 직무</Link>}
+        {isStudent&&<Link to="/internship?step=pick">내 현장실습 · 담은 직무</Link>}
         {isStudent&&<Link to="/career">커리어 리포트</Link>}
       </nav>
         <button className="me-logout" disabled={!me.data||loggingOut} aria-busy={loggingOut} onClick={logout}>{loggingOut&&<span className="logout-spinner" aria-hidden="true"/>}{loggingOut?'로그아웃 중…':'로그아웃'}</button>
