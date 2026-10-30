@@ -382,7 +382,7 @@
 .home-jobs .section-more {
   position: absolute;
   right: max(68px, calc((100vw - 1096px) / 2));
-  bottom: 80px;
+  bottom: 42px;
   z-index: 5;
   display: inline-flex;
   align-items: center;

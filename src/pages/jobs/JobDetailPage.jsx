@@ -2,17 +2,17 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { resolveApiAssetUrl } from '../../api/client'
-import { getExploreWhy, getMyExplore } from '../../api/explore'
+import { getCachedExploreWhy, getExploreWhy, getMyExplore } from '../../api/explore'
 import { getCommute, getJob, getJobCareer } from '../../api/jobs'
 import { getMyProfile } from '../../api/me'
 import { addPlanItem, planErrorMessage, removePlanItem } from '../../api/plan'
 import { getCurrentRound, label } from '../../api/reference'
 import { Badge, Toast } from '../../components/Shell'
-import { Empty, VerdictBadge } from '../../components/v2'
+import { Empty, InstitutionLogo, VerdictBadge } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes, useSession } from '../../hooks/useSession'
 import { requestScrollRestore } from '../../layout/scrollPosition'
-import { fmtDate, won, MAJOR_LABEL, MAJOR_NOTE } from '../../lib/format'
+import { fmtDate, won, MAJOR_LABEL } from '../../lib/format'
 import './JobDetailPage.css'
 import './JobDetailV2.css'
 
@@ -106,12 +106,8 @@ function AiCitationsSkeleton() {
   return <div className="job-detail-ai-citations job-detail-ai-skeleton-citations" aria-hidden="true"><h3>근거 · 내 글 → 공고</h3><div>{[0, 1].map((index) => <article key={index}><i /><span /><span /><small /></article>)}</div></div>
 }
 
-function AiTypewriterText({ text }) {
-  return <p className="job-detail-ai-typewriter" aria-label={text}>{[...text].map((character, index) => <span key={index} style={{ '--character-index': Math.min(index, 400) }} aria-hidden="true">{character}</span>)}</p>
-}
-
 // '왜 나에게 맞나요'(#32) — 탐색 결과가 있어야 만든다. 처음이면 5~7초
-function WhyBlock({ why, explore, detail, codes }) {
+function WhyBlock({ why, detail, codes }) {
   if (why.loading) return <>
     <div className="job-detail-ai-summary is-loading" role="status"><b>AI</b><i className="job-detail-ai-text-spinner" aria-hidden="true" /><p>내 탐색 글과 이 공고를 함께 읽고 있어요. 처음 만들 때는 5~7초 걸려요.</p></div>
     <AiCitationsSkeleton />
@@ -122,32 +118,25 @@ function WhyBlock({ why, explore, detail, codes }) {
   if (error) return <div className="jd-ai-empty is-error" role="alert"><span className="v2-ai">AI</span><div><b>설명을 불러오지 못했어요</b><p>{error.code === 'NETWORK' ? '서버에 연결하지 못했어요.' : '잠시 뒤 다시 시도해 주세요.'} 아래 조건 · 기준은 그대로 볼 수 있어요.</p></div><button type="button" className="v2-btn sm gray" onClick={why.reload}>다시 불러오기</button></div>
   if (why.idle) return <div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>{why.fit ? '이 자리는 탐색 결과에 있어요 · 설명은 눌러서 만들어요' : '탐색 결과 밖 자리예요 · 내 글과 얼마나 이어지는지 설명을 만들 수 있어요'}</b><p>누르면 AI가 내 탐색 글과 이 공고를 함께 읽고 이어지는 구절을 짝지어 설명해요(처음 5~7초). 처음 만들 때만 AI 한도(계정당 1시간 10회)를 한 번 쓰고, 만든 설명은 저장돼 다시 누르면 바로 보여요.</p></div><button type="button" className="v2-btn sm" onClick={why.start}>AI 설명 만들기</button></div>
   if (!why.data) return null
-  const { why: body, fit, fallbackReason } = why.data
+  const { why: body, fallbackReason } = why.data
   if (!body) return <div className="jd-ai-empty is-muted"><span className="v2-ai">AI</span><div><b>지금은 설명을 만들지 못했어요{fallbackReason ? `(${label(codes, 'exploreFallback', fallbackReason)})` : ''}</b><p>AI 한도나 응답 문제일 수 있어요. 잠시 뒤 다시 열면 그때 만들어요. 아래 조건 · 기준(규칙)은 그대로 볼 수 있어요.</p></div><button type="button" className="v2-btn sm gray" onClick={why.reload}>다시 만들기</button></div>
 
-  const item = explore?.items?.find((entry) => String(entry.jobId) === String(detail.id))
-  // 공고 구절이 든 운영계획서·쪽 — 탐색 결과의 같은 직무 짝에서 찾는다(없으면 구절만)
-  const where = (jobQuote) => {
-    const link = item?.links?.find((entry) => entry.jobQuote === jobQuote)
-    return link?.documentTitle ? ` · ${link.documentTitle}${link.page != null ? ` ${link.page}쪽` : ''}` : ''
-  }
   const senior = detail.seniorNotes.find((note) => sameTeam(note.teamText, detail.team) && (note.outcomes?.length || note.activities?.length))
   const seniorQuote = senior?.outcomes?.[0] ?? senior?.activities?.[0]
-  const cards = [...body.points.map((point, index) => ({ key: `p${index}`, span: `근거 ${index + 1}`, quote: point.studentQuote, note: <>→ 공고 “{point.jobQuote}”{where(point.jobQuote)}</> })),
+  const cards = [...body.points.map((point, index) => ({ key: `p${index}`, span: `근거 ${index + 1}`, quote: point.studentQuote })),
     ...(seniorQuote ? [{ key: 'senior', span: '같은 팀 선배가 한 일', quote: seniorQuote, note: `선배 수기 · ${senior.documentTitle} · ${senior.page}쪽` }] : [])]
   const text = [body.summary, ...body.points.map((point) => point.text)].join(' ')
   return <>
-    <div className="job-detail-ai-summary"><b>AI</b><AiTypewriterText text={text} /></div>
-    <div className="job-detail-ai-citations"><h3>근거 · 내 글 → 공고</h3><div style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)},minmax(0,1fr))` }}>{cards.map((card) => <article key={card.key}><span>{card.span}</span><blockquote>“{card.quote}”</blockquote><p>{card.note}</p></article>)}</div></div>
+    <div className="job-detail-ai-summary"><b>AI</b><p>{text}</p></div>
+    <div className="job-detail-ai-citations"><h3>근거 · 내 글</h3><div style={{ gridTemplateColumns: `repeat(${Math.min(cards.length, 3)},minmax(0,1fr))` }}>{cards.map((card) => <article key={card.key}><span>{card.span}</span><blockquote>“{card.quote}”</blockquote>{card.note && <p>{card.note}</p>}</article>)}</div></div>
     {(body.tryNew?.length > 0 || body.prepare) && <div className="job-detail-ai-citations jd-ai-next"><h3>이 실습에서</h3><div style={{ gridTemplateColumns: `repeat(${Math.min((body.tryNew?.length ?? 0) + (body.prepare ? 1 : 0), 3)},minmax(0,1fr))` }}>
-      {body.tryNew?.map((entry, index) => <article key={`t${index}`}><span>새로 해 볼 일</span><blockquote>{entry.text}</blockquote><p>공고 “{entry.jobQuote}”{where(entry.jobQuote)}</p></article>)}
-      {body.prepare && <article><span>미리 채우면 좋은 것</span><blockquote>{body.prepare.text}</blockquote><p>공고 “{body.prepare.jobQuote}”{where(body.prepare.jobQuote)}</p></article>}
+      {body.tryNew?.map((entry, index) => <article key={`t${index}`}><span>새로 해 볼 일</span><blockquote>{entry.text}</blockquote></article>)}
+      {body.prepare && <article><span>미리 채우면 좋은 것</span><blockquote>{body.prepare.text}</blockquote></article>}
     </div></div>}
-    <p className="v2-foot jd-ai-foot">{fit === 'NONE' ? '이 자리는 탐색 결과(추천 5곳) 밖이라 덜 이어지는 까닭도 함께 적었어요 · ' : ''}설명은 {explore?.createdAt ? `${fmtDate(explore.createdAt)} ` : ''}탐색 결과를 바탕으로 만들어 저장한 것 · 인용 구절은 내 글과 공고 원문에 그대로 있는 것만 · 지원 조건 판정은 아래 조건 · 기준(규칙)이에요</p>
   </>
 }
 
-function AiDecision({ detail, why, explore, codes, isStudent }) {
+function AiDecision({ detail, why, codes, isStudent }) {
   const mine = detail.myEligibility
   if (!isStudent) return null
   if (!mine) return <section className="job-detail-ai-decision"><div className="job-detail-ai-heading"><div><span>AI DECISION</span><h2>왜 나에게 맞나요</h2></div></div><div className="jd-ai-empty"><span className="v2-ai">AI</span><div><b>프로필을 저장하면 조건 · 기준과 '왜 나에게 맞나요'를 볼 수 있어요</b><p>학과 · 학년 · 이수 학기 · 평점을 저장하면 이 직무의 지원 판정을 규칙으로 바로 보여 드려요.</p></div><Link className="v2-btn sm" to="/me" state={{ editProfile: true }}>프로필 저장하기 →</Link></div></section>
@@ -158,12 +147,12 @@ function AiDecision({ detail, why, explore, codes, isStudent }) {
       {fit === 'NONE' && <Badge>탐색 결과 밖 자리</Badge>}
       <DetailDecisionPreview type="verdict" reasons={mine.reasons} codes={codes}><VerdictBadge verdict={mine.verdict} /></DetailDecisionPreview>
     </span></div>
-    <WhyBlock why={why} explore={explore} detail={detail} codes={codes} />
+    <WhyBlock why={why} detail={detail} codes={codes} />
     <div className="job-detail-ai-reasons"><h3 className="job-detail-ai-criteria-title">조건 · 기준 <small className="jd-rule-tag">규칙 판정 · 저장한 프로필 기준</small></h3>
       {mine.reasons.map((reason, index) => <article style={{ '--reason-index': index }} key={`${reason.layer}-${reason.item}-${index}`}>
         <div>{label(codes, 'reasonLayer', reason.layer) !== reason.item && <small>{label(codes, 'reasonLayer', reason.layer)}</small>}<h3>{reason.item}</h3></div>
-        <dl><div><dt>필요 조건</dt><dd>{reason.requirement}</dd></div><div><dt>내 조건</dt><dd>{reason.mine}</dd></div>{reason.citation && <div className="jd-cite"><dt>출처</dt><dd>{reason.citation.documentTitle}{reason.citation.page != null ? ` ${reason.citation.page}쪽` : ''} · “{reason.citation.quote}”</dd></div>}</dl>
-        {reason.layer === 'MAJOR' ? <><p className="jd-major-note">{MAJOR_NOTE}</p><b className="is-info">{MAJOR_LABEL[mine.majorMatch] ?? label(codes, 'majorMatch', mine.majorMatch)}</b></>
+        <dl><div><dt>필요 조건</dt><dd>{reason.requirement}</dd></div><div><dt>내 조건</dt><dd>{reason.mine}</dd></div></dl>
+        {reason.layer === 'MAJOR' ? <b className="is-info">{MAJOR_LABEL[mine.majorMatch] ?? label(codes, 'majorMatch', mine.majorMatch)}</b>
           : <b className={`is-${reason.result.toLowerCase()}`}>{label(codes, 'reasonResult', reason.result)}</b>}
       </article>)}
     </div>
@@ -173,7 +162,7 @@ function AiDecision({ detail, why, explore, codes, isStudent }) {
 // 이 실습으로 이어지는 길(#33) — NCS 세분류 · 능력단위 · 넓혀 갈 직무 3개 · 이어지는 직업
 function CareerPath({ career, why, explore, detail, codes }) {
   const [allUnits, setAllUnits] = useState(false)
-  const head = <div className="v2-career-head"><div><span>CAREER PATH</span><h2>이 실습으로 이어지는 길</h2></div>{explore ? <Link className="v2-link" to="/explore/result">내 탐색 결과 →</Link> : <Link className="v2-link" to="/explore">직무 탐색 →</Link>}</div>
+  const head = <div className="v2-career-head"><div><span>CAREER PATH</span><h2>이 실습으로 이어지는 길</h2></div>{!explore && <Link className="v2-link" to="/explore">직무 탐색 →</Link>}</div>
   if (career.loading) return <section className="v2-career">{head}<div className="jd-career-state" role="status"><span className="v2-spinner" aria-hidden="true" />이어지는 길을 불러오는 중이에요…</div></section>
   if (career.error) return <section className="v2-career">{head}<div className="jd-career-state is-error" role="alert">이어지는 길을 불러오지 못했어요. <button type="button" className="v2-btn sm gray" onClick={career.reload}>다시 불러오기</button></div></section>
   const data = career.data
@@ -190,13 +179,12 @@ function CareerPath({ career, why, explore, detail, codes }) {
   return <section className="v2-career">
     {head}
     <div className="v2-flow">
-      <div className="v2-flow-col"><span>① 지금</span><h4>내 글과 이어진 일</h4>
-        {linked.length > 0 ? <ul>{linked.slice(0, 3).map((entry, index) => <li key={index}>{entry.job}<small>{shorten(entry.student, 46)}</small></li>)}</ul>
+      <div className="v2-flow-col"><span>① 내 경험</span>
+        {linked.length > 0 ? <ul>{linked.slice(0, 3).map((entry, index) => <li key={index}>{shorten(entry.student, 46)}</li>)}</ul>
           : <p className="v2-muted">{explore ? '이 자리는 탐색 결과에 들지 않아 이어진 구절이 없어요. 위 설명에서 이어지는 정도를 볼 수 있어요.' : '직무 탐색을 하면 내 경험 글과 이어진 이 자리의 일이 여기에 보여요.'}</p>}
       </div>
       <span className="v2-arrow" aria-hidden="true">→</span>
-      <div className="v2-flow-col is-here"><span>② 이 자리에서</span><h4>쓰는 능력 {ncs.units.length}가지</h4>
-        <p className="jd-ncs-path">NCS '{ncs.name}' 기준</p>
+      <div className="v2-flow-col is-here"><span>② 실습 중</span>
         <ul>{units.map((unit) => <li key={unit.code} title={unit.definition ?? undefined}>{unit.name}</li>)}</ul>
         {ncs.units.length > UNIT_PREVIEW && <button type="button" className="jd-more" onClick={() => setAllUnits((value) => !value)}>{allUnits ? '접기 ↑' : `능력단위 ${ncs.units.length - UNIT_PREVIEW}개 더 보기 ↓`}</button>}
       </div>
@@ -204,8 +192,6 @@ function CareerPath({ career, why, explore, detail, codes }) {
       <div className="v2-flow-col"><span>③ 실습 뒤</span><h4>넓혀 갈 직무 · 일자리</h4>
         <div className="fx-stack jd-next-stack">
           {data.expand.map((entry) => <div className="v2-next" key={entry.code}><b>{entry.name} <em className={`jd-rel is-${entry.relation.toLowerCase()}`}>{label(codes, 'ncsRelation', entry.relation)}</em></b>{(() => { const extra = entry.occupations.filter((job) => !nowJobs.has(job.code)); return extra.length > 0 && <small>더 갈 수 있는 일자리: {occupationText(extra.slice(0, 3))}</small> })()}</div>)}
-          {data.occupations.length > 0 && <p className="v2-muted jd-occ">이 직무로 갈 수 있는 일자리: {occupationText(data.occupations.slice(0, 5))}{data.occupations.length > 5 ? ` 외 ${data.occupations.length - 5}개` : ''}</p>}
-          {jobType === 'EXPERIENCE' && <p className="v2-muted jd-occ">이 자리는 직무체험형이라 이 회사 채용 약속은 없어요.</p>}
           {jobType === 'HIRING' && <p className="v2-muted jd-occ">이 자리는 채용연계형이에요. 채용 조건은 운영계획서 원문으로 확인해 주세요.</p>}
         </div>
       </div>
@@ -231,35 +217,107 @@ function CommuteCard({ jobId, hasCoordinates, workplace, profile, codes, ready }
 }
 
 function EvidenceSection({ detail, codes }) {
-  const [open, setOpen] = useState(false)
   const { evidence, alerts } = detail
   return <section className="job-detail-section job-detail-evidence-section" id="job-evidence"><span className="job-detail-section-number">04</span><div className="job-detail-section-body"><p className="job-detail-kicker">POSTING INFORMATION</p><h2>공고 정보</h2>
-    {alerts.length > 0 && <div className="job-detail-alerts jd-alerts-top"><h3>검토 알림 {alerts.length}건</h3>{alerts.map((alert, index) => <article key={alert.id ?? index}><div><Badge tone="orange">{label(codes, 'alertKind', alert.kind)}</Badge><p>{alert.description}</p></div>{alert.quoteA && <blockquote>“{alert.quoteA}”</blockquote>}{alert.quoteB && <blockquote>“{alert.quoteB}”</blockquote>}<small>{[alert.documentTitle, alert.pageA && `${alert.pageA}쪽`, alert.pageB && `${alert.pageB}쪽`].filter(Boolean).join(' · ')}</small></article>)}</div>}
+    {alerts.length > 0 && <div className="job-detail-alerts jd-alerts-top"><h3>검토 알림 {alerts.length}건</h3>{alerts.map((alert, index) => <article key={alert.id ?? index}><div><Badge tone="orange">{label(codes, 'alertKind', alert.kind)}</Badge><p>{alert.description}</p></div></article>)}</div>}
     {evidence.length === 0 ? <p>AI가 운영계획서에서 뽑은 항목이 없어요.</p>
-      : <button type="button" className="v2-fold" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? '운영계획서 원문 항목 접기 ↑' : `운영계획서 원문 항목 ${evidence.length}개 펼치기 ↓`}</button>}
-    {open && <div className="job-detail-evidence-list jd-evidence">{evidence.map((entry, index) => <article style={{ '--evidence-index': Math.min(index, 12) }} key={`${entry.fieldKey}-${index}`}><h3>{entry.label}</h3><div><strong>{entry.rawValue || '미기재'}</strong>{entry.quote && entry.quote !== entry.rawValue && <blockquote>“{entry.quote}”</blockquote>}<small>{entry.documentTitle}{entry.page != null ? ` · ${entry.page}쪽` : ''}</small></div></article>)}</div>}
-    <p className="job-detail-caution">AI가 운영계획서에서 뽑은 값이라 원문과 다를 수 있어요. 원문 PDF는 띄우지 않고 문서명 · 쪽 · 인용만 보여 줘요. 최종 지원 전 센터 공지로 확인하세요.</p>
+      : <div className="job-detail-evidence-list jd-evidence">{evidence.map((entry, index) => <article style={{ '--evidence-index': Math.min(index, 12) }} key={`${entry.fieldKey}-${index}`}><h3>{entry.label}</h3><div><strong>{entry.rawValue || '미기재'}</strong></div></article>)}</div>}
+    <p className="job-detail-caution">AI가 운영계획서에서 뽑은 값이라 원문과 다를 수 있어요. 최종 지원 전 센터 공지로 확인하세요.</p>
   </div></section>
 }
 
 function SeniorNote({ note, team }) {
   const [open, setOpen] = useState(false)
   const same = sameTeam(note.teamText, team)
-  const hasFull = note.companyIntro || note.results
   return <article className="jd-senior-note">
-    <div className="jd-senior-head"><b>{note.termCode} · {note.teamText}</b>{same && <Badge tone="blue">같은 팀</Badge>}</div>
-    {note.oneLine && <p className="jd-senior-line">“{note.oneLine}”</p>}
-    <div className="job-detail-senior-columns">
-      <section><h4>실습 내용</h4>{note.activities?.length ? <ul>{note.activities.map((activity, index) => <li key={index}>{activity}</li>)}</ul> : <p>기록된 실습 내용이 없어요.</p>}</section>
-      <section><h4>실습 결과</h4>{note.outcomes?.length ? <ul>{note.outcomes.map((outcome, index) => <li key={index}>{outcome}</li>)}</ul> : <p>{note.results ? shorten(note.results, 90) : '기록된 실습 결과가 없어요.'}</p>}</section>
-    </div>
-    {note.reflection && <div className="jd-senior-reflection"><h4>참여 소감</h4><p>{note.reflection}</p></div>}
-    {open && <div className="jd-senior-full">
-      {note.companyIntro && <section><h4>기관 · 부서 소개</h4><p>{note.companyIntro}</p></section>}
-      {note.results && <section><h4>실습 결과</h4><p>{note.results}</p></section>}
-    </div>}
-    <div className="jd-senior-foot"><small>출처 · {note.documentTitle} · {note.page}쪽</small>{hasFull && <button type="button" className="jd-more" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? '전문 접기 ↑' : '수기 전문 보기 ↓'}</button>}</div>
+    <button type="button" className="jd-senior-toggle" aria-expanded={open} onClick={() => setOpen(true)}>
+      <span className="jd-senior-head"><b>{note.termCode} · {note.teamText}</b>{same && <Badge tone="blue">같은 팀</Badge>}</span>
+      <span className="jd-senior-preview-label">참여 소감</span>
+      <span className="jd-senior-preview">{note.reflection || note.oneLine || '등록된 참여 소감이 없어요.'}</span>
+      <span className="jd-senior-toggle-hint">상세 보기</span>
+    </button>
+    {open && <SeniorNoteSheet note={note} same={same} close={() => setOpen(false)} />}
   </article>
+}
+
+export function SeniorNoteSheet({ note, same, close, institution, noteStatus, onRetry }) {
+  const [closing, setClosing] = useState(false)
+  const closingRef = useRef(false)
+  const closeRef = useRef(close)
+  const closeTimer = useRef(null)
+  useEffect(() => { closeRef.current = close }, [close])
+  const requestClose = useCallback(() => {
+    if (closingRef.current) return
+    closingRef.current = true
+    setClosing(true)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    closeTimer.current = window.setTimeout(() => closeRef.current(), reducedMotion ? 0 : 360)
+  }, [])
+  useEffect(() => {
+    const closeOnEscape = (event) => { if (event.key === 'Escape') requestClose() }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+    return () => { document.body.style.overflow = previousOverflow; window.clearTimeout(closeTimer.current); window.removeEventListener('keydown', closeOnEscape) }
+  }, [requestClose])
+  const contentRef = useRef(null)
+  const trackRef = useRef(null)
+  const dragRef = useRef(null)
+  const [bar, setBar] = useState({ top: 0, height: 0, visible: false })
+  const updateBar = useCallback(() => {
+    const content = contentRef.current
+    const track = trackRef.current
+    if (!content || !track) return
+    const visible = content.scrollHeight > content.clientHeight
+    const height = visible ? Math.max(42, track.clientHeight * (content.clientHeight / content.scrollHeight)) : 0
+    const travel = track.clientHeight - height
+    const top = visible ? (content.scrollTop / (content.scrollHeight - content.clientHeight)) * travel : 0
+    setBar({ top, height, visible })
+  }, [])
+  useLayoutEffect(() => {
+    const frame = window.requestAnimationFrame(updateBar)
+    const observer = new ResizeObserver(updateBar)
+    if (contentRef.current) observer.observe(contentRef.current)
+    return () => { window.cancelAnimationFrame(frame); observer.disconnect() }
+  }, [updateBar, note.reflection, noteStatus])
+  const startDrag = (event) => {
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragRef.current = { startY: event.clientY, startScroll: contentRef.current?.scrollTop ?? 0 }
+  }
+  const moveDrag = (event) => {
+    const content = contentRef.current
+    const track = trackRef.current
+    if (!content || !track || !dragRef.current) return
+    const travel = track.clientHeight - bar.height
+    if (travel > 0) content.scrollTop = dragRef.current.startScroll + (event.clientY - dragRef.current.startY) * ((content.scrollHeight - content.clientHeight) / travel)
+  }
+  const titleId = `senior-note-${note.termCode}-${note.page}`
+  return createPortal(<div className={`jd-senior-sheet-overlay ${closing ? 'is-closing' : ''}`} onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose() }}>
+    <section className="jd-senior-sheet" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <span className="jd-senior-sheet-grip" aria-hidden="true" />
+      <button type="button" className="jd-senior-sheet-close" aria-label="닫기" onClick={requestClose}>×</button>
+      <div className="jd-senior-sheet-shell">
+        <div ref={contentRef} className="jd-senior-sheet-content" onScroll={updateBar}>
+          <header className="jd-senior-sheet-heading">{institution && <InstitutionLogo key={institution.logoPath} institution={institution} className="jd-senior-sheet-logo" />}<span className="jd-senior-sheet-kicker">SENIOR STORY · 우수 참여수기</span><h2 id={titleId}>{note.title || `${note.termCode} · ${note.teamText}`}</h2>{same && <Badge tone="blue">같은 팀</Badge>}{note.meta && <p>{note.meta}</p>}</header>
+          {note.reflection && <section className="jd-senior-sheet-reflection"><h3>참여 소감</h3><p>{note.reflection}</p></section>}
+          {noteStatus && <section className="jd-senior-sheet-reflection"><h3>참여 소감</h3><p>{noteStatus} {onRetry && <button type="button" className="link-button" onClick={onRetry}>다시 불러오기</button>}</p></section>}
+          {note.oneLine && <p className="jd-senior-sheet-line">“{note.oneLine}”</p>}
+          <div className="jd-senior-sheet-columns">
+            <section><h3>실습 내용</h3>{note.activities?.length ? <ul>{note.activities.map((activity, index) => <li key={index}>{activity}</li>)}</ul> : <p>기록된 실습 내용이 없어요.</p>}</section>
+            <section><h3>실습 결과</h3>{note.outcomes?.length ? <ul>{note.outcomes.map((outcome, index) => <li key={index}>{outcome}</li>)}</ul> : <p>{note.results ? shorten(note.results, 90) : '기록된 실습 결과가 없어요.'}</p>}</section>
+          </div>
+          <div className="jd-senior-sheet-full">
+            {note.companyIntro && <section><h3>기관 · 부서 소개</h3><p>{note.companyIntro}</p></section>}
+            {note.results && <section><h3>실습 결과</h3><p>{note.results}</p></section>}
+          </div>
+          {note.documentTitle && <footer>출처 · {note.documentTitle}{note.page != null && ` · ${note.page}쪽`}</footer>}
+        </div>
+        <div ref={trackRef} className={`jd-senior-sheet-scrollbar ${bar.visible ? 'is-visible' : ''}`} aria-hidden="true"><span style={{ height: bar.height, transform: `translateY(${bar.top}px)` }} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={() => { dragRef.current = null }} onPointerCancel={() => { dragRef.current = null }} /></div>
+      </div>
+      {institution?.id != null && <div className="jd-senior-sheet-action"><Link to="/jobs" state={{ institutionId: institution.id, institutionName: institution.name }}>직무 보기 <span aria-hidden="true">→</span></Link></div>}
+    </section>
+  </div>, document.body)
 }
 
 function InstitutionSection({ detail, codes }) {
@@ -299,22 +357,25 @@ export function JobDetailPage() {
   const profile = useRequest(loadProfile, isStudent)
   const explore = useRequest(loadExplore, isStudent)
   const hasEligibility = Boolean(job.data?.myEligibility)
-  // '왜 맞나요'(#32): 탐색 결과에 저장된 설명(items[].why)은 그대로 쓴다. 나머지 자리는 학생이 [AI 설명 만들기]를 눌렀을 때만 부른다 —
-  // 처음 만들 때 AI 한도(계정당 1시간 10회)를 쓰므로 상세를 열 때마다 부르지 않는다. 한 번 만든 설명은 서버에 저장돼 다시 열면 한도를 쓰지 않는다.
+  // 추천 직무의 저장된 설명은 그대로 쓰고, 없는 경우 상세 진입 시 만든다. 추천 밖 직무는 버튼을 눌렀을 때만 만든다.
+  // 처음 만들 때 AI 한도(계정당 1시간 10회)를 쓰며, 한 번 만든 설명은 서버에 저장된다.
   const exploreItem = explore.data?.items?.find((entry) => String(entry.jobId) === String(id))
   const storedWhy = exploreItem?.why ?? null
+  const cachedWhy = explore.data ? getCachedExploreWhy(id, explore.data.createdAt) : null
   const [askedWhyFor, setAskedWhyFor] = useState(null)
   const asked = askedWhyFor === id
-  const loadWhy = useCallback((signal) => deferred(() => getExploreWhy(id, signal), signal), [id])
-  const fetchedWhy = useRequest(loadWhy, isStudent && hasEligibility && Boolean(explore.data) && !storedWhy && asked)
+  const autoWhy = Boolean(exploreItem && job.data?.myEligibility?.verdict !== 'INELIGIBLE')
+  const loadWhy = useCallback((signal) => deferred(() => getExploreWhy(id, signal, explore.data?.createdAt), signal), [id, explore.data?.createdAt])
+  const fetchedWhy = useRequest(loadWhy, isStudent && hasEligibility && Boolean(explore.data) && !storedWhy && !cachedWhy && (autoWhy || asked))
   const noop = useCallback(() => {}, [])
   const startWhy = useCallback(() => setAskedWhyFor(id), [id])
   const why = !isStudent || !hasEligibility ? { data: null, loading: false, error: null, reload: noop }
     : explore.loading && !explore.data ? { data: null, loading: true, error: null, reload: noop }
       : explore.error ? { data: null, loading: false, error: explore.error, reload: explore.reload }
         : storedWhy ? { data: { jobId: exploreItem.jobId, fit: exploreItem.fit, why: storedWhy, fallbackReason: null }, loading: false, error: null, reload: noop }
+          : cachedWhy ? { data: cachedWhy, loading: false, error: null, reload: noop }
           : job.data.myEligibility.verdict === 'INELIGIBLE' ? { data: null, loading: false, error: { code: 'EXPLORE_NOT_CANDIDATE' }, reload: noop }
-            : !asked ? { data: null, loading: false, error: null, idle: true, start: startWhy, fit: exploreItem?.fit ?? null, reload: noop }
+            : !asked && !autoWhy ? { data: null, loading: false, error: null, idle: true, start: startWhy, fit: exploreItem?.fit ?? null, reload: noop }
               : fetchedWhy
 
   const [detailReady, setDetailReady] = useState(false)
@@ -373,7 +434,7 @@ export function JobDetailPage() {
   }
 
   if (job.loading || (job.data && !detailReady)) return <DetailLoading complete={Boolean(job.data)} />
-  if (job.error) return <main className="job-detail-page"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button><div className="job-detail-shell">
+  if (job.error) return <main className="job-detail-page"><div className="job-detail-back-anchor"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button></div><div className="job-detail-shell">
     {job.error.code === 'JOB_NOT_FOUND' ? <Empty title="없는 직무예요" action={<Link className="v2-btn" to="/jobs">직무 찾기로 돌아가기 →</Link>}>이번 회차에 없는 직무 번호예요.</Empty>
       : job.error.status === 401 ? <Empty title="로그인하면 직무 상세를 볼 수 있어요" action={<Link className="v2-btn" to="/login">로그인 · 체험 계정 →</Link>}>체험 계정은 24시간 뒤 지워져요.</Empty>
       : <Empty title="직무 정보를 불러오지 못했어요" action={<button type="button" className="v2-btn line" onClick={job.reload}>다시 불러오기</button>}>{job.error.code === 'NETWORK' ? '서버에 연결하지 못했어요. 서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요.' : '잠시 뒤 다시 시도해 주세요.'}</Empty>}
@@ -411,7 +472,7 @@ export function JobDetailPage() {
     scrollTimer.current = window.setTimeout(() => { scrollLock.current = false }, 850)
   }
 
-  return <main className="job-detail-page"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button><div className="job-detail-shell">
+  return <main className="job-detail-page"><div className="job-detail-back-anchor"><button className="job-detail-fixed-back" type="button" onClick={goBack}>← 뒤로가기</button></div><div className="job-detail-shell">
     <header className="job-detail-hero"><div className="job-detail-hero-main"><DetailInstitutionLogo institution={institution} /><div className="job-detail-hero-copy">
       <span className="job-detail-eyebrow">{institution.name} · {detail.team}</span><h1>{detail.title}</h1>
       <div className="job-detail-meta">
@@ -425,8 +486,7 @@ export function JobDetailPage() {
     </header>
     <section className="job-detail-highlights"><div><span>실습지원비</span><strong>{stipend}</strong></div><div><span>실습 기간</span><strong>{period}</strong></div><div><span>모집 인원</span><strong>{conditions.headcount}명</strong></div><div><span>근무지</span><strong>{workplace ?? '미기재'}</strong></div></section>
 
-    <AiDecision detail={detail} why={why} explore={explore.data} codes={codes} isStudent={isStudent} />
-    <CareerPath career={career} why={why} explore={explore.data} detail={detail} codes={codes} />
+    <AiDecision detail={detail} why={why} codes={codes} isStudent={isStudent} />
 
     <nav ref={navRef} className="job-detail-nav" aria-label="직무 상세 바로가기">{SECTIONS.map(([sectionId, name]) => <a className={activeSection === sectionId ? 'is-active' : ''} aria-current={activeSection === sectionId ? 'location' : undefined} href={`#${sectionId}`} key={sectionId} onClick={(event) => scrollTo(event, sectionId)}>{name}</a>)}</nav>
     <div className="job-detail-content">
@@ -436,6 +496,7 @@ export function JobDetailPage() {
       <EvidenceSection detail={detail} codes={codes} />
       <InstitutionSection detail={detail} codes={codes} />
     </div>
+    <CareerPath career={career} why={why} explore={explore.data} detail={detail} codes={codes} />
     <button className={`job-detail-back-to-top ${showBackToTop ? 'is-visible' : ''}`} type="button" aria-hidden={!showBackToTop} tabIndex={showBackToTop ? 0 : -1} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span aria-hidden="true">↑</span> 위로가기</button>
     {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습 > 지망 정하기에서 봐요.'}</small></div><Link to="/internship?step=pick">담은 직무 보기</Link></Toast>}
   </div></main>

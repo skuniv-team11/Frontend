@@ -56,12 +56,6 @@ const isClosed = (closing, round) => {
   return Boolean(round.recruitEnd && asOf > round.recruitEnd)
 }
 const closingText = (closing, round) => isClosed(closing, round) ? '마감' : closing?.closesOn ? `${fmtDate(dayBefore(closing.closesOn))} 마감${closing.closesOnIsVirtual ? '(가상)' : ''}` : '모집 중'
-const shorten = (text, max) => {
-  if (!text) return ''
-  const clean = text.replace(/\s+/g, ' ').trim()
-  return clean.length > max ? `${clean.slice(0, max).trim()}…` : clean
-}
-
 const loadEligibility = (signal) => getEligibility(signal)
 const loadExplore = (signal) => getMyExplore(signal)
 const loadRound = (signal) => getCurrentRound(signal)
@@ -247,7 +241,7 @@ function DecisionPreview({ type, reasons = [], count = 0, interactiveChild = fal
 }
 
 // 추천 이유 시트 — 판정 배지·탐색 단계 배지를 누르면 열린다. 기본 스크롤바 대신 둥근 이동 막대 하나(휠·드래그)
-function ReasonSheet({ item, row, codes, explore, close }) {
+export function ReasonSheet({ item, row, codes, explore, close }) {
   const [closing, setClosing] = useState(false)
   const closingRef = useRef(false)
   const closeRef = useRef(close)
@@ -338,14 +332,16 @@ function ReasonSheet({ item, row, codes, explore, close }) {
   const fitSummary = ruleSource ? `AI 대신 지원 조건과 적합도 점수로 고른 자리예요(${label(codes, 'exploreFallback', explore.fallbackReason)}).`
     : `내 글과 공고가 이어진 짝 ${item.links?.length ?? 0}개를 AI가 찾고, 두 구절이 원문에 그대로 있는지 서버가 확인했어요. 순서는 규칙(이어진 단계 → 선호 전공 → 짝 수)이 정해요.`
   const reasonText = item.why?.summary ?? item.evidence?.reason
+  const aiWhy = item.why
   return createPortal(<div className={`reason-sheet-overlay ${closing ? 'is-closing' : ''}`} onMouseDown={(event) => { if (event.target === event.currentTarget) requestClose() }}>
-    <section ref={panelRef} className="reason-sheet" role="dialog" aria-modal="true" aria-labelledby="reason-sheet-title" onPointerDown={startSheetDrag} onPointerMove={moveSheetDrag} onPointerUp={endSheetDrag} onPointerCancel={endSheetDrag}>
-      <span className="reason-sheet-grip" aria-hidden="true" />
+    <section ref={panelRef} className="reason-sheet" role="dialog" aria-modal="true" aria-labelledby="reason-sheet-title">
+      <span className="reason-sheet-grip" aria-hidden="true" onPointerDown={startSheetDrag} onPointerMove={moveSheetDrag} onPointerUp={endSheetDrag} onPointerCancel={endSheetDrag} />
       <button type="button" className="reason-sheet-close" aria-label="닫기" onClick={requestClose}>×</button>
       <div className="reason-sheet-scroll-shell">
         <div ref={contentRef} className="reason-sheet-scroll-content" onScroll={updateBar}>
           <div className="reason-sheet-heading"><div><span>AI RECOMMENDATION · 추천 {item.rank}</span><h2 id="reason-sheet-title">이 직무를 추천하는 이유</h2></div><div className="reason-panel-badges"><VerdictBadge verdict={item.verdict} /><Badge>{label(codes, 'exploreFit', item.fit)}</Badge>{row?.alertCount > 0 && <Badge tone="orange">문서 검토 {row.alertCount}건</Badge>}</div></div>
-          <div className="reason-sheet-job"><small>{item.institution.name} · {item.team}</small><h3>{item.title}</h3>{reasonText && <p>{reasonText}</p>}</div>
+          <div className="reason-sheet-job"><div className="reason-sheet-job-header"><InstitutionLogo institution={item.institution} className="reason-sheet-company-logo" /><div><small>{item.institution.name} · {item.team}</small><h3>{item.title}</h3></div></div>{!aiWhy && reasonText && <p>{reasonText}</p>}</div>
+          {aiWhy && <div className="reason-sheet-ai-brief"><span>AI</span><p>{[aiWhy.summary, ...(aiWhy.points ?? []).map((point) => point.text)].filter(Boolean).join(' ')}</p></div>}
           <div className="reason-sheet-explanations">
             <section><span>지원 판정 · 규칙</span><h3>{label(codes, 'verdict', item.verdict)}인 이유</h3><p>{verdictSummary}</p></section>
             <section><span>직무 탐색 · {ruleSource ? '규칙' : 'AI'}</span><h3>{label(codes, 'exploreFit', item.fit)}</h3><p>{fitSummary}</p></section>
@@ -362,7 +358,7 @@ function ReasonSheet({ item, row, codes, explore, close }) {
         </div>
         <div ref={trackRef} className={`reason-sheet-scrollbar ${bar.visible ? 'is-visible' : ''}`} aria-hidden="true"><span style={{ height: bar.height, transform: `translateY(${bar.top}px)` }} onPointerDown={startBarDrag} onPointerMove={moveBarDrag} onPointerUp={stopBarDrag} onPointerCancel={stopBarDrag} /></div>
       </div>
-      <div className="reason-sheet-footer"><Link className="reason-sheet-detail" to={`/jobs/${item.jobId}`} state={{ returnScrollY: window.scrollY }}>직무 상세에서 '왜 나에게 맞나요' 보기 <span>→</span></Link></div>
+      <div className="reason-sheet-footer"><Link className="reason-sheet-detail" to={`/jobs/${item.jobId}`} state={{ returnScrollY: window.scrollY }}>직무 상세 보기 <span>→</span></Link></div>
     </section>
   </div>, document.body)
 }
@@ -379,23 +375,19 @@ function RecommendationCard({ item, row, codes, saved, rank, busy, disabled, onS
   const openDetail = () => navigate(`/jobs/${item.jobId}`, { state: { returnScrollY: window.scrollY } })
   const showReason = (event) => { event.stopPropagation(); onReason(item) }
   const reason = item.why?.summary ?? item.evidence?.reason
-  const quote = item.evidence?.studentQuote
-  const after = quote ? `${shorten(quote, 16)} → ${shorten(item.evidence?.jobQuote, 18) || '공고'}` : item.evidence?.jobQuote ? `공고 “${shorten(item.evidence.jobQuote, 26)}”` : ''
   const meta = [item.team, row?.majorMatch && (MAJOR_LABEL[row.majorMatch] ?? label(codes, 'majorMatch', row.majorMatch))].filter(Boolean).join(' · ')
   const verdictBadge = <button type="button" className="recommend-insight-button" onClick={showReason}><VerdictBadge verdict={item.verdict} /></button>
   return <article className={`recommend-card ${keepOpen ? 'actions-open' : ''}`} role="link" tabIndex="0" onClick={openDetail} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); openDetail() } }}>
     <div className="recommend-card-top"><span className="recommend-rank">추천 {item.rank}</span><div>
       {item.verdict === 'NEEDS_CHECK' ? <DecisionPreview type="check" reasons={row?.reasons} interactiveChild>{verdictBadge}</DecisionPreview> : verdictBadge}
-      <button type="button" className="recommend-insight-button" onClick={showReason}><Badge>{label(codes, 'exploreFit', item.fit)}</Badge></button>
     </div></div>
     <div className="recommend-company-block"><InstitutionLogo institution={item.institution} /><small className="recommend-company">{item.institution.name}</small></div>
     <h3 title={item.title}>{item.title}</h3>
     {meta && <p className="recommend-meta">{meta}</p>}
     {reason && <p className="recommend-reason"><span className="recommend-ai-label">AI</span>{reason}</p>}
-    {after && <p className="jb-after" title={quote ? `${quote} → ${item.evidence?.jobQuote ?? ''}` : item.evidence?.jobQuote}><b>탐색</b><span>{after}</span></p>}
     {row && <p className="recommend-views">조회 {row.views.toLocaleString('ko-KR')}</p>}
     <div className="recommend-card-bottom">
-      <button type="button" onClick={(event) => { event.stopPropagation(); openDetail() }}>추천 이유 보기</button>
+      <button type="button" onClick={showReason}>추천 이유 보기</button>
       <button type="button" className={`recommend-save-button ${saved ? 'saved' : ''}`} disabled={disabled} title={saved ? '다시 누르면 담기를 취소해요' : undefined} onClick={(event) => { event.stopPropagation(); onSave(item.jobId) }}><SaveLabel busy={busy} saved={saved} rank={rank} /></button>
     </div>
   </article>
@@ -461,6 +453,7 @@ function useRotatingTitle() {
 
 export function JobsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const title = useRotatingTitle()
   const loggedIn = Boolean(getToken())
   const codes = useCodes()
@@ -471,12 +464,19 @@ export function JobsPage() {
   const [filter, setFilter] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [appliedSearch, setAppliedSearch] = useState('')
+  const [institutionFilter, setInstitutionFilter] = useState(() => location.state?.institutionId != null ? { id: location.state.institutionId, name: location.state.institutionName } : null)
   const [showAll, setShowAll] = useState(false)
   const [reasonItem, setReasonItem] = useState(null)
   const [listMotion, setListMotion] = useState('')
   const [controlsLeaving, setControlsLeaving] = useState(false)
   const filterTimer = useRef(null)
   const enterTimer = useRef(null)
+  const didScrollToInstitution = useRef(false)
+  useEffect(() => {
+    if (!institutionFilter || didScrollToInstitution.current || !eligibility.data || explore.loading) return undefined
+    const frame = window.requestAnimationFrame(() => { document.getElementById('all-jobs')?.scrollIntoView({ block: 'start' }); didScrollToInstitution.current = true })
+    return () => window.cancelAnimationFrame(frame)
+  }, [institutionFilter, eligibility.data, explore.loading])
   useEffect(() => () => { window.clearTimeout(filterTimer.current); window.clearTimeout(enterTimer.current) }, [])
   const transitionResults = (update, swapControls = false) => {
     if (listMotion === 'is-leaving') return
@@ -492,9 +492,9 @@ export function JobsPage() {
     event.preventDefault()
     const next = searchQuery.trim()
     if (!next || next === appliedSearch) return
-    transitionResults(() => { setAppliedSearch(next); setFilter('ALL') }, !appliedSearch)
+    transitionResults(() => { setAppliedSearch(next); setInstitutionFilter(null); setFilter('ALL') }, !appliedSearch && !institutionFilter)
   }
-  const showAllJobs = () => transitionResults(() => { setAppliedSearch(''); setSearchQuery(''); setFilter('ALL') }, true)
+  const showAllJobs = () => transitionResults(() => { setAppliedSearch(''); setSearchQuery(''); setInstitutionFilter(null); setFilter('ALL') }, true)
 
   // 담기: 처음 값은 판정 행의 planned·planRank, 누를 때마다 담기(#20)·빼기(#21)를 오간다
   const [overrides, setOverrides] = useState({})
@@ -533,8 +533,8 @@ export function JobsPage() {
   const { summary, jobs } = eligibility.data
   const counts = { ALL: summary.total, ELIGIBLE: summary.eligible, NEEDS_CHECK: summary.needsCheck, INELIGIBLE: summary.ineligible }
   const query = appliedSearch.toLowerCase()
-  const shown = jobs.filter((job) => (filter === 'ALL' || job.verdict === filter) && (!query || job.title.toLowerCase().includes(query)))
-  const visible = showAll ? shown : shown.slice(0, SHOW)
+  const shown = jobs.filter((job) => (filter === 'ALL' || job.verdict === filter) && (!query || job.title.toLowerCase().includes(query) || (job.institution?.name ?? '').toLowerCase().includes(query)) && (!institutionFilter || String(job.institution?.id) === String(institutionFilter.id)))
+  const visible = showAll || institutionFilter ? shown : shown.slice(0, SHOW)
   const recCount = explore.data ? Math.min(explore.data.items.length, 5) : '–'
   const openRow = (jobId) => navigate(`/jobs/${jobId}`, { state: { returnScrollY: window.scrollY } })
 
@@ -548,14 +548,14 @@ export function JobsPage() {
 
       <section id="all-jobs" className="card jobs-list">
         <div className="list-header">
-          <div className="job-list-title"><span>ALL POSITIONS</span><b>전체 직무</b><form className="job-search" onSubmit={submitSearch}><span aria-hidden="true">⌕</span><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="직무명 검색" aria-label="직무명 검색" /><button type="submit">검색</button></form></div>
-          <div className={`job-list-control ${controlsLeaving ? 'is-leaving' : 'is-entering'}`}>{appliedSearch
+          <div className="job-list-title"><span>ALL POSITIONS</span><b>{institutionFilter ? `${institutionFilter.name} 직무` : '전체 직무'}</b><form className="job-search" onSubmit={submitSearch}><span aria-hidden="true">⌕</span><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="직무명 · 회사명 검색" aria-label="직무명 또는 회사명 검색" /><button type="submit">검색</button></form></div>
+          <div className={`job-list-control ${controlsLeaving ? 'is-leaving' : 'is-entering'}`}>{appliedSearch || institutionFilter
             ? <button type="button" className="show-all-jobs" onClick={showAllJobs}>전체 직무 보기</button>
             : <div className="filter">{FILTERS.map(([key, name]) => <button type="button" key={key} className={filter === key ? 'selected' : ''} onClick={() => changeFilter(key)}>{name} <b>{counts[key]}</b></button>)}</div>}</div>
         </div>
         <div className="job-list-columns"><span>직무·기관</span><span>선호 전공(참고)</span><span>판정</span><span>모집 상태</span><span>관리</span></div>
         <div className={`job-list-results ${listMotion}`}>
-          {shown.length === 0 && <p className="jb-list-empty">{appliedSearch ? `‘${appliedSearch}’가 직무명에 들어간 직무가 없어요.` : '이 판정에 해당하는 직무가 없어요.'}</p>}
+          {shown.length === 0 && <p className="jb-list-empty">{institutionFilter ? `${institutionFilter.name}의 이번 회차 직무가 없어요.` : appliedSearch ? `‘${appliedSearch}’와 일치하는 직무나 회사가 없어요.` : '이 판정에 해당하는 직무가 없어요.'}</p>}
           {visible.map((job) => {
             const saved = savedOf(job.jobId)
             const closed = isClosed(job.closing, round.data)
@@ -567,7 +567,7 @@ export function JobsPage() {
               <div className="job-actions"><button type="button" className={`save-button ${saved ? 'saved' : ''}`} disabled={busyId !== null} title={saved ? '다시 누르면 담기를 취소해요(지망 순위도 빠져요 · 이미 낸 지원서의 지망은 그대로예요)' : undefined} onClick={(event) => { event.stopPropagation(); save(job.jobId) }}><SaveLabel busy={busyId === job.jobId} saved={saved} rank={rankOf(job.jobId)} /></button></div>
             </div>
           })}
-          {shown.length > SHOW && <button type="button" className="v2-more-row" onClick={() => setShowAll((value) => !value)}>{showAll ? '접기 ↑' : `나머지 ${shown.length - SHOW}개 더 보기 ↓`}</button>}
+          {!institutionFilter && shown.length > SHOW && <button type="button" className="v2-more-row" onClick={() => setShowAll((value) => !value)}>{showAll ? '접기 ↑' : `나머지 ${shown.length - SHOW}개 더 보기 ↓`}</button>}
         </div>
       </section>
       <p className="jb-foot">판정은 저장한 프로필로 본 규칙 판정이에요 · 모집 상태는 {round.data ? `${fmtDate(judgeDate(round.data))} 기준` : '모집 판정 기준일 기준'} · 담기는 지원이 아니고, 담은 직무와 1~3지망은 내 현장실습에서 정해요</p>

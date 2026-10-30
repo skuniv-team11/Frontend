@@ -277,8 +277,8 @@
 @keyframes jobs-loading-spin { to { transform: rotate(360deg); } }
 .reason-panel-badges { display: flex; margin: -2px 0 20px; align-items: center; justify-content: flex-start; gap: 5px; }
 .reason-sheet-overlay { position: fixed; z-index: 1000; inset: 0; display: flex; padding: 42px 44px 0; align-items: flex-end; justify-content: center; background: rgb(30 35 45 / 44%); backdrop-filter: blur(3px); animation: reason-overlay-in .25s ease both; }
-.reason-sheet { position: relative; display: flex; width: min(840px, 100%); height: min(720px, calc(100vh - 42px)); max-height: calc(100vh - 42px); padding: 52px 52px 46px; flex-direction: column; overflow: hidden; border: 1px solid #e1e5ec; border-bottom: 0; border-radius: 28px 28px 0 0; background: #fff; box-shadow: 0 180px 0 #fff, 0 -26px 72px rgb(22 29 48 / 20%); cursor: grab; animation: reason-sheet-in .52s cubic-bezier(.22, 1, .36, 1) both; touch-action: none; }
-.reason-sheet-grip { display: block; width: 56px; height: 20px; margin: -36px auto 17px; padding-top: 7px; cursor: grab; }
+.reason-sheet { position: relative; display: flex; width: min(840px, 100%); height: min(720px, calc(100vh - 42px)); max-height: calc(100vh - 42px); padding: 52px 52px 46px; flex-direction: column; overflow: hidden; border: 1px solid #e1e5ec; border-bottom: 0; border-radius: 28px 28px 0 0; background: #fff; box-shadow: 0 180px 0 #fff, 0 -26px 72px rgb(22 29 48 / 20%); animation: reason-sheet-in .52s cubic-bezier(.22, 1, .36, 1) both; }
+.reason-sheet-grip { display: block; width: 120px; height: 24px; margin: -36px auto 13px; padding-top: 7px; cursor: grab; touch-action: none; }
 .reason-sheet-grip::before { display: block; width: 48px; height: 6px; margin: auto; border-radius: 999px; background: #cbd2de; content: ''; transition: width .2s ease, background-color .2s ease; }
 .reason-sheet-grip:hover::before { width: 56px; background: #aeb8c8; }
 .reason-sheet.has-dragged { animation: none; }

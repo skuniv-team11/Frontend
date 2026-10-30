@@ -1,6 +1,7 @@
 .job-detail-page { min-height: calc(100vh - 66px); padding: 42px 44px 100px; color: #20242b; background: #f7f8fa; }
 .job-detail-shell { width: min(1180px, 100%); margin: 0 auto; }
-.job-detail-fixed-back { position: fixed; z-index: 12; top: 84px; left: 28px; display: inline-flex; min-height: 52px; padding: 0 25px; align-items: center; border: 1px solid #d9dee7; border-radius: 14px; color: #4f5864; background: rgb(255 255 255 / 98%); box-shadow: 0 10px 24px rgb(39 49 72 / 10%); font-size: 15px; font-weight: 800; letter-spacing: -.3px; cursor: pointer; transition: color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.job-detail-back-anchor { height: 0; }
+.job-detail-fixed-back { position: fixed; z-index: 30; left: 28px; bottom: 26px; display: inline-flex; min-width: 126px; min-height: 48px; padding: 0 19px; align-items: center; justify-content: center; border: 1px solid #d7dce5; border-radius: 999px; color: #434c59; background: rgb(255 255 255 / 96%); box-shadow: 0 16px 38px rgb(30 39 60 / 18%); font-size: 13px; font-weight: 850; letter-spacing: -.3px; cursor: pointer; backdrop-filter: blur(12px); transition: color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
 .job-detail-fixed-back:hover { border-color: #bfc8d8; color: #20242b; box-shadow: 0 11px 25px rgb(39 49 72 / 13%); transform: translateX(-2px); }
 .job-detail-back-button { padding: 0; border: 0; background: transparent; cursor: pointer; }
 .job-detail-hero { display: flex; min-height: 210px; padding: 38px 44px; align-items: center; justify-content: space-between; gap: 40px; border: 1px solid #e1e6ee; border-radius: 24px 24px 0 0; background: #fff; }
@@ -57,12 +58,12 @@
 .job-detail-ai-summary.is-loading p { color: #7d8693; font-size: 12px; }
 .job-detail-ai-text-spinner { display: block; width: 24px; height: 24px; margin: 0 0 10px; border: 3px solid #e1e5ec; border-top-color: #3154f4; border-radius: 50%; animation: job-detail-button-spin .75s linear infinite; }
 .job-detail-ai-citations { grid-column: 1 / -1; margin: 30px 0 0; }
-.job-detail-ai-citations > h3 { margin: 0 0 12px; color: #59626f; font-size: 14px; }
+.job-detail-ai-citations > h3 { margin: 0 0 12px; color: #303740; font-size: 14px; font-weight: 800; }
 .job-detail-ai-citations > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .job-detail-ai-citations article { padding: 17px 18px; border: 1px solid #e7eaf0; border-radius: 13px; background: #fff; }
-.job-detail-ai-citations article > span { color: #717a87; font-size: 11px; font-weight: 900; letter-spacing: .08em; }
-.job-detail-ai-citations blockquote { margin: 10px 0; color: #3f4752; font-size: 14px; line-height: 1.7; }
-.job-detail-ai-citations article > p { margin: 0; color: #929aa7; font-size: 12px; line-height: 1.55; }
+.job-detail-ai-citations article > span { color: #525c6a; font-size: 12px; font-weight: 800; letter-spacing: .02em; }
+.job-detail-ai-citations blockquote { margin: 10px 0; color: #303740; font-size: 14px; font-weight: 650; line-height: 1.7; }
+.job-detail-ai-citations article > p { margin: 0; color: #626d7b; font-size: 12px; font-weight: 600; line-height: 1.6; }
 .job-detail-ai-citations:not(.job-detail-ai-skeleton-citations) { animation: job-detail-ai-content-in .46s cubic-bezier(.22, 1, .36, 1) both; }
 .job-detail-ai-citations:not(.job-detail-ai-skeleton-citations) article { opacity: 0; animation: job-detail-ai-item-in .42s cubic-bezier(.22, 1, .36, 1) forwards; }
 .job-detail-ai-citations:not(.job-detail-ai-skeleton-citations) article:nth-child(2) { animation-delay: .08s; }
