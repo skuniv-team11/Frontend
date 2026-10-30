@@ -3,6 +3,17 @@
 .home-hero .home-hero-note{margin:16px 0 0;color:rgb(255 255 255 / 76%);font-size:13px;line-height:1.6;text-align:center}
 .home-hero .button-row .button{align-items:center}
 
+.home-process:has(.home-process-steps){box-sizing:border-box;min-height:100vh;margin-top:0;padding-top:40px;padding-bottom:40px}
+.home-process:has(.home-process-steps) .process-image{height:min(590px,calc(100vh - 80px))}
+.home-process .process-guide:has(.home-process-steps){margin-top:36px}
+.home-process .home-process-steps{gap:14px}
+.home-process .home-process-steps > .process-step{padding-bottom:10px}
+
+.story-carousel .story-scrollbar{width:60%;height:6px;margin:0 auto 10px;opacity:0;transition:opacity .2s ease}
+.story-carousel:hover .story-scrollbar,.story-carousel:focus-within .story-scrollbar{opacity:1}
+.story-scrollbar span{display:block;height:6px;border-radius:999px;background:#c9d0db;box-shadow:0 1px 4px rgb(25 30 40 / 18%);cursor:grab;touch-action:none}
+.story-scrollbar span:active{cursor:grabbing}
+
 /* 여정 — 단계 줄 전체가 링크 */
 .home-process .v2-journey a.process-step{color:inherit;transition:background-color .2s ease}
 .home-process .v2-journey a.process-step:hover h4{color:#3154f4}
