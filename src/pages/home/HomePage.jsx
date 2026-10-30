@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import jobAnimation from '../../assets/images/job-animation.mp4'
 import processMascot from '../../assets/images/process-mascot.png'
 import jobAnimationFrame from './job-animation-frame.webp'
 import { getMyExplore } from '../../api/explore'
 import { getMyInternship } from '../../api/internship'
+import { getJob } from '../../api/jobs'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
 import { label } from '../../api/reference'
 import { Modal } from '../../components/Shell'
@@ -14,6 +15,7 @@ import { useRequest } from '../../hooks/useRequest'
 import { useCodes, useSession } from '../../hooks/useSession'
 import { fmtDate, studentAppStatus, VERDICT_LABEL } from '../../lib/format'
 import { STAGES, stageTitle } from '../../lib/stages'
+import { SeniorNoteSheet } from '../jobs/JobDetailPage'
 import './StartPage.css'
 import './StartPageProcess.css'
 import './HomePage.css'
@@ -49,6 +51,12 @@ const seniorStories = [
 ]
 // 선배 이야기 띠 사진(Unsplash 라이선스, 저장소에 둔다 — 외부 사이트를 직접 부르지 않게)
 const storyFilm = [[story1, story2, story3, story4], [story5, story6, story7, story8]]
+const storyJobs = {
+  'the-smc-advertising': [101, 1, '더에스엠씨'], 'ovlr-design': [110, 3, '오뷔엘알'],
+  'champstudy-production': [115, 4, '챔프스터디'], 'soseo-logistics': [122, 7, '소서'],
+  'wearefriends-content': [130, 9, '위아프렌즈'], 'smith-marketing': [132, 10, '스미스'],
+  'deltatech-business': [133, 11, '델타텍코리아'], 'building-doctor-safety': [139, 17, '빌딩닥터엔지니어링'],
+}
 
 // 여정 4단계 ↔ #44 일정 단계(phase)
 const JOURNEY = [
@@ -202,6 +210,12 @@ function GuestExplore({ openStages }) {
 
 function Stories() {
   const [selected, setSelected] = useState(null)
+  const session = useSession()
+  const storyJob = selected ? storyJobs[selected.key] : null
+  const loadStory = useCallback((signal) => getJob(storyJob?.[0], signal), [storyJob])
+  const storyDetail = useRequest(loadStory, Boolean(storyJob && session.loggedIn))
+  const matchedNote = storyDetail.data?.seniorNotes?.find((note) => note.termCode === selected?.meta.split(' · ')[0] && note.teamText?.replace(/\s/g, '') === selected?.category.replace(/\s/g, ''))
+  const storyStatus = !session.loggedIn ? '선배가 남긴 글은 로그인 후 볼 수 있어요.' : storyDetail.loading ? '선배가 남긴 글을 불러오는 중…' : storyDetail.error ? '선배가 남긴 글을 불러오지 못했어요.' : !matchedNote?.reflection ? '이 수기의 참여 소감이 제공되지 않았어요.' : null
   const listRef = useRef(null)
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false })
   const barDrag = useRef(null)
@@ -265,14 +279,7 @@ function Stories() {
         </article>)}
       </div><div className="story-scrollbar" aria-hidden="true"><span style={{ width: bar.width, transform: `translateX(${bar.left}px)` }} onPointerDown={(event) => { barDrag.current = { x: event.clientX, left: listRef.current.scrollLeft }; event.currentTarget.setPointerCapture(event.pointerId) }} onPointerMove={(event) => { if (!barDrag.current) return; const list = listRef.current; const travel = list.clientWidth * 0.6 - bar.width; if (travel > 0) list.scrollLeft = barDrag.current.left + (event.clientX - barDrag.current.x) * (list.scrollWidth - list.clientWidth) / travel }} onPointerUp={() => { barDrag.current = null }} onPointerCancel={() => { barDrag.current = null }} /></div></div>
     </div>
-    {selected && <Modal close={() => setSelected(null)} className="home-story-modal">{(dismiss) => <>
-      <button type="button" className="home-story-close" aria-label="닫기" onClick={dismiss}>×</button>
-      <div className="story-detail-heading"><span>{selected.category}</span><h2>{selected.title}</h2><p>{selected.meta} · 우수 참여수기 기준</p></div>
-      <div className="story-detail-columns">
-        <section><h3>실습 내용</h3>{selected.activities.length ? <ul>{selected.activities.map((row) => <li key={row}>{row}</li>)}</ul> : <p>기록된 실습 내용이 없어요.</p>}</section>
-        <section><h3>실습 결과</h3>{selected.outcomes.length ? <ul>{selected.outcomes.map((row) => <li key={row}>{row}</li>)}</ul> : <p>기록된 실습 결과가 없어요.</p>}</section>
-      </div>
-    </>}</Modal>}
+    {selected && <SeniorNoteSheet note={{ ...selected, ...matchedNote, title: selected.title, meta: selected.meta }} institution={{ id: storyJob[1], name: storyJob[2], logoPath: `/logos/${storyJob[1]}.png` }} noteStatus={storyStatus} onRetry={storyDetail.error ? storyDetail.reload : undefined} close={() => setSelected(null)} />}
   </section>
 }
 
@@ -435,7 +442,7 @@ function ExploreJobs({ codes, explore, missing }) {
   return <section className="home-jobs is-visible is-settled"><div className="home-jobs-layout">
     <MascotVideo />
     <div className="home-jobs-content">
-      <div className="home-section-heading"><h2 className="job-title-message">직무 탐색으로 찾은 현장실습</h2>{data && <p className="home-jobs-sub">{fmtDate(data.createdAt)} 탐색 · {data.source === 'RULE' ? '규칙 추천으로 대신한 결과예요' : '해 본 일 · 고른 일과 이어진 자리예요'}</p>}</div>
+      <div className="home-section-heading"><h2 className="job-title-message">직무 탐색으로 찾은 현장실습</h2>{data?.source === 'RULE' && <p className="home-jobs-sub">규칙 추천으로 대신한 결과예요</p>}</div>
       {explore.loading && !data && <Loading text="탐색 결과를 불러오는 중…" />}
       {explore.error && !missing && <ErrorBox error={explore.error} retry={explore.reload} />}
       {missing && <div className="home-explore-empty">
@@ -456,7 +463,7 @@ function ExploreJobs({ codes, explore, missing }) {
             <div className="home-job-company"><InstitutionLogo institution={item.institution} className="home-institution-logo" /><div className="home-job-company-info"><div className="home-job-badges"><span className={item.verdict === 'ELIGIBLE' ? 'is-available' : 'is-check'}>{VERDICT_LABEL[item.verdict] ?? item.verdict}</span><span>{label(codes, 'exploreFit', item.fit)}</span></div><small>{item.institution?.name}</small></div></div>
             <h3>{item.title}</h3>
             <p className="job-description">{item.evidence?.reason}</p>
-            <div className="job-meta"><span>{item.rank}위{item.team ? ` · ${item.team}` : ''}</span><span>{item.links?.length ? `이어진 짝 ${item.links.length}개` : '규칙 추천'}</span></div>
+            <div className="job-meta"><span>{item.rank}위{item.team ? ` · ${item.team}` : ''}</span></div>
             <div className="home-job-actions recommend-card-bottom">
               <button type="button" className="reason-button" onClick={(event) => { event.stopPropagation(); navigate('/explore/result') }}>왜 맞는지 보기</button>
               <button type="button" className={`recommend-save-button ${saved ? 'saved' : ''}`} disabled={busyJob === item.jobId || !plan.data} title={saved ? '다시 누르면 담기를 취소해요' : undefined} onClick={(event) => { event.stopPropagation(); toggle(item) }}>{busyJob === item.jobId ? '…' : saved ? '담김' : '담기'}</button>

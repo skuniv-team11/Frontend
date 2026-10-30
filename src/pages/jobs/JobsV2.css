@@ -24,6 +24,7 @@
 .v2-diag-bar.is-error > p { color: #9b3a3a; }
 
 /* 목록 */
+.jobs-page #all-jobs { scroll-margin-top: 84px; }
 .jb-list-empty { margin: 0; padding: 46px 20px; color: #7b8491; font-size: 13px; font-weight: 700; text-align: center; }
 .jobs-page .job-row.is-ineligible .job-main b { color: #5b6472; }
 .jobs-page .job-main small .v2-ncs { margin-left: 4px; }
@@ -37,4 +38,14 @@
 /* 추천 이유 시트 — 탐색 짝 카드는 세 개까지 한 줄 */
 .reason-sheet-citations article > span { letter-spacing: 0; }
 .reason-sheet-citations p { line-height: 1.6; }
+.reason-sheet .reason-sheet-job { padding: 0; border: 0; border-radius: 0; background: transparent; }
+.reason-sheet-job-header { display: flex; align-items: center; gap: 20px; }
+.reason-sheet-job-header > div { min-width: 0; }
+.reason-sheet-job .reason-sheet-company-logo { display: grid; width: 100px; height: 56px; flex: 0 0 100px; overflow: hidden; place-items: center; border: 0; border-radius: 0; background: transparent; }
+.reason-sheet-company-logo img { width: auto; height: auto; max-width: 92px; max-height: 48px; object-fit: contain; }
+.reason-sheet-job-header h3 { margin-bottom: 0; }
+.reason-sheet-job > p { margin-top: 16px; }
+.reason-sheet-ai-brief { margin: 24px 0 12px; padding: 28px 24px; text-align: center; }
+.reason-sheet-ai-brief > span { color: #59626f; font-size: 13px; font-weight: 900; }
+.reason-sheet-ai-brief p { margin: 12px 0 0; color: #3e4651; font-size: 14px; font-weight: 700; line-height: 1.85; }
 .first-save-toast-icon.error { color: #c53535; background: #fdeeee; }
