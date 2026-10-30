@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { DemoBanner, Header } from './Header'
 import { StageSwitch } from './StageSwitch'
+import { PageScrollBar } from '../components/PageScrollBar'
 import { getScrollPosition, saveScrollPosition, takeScrollRestoreRequest } from './scrollPosition'
 import './RootLayout.css'
 
@@ -9,6 +10,7 @@ export function RootLayout({ center = false }) {
   const location = useLocation()
   const isLogin = location.pathname === '/login'
   const isHome = location.pathname === '/'
+  const isCenterDetail = /^\/center\/inbox\/[^/]+\/?$/.test(location.pathname)
 
   useEffect(() => {
     const previous = window.history.scrollRestoration
@@ -68,10 +70,12 @@ export function RootLayout({ center = false }) {
   }, [location.key])
 
   const [switching, setSwitching] = useState(false)
-  return <div className={`shell ${isLogin ? 'login-shell' : ''} ${isHome ? 'home-shell' : ''}`}>
+  return <div id="page-scroll-content" className={`shell ${isLogin ? 'login-shell' : ''} ${isHome ? 'home-shell' : ''}`}>
     <Header center={center} hidden={isLogin} />
     {!center && !isLogin && !isHome && <DemoBanner onSwitch={() => setSwitching(true)} />}
     <Outlet />
+    {center && <Link className="center-home-link" to={isCenterDetail ? '/center/inbox' : '/'}>{isCenterDetail ? '← 뒤로가기' : '← 홈으로 돌아가기'}</Link>}
+    {!center && (location.pathname === '/jobs' || location.pathname === '/internship') && <PageScrollBar />}
     {switching && <StageSwitch close={() => setSwitching(false)} />}
   </div>
 }

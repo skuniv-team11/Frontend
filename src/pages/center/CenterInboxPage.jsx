@@ -145,7 +145,7 @@ function InboxDetail({ id, list, codes, round }) {
 
   if (!data) {
     return <main className="center-page cv2 cv2-flow"><CenterDemoBanner />
-      <div className="center-head"><header className="page-title"><span>별지 제5호 지원서</span><h1>지원서 한 부</h1></header><Link className="v2-link" to="/center/inbox">← 접수함</Link></div>
+      <div className="center-head"><header className="page-title"><span>별지 제5호 지원서</span><h1>지원서 한 부</h1></header></div>
       {app.error ? <ErrorBox error={app.error} fallback="지원서를 불러오지 못했어요." retry={app.error.code === 'APPLICATION_NOT_FOUND' ? undefined : app.reload}>{app.error.code === 'APPLICATION_NOT_FOUND' && <Link className="fx-btn" to="/center/inbox">접수함으로</Link>}</ErrorBox> : <Loading text="지원서를 불러오는 중…" />}
     </main>
   }
@@ -162,7 +162,6 @@ function InboxDetail({ id, list, codes, round }) {
     <CenterDemoBanner note={data.virtual ? '이 지원서는 가상 지원자예요' : '체험 학생 계정이 낸 지원서예요'} />
     <div className="center-head">
       <header className="page-title"><span>{data.round?.termCode} · 별지 제5호 지원서 · 접수번호 {data.receiptNo}</span><h1>{applicant.nameKo} 지원서<VirtualTag show={data.virtual} /></h1></header>
-      <div className="center-head-side cv2-noprint"><Link className="v2-link" to="/center/inbox">← 접수함</Link></div>
     </div>
     {app.error && <ErrorBox error={app.error} fallback="다시 불러오지 못했어요." retry={app.reload} />}
     <div className="dashboard">

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useBlocker } from 'react-router-dom'
 import { approvalUrl, deleteMyApplication, getMyApplication, requestApproval, saveMyApplication, submitMyApplication } from '../../api/application'
 import { errorMessage, getToken } from '../../api/client'
-import { getCurrentRound, label } from '../../api/reference'
+import { label } from '../../api/reference'
 import { ErrorBox, Loading, NeedLogin, VerdictBadge, VirtualTag } from '../../components/v2'
 import { Modal } from '../../components/Shell'
 import { useRequest } from '../../hooks/useRequest'
@@ -31,8 +31,9 @@ const RESUME = {
   careers: { keys: ['period', 'company', 'role', 'note'], head: ['기간', '회사', '부서 · 직위', '비고'], holder: ['2025.03 ~ 2025.10', '회사 이름', '예: 판매 아르바이트', '비고'] },
 }
 const RESUME_MAX = 10
+const emptyResumeRow = (group) => ({ ...(group === 'certificates' ? { kind: 'CERTIFICATE' } : {}), ...Object.fromEntries(RESUME[group].keys.map((key) => [key, ''])) })
 // 항목 코드 → 고칠 탭
-const ITEM_TAB = { PICKS: 0, APPLICANT: 0, PLEDGE: 0, ESSAYS: 2, CONSENTS: 3, SIGNATURE: 4, APPROVAL: 4 }
+const ITEM_TAB = { PROFILE: 0, PICKS: 0, APPLICANT: 0, PLEDGE: 0, ESSAYS: 2, CONSENTS: 3, SIGNATURE: 4, APPROVAL: 4 }
 const FIELD_LABEL = { nameKo: '성명(한글)', nameEn: '성명(영문)', birthDate: '생년월일', gender: '성별', phone: '연락처', email: '이메일', address: '현 주소', studentNo: '학번', minorMajor: '부 · 복수전공', signature: '본인 서명', essays: '자기소개서', consents: '동의' }
 const STATUS_TONE = { NONE: 'gray', DRAFT: 'gray', SUBMITTED: 'blue', RECEIVED: 'green', FIX_REQUESTED: '', MATCHED: 'green' }
 
@@ -80,6 +81,16 @@ function toBody(form) {
 }
 
 const sameBody = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+const draftTabKey = (id) => `application-draft-tab:${id}`
+const initialDraftTab = (app) => {
+  if (app.status !== 'DRAFT') return 0
+  let savedTab = null
+  try { if (app.applicationId != null) savedTab = localStorage.getItem(draftTabKey(app.applicationId)) } catch { /* 남은 항목부터 시작한다. */ }
+  const index = savedTab === null ? -1 : Number(savedTab)
+  if (Number.isInteger(index) && index >= 0 && index < TABS.length) return index
+  const next = (app.checklist ?? []).find((item) => !item.done && item.item in ITEM_TAB)
+  return next ? ITEM_TAB[next.item] : 0
+}
 
 // 본인 서명은 신청서의 성명(한글)과 같아야 낼 수 있다(공백은 보지 않음, 2자 이상 — 백엔드 ADR-0042와 같은 규칙)
 const noSpace = (value) => String(value ?? '').replace(/\s+/g, '')
@@ -88,9 +99,8 @@ const signedAsApplicant = (signature, nameKo) => { const sign = noSpace(signatur
 export function ApplyPage() {
   const loggedIn = Boolean(getToken())
   const app = useRequest(getMyApplication, loggedIn)
-  const round = useRequest(getCurrentRound)
   const codes = useCodes()
-  const [tab, setTab] = useState(0)
+  const [tab, setTab] = useState(null)
   const [notice, setNotice] = useState(null)
   const [missing, setMissing] = useState([])
   const [formVersion, setFormVersion] = useState(0)
@@ -98,7 +108,7 @@ export function ApplyPage() {
   if (!loggedIn) return <NeedLogin />
   if (!app.data) {
     return <main className="fx-page ap-page"><div className="fx-shell">
-      <Link className="fx-back" to="/internship">← 내 현장실습</Link>
+      <Link className="ap-back-fixed" to="/internship" state={{ internshipStage: 'APPLY' }} aria-label="내 현장실습으로 돌아가기">← 뒤로가기</Link>
       {app.error ? <ErrorBox error={app.error} fallback="지원서를 불러오지 못했어요." retry={app.reload} /> : <Loading text="지원서를 불러오는 중…" note="서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요." />}
     </div></main>
   }
@@ -114,25 +124,26 @@ export function ApplyPage() {
     reload={app.reload}
     applyResponse={applyResponse}
     resetAfterDelete={resetAfterDelete}
-    round={round.data}
     codes={codes}
-    tab={tab} setTab={setTab}
+    tab={tab ?? initialDraftTab(app.data)} setTab={setTab}
     notice={notice} setNotice={setNotice}
     missing={missing} setMissing={setMissing}
   />
 }
 
-function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, round, codes, tab, setTab, notice, setNotice, missing, setMissing }) {
+function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, codes, tab, setTab, notice, setNotice, missing, setMissing }) {
   const [form, setForm] = useState(() => toForm(app))
   const [fieldErrors, setFieldErrors] = useState({})
   const [busy, setBusy] = useState(null)
   const [confirm, setConfirm] = useState(null)
+  const [leaveError, setLeaveError] = useState('')
   const [copied, setCopied] = useState(false)
 
   const locked = LOCKED.includes(app.status)
   const fixing = app.status === 'FIX_REQUESTED'
   const body = toBody(form)
   const dirty = !locked && !sameBody(body, toBody(toForm(app)))
+  const blocker = useBlocker(dirty)
   const approval = app.approval ?? { status: 'NONE' }
   const picks = app.picks ?? []
   const pickNames = picks.map((p) => coreName(p.institution?.name)).filter((n) => n.length >= 2)
@@ -164,7 +175,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
   const setApplicant = (key) => (event) => setForm((f) => ({ ...f, applicant: { ...f.applicant, [key]: event.target.value } }))
   const setGender = (gender) => setForm((f) => ({ ...f, applicant: { ...f.applicant, gender } }))
   const setRow = (group, index, key, value) => setForm((f) => ({ ...f, resume: { ...f.resume, [group]: f.resume[group].map((row, i) => (i === index ? { ...row, [key]: value } : row)) } }))
-  const addRow = (group) => setForm((f) => ({ ...f, resume: { ...f.resume, [group]: [...f.resume[group], { ...(group === 'certificates' ? { kind: 'CERTIFICATE' } : {}), ...Object.fromEntries(RESUME[group].keys.map((k) => [k, ''])) }] } }))
+  const addRow = (group) => setForm((f) => ({ ...f, resume: { ...f.resume, [group]: [...f.resume[group], emptyResumeRow(group)] } }))
   const removeRow = (group, index) => setForm((f) => ({ ...f, resume: { ...f.resume, [group]: f.resume[group].filter((_, i) => i !== index) } }))
   const setEssay = (index) => (event) => setForm((f) => ({ ...f, essays: f.essays.map((text, i) => (i === index ? event.target.value : text)) }))
   const setConsent = (key, value) => setForm((f) => ({ ...f, consents: { ...f.consents, [key]: value } }))
@@ -206,16 +217,49 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
   // 바뀐 게 있거나 아직 한 번도 저장하지 않았으면 먼저 저장한다(승인 링크·내기는 저장한 내용 기준)
   const saveIfNeeded = async () => {
     if (!dirty && app.status !== 'NONE') return app
-    return saveMyApplication(body)
+    const saved = await saveMyApplication(body)
+    try { return await getMyApplication() } catch { return saved }
   }
 
   const save = () => run('save', async () => {
     try {
-      const data = await saveMyApplication(body)
+      const data = await saveIfNeeded()
+      try { if (data.applicationId != null) localStorage.setItem(draftTabKey(data.applicationId), String(tab)) } catch { /* 지원서 저장은 위치 저장과 별개다. */ }
       applyResponse(data)
       setNotice({ tone: 'ok', text: approval.status === 'APPROVED' && data.approval?.status === 'STALE' ? '임시 저장했어요. 승인 뒤 내용이 바뀌어 학과(부)장 승인을 다시 받아야 해요.' : '임시 저장했어요.' })
     } catch (error) { fail(error, '저장하지') }
   })
+
+  const nextTab = () => run('next', async () => {
+    const next = tab + 1
+    try {
+      if (!locked) {
+        if (!form.consents.collect && (dirty || app.status === 'NONE')) {
+          setNotice({ tone: 'info', text: '개인정보 수집 · 이용에 동의하면 작성한 내용을 임시 저장할 수 있어요. 그전까지 입력 내용은 이 화면에 유지돼요.' })
+        } else {
+          const saved = await saveIfNeeded()
+          try { if (saved.applicationId != null) localStorage.setItem(draftTabKey(saved.applicationId), String(next)) } catch { /* 저장 위치를 기록하지 못해도 지원서는 저장된다. */ }
+          if (saved !== app) applyResponse(saved)
+        }
+      }
+      setTab(next)
+      const tabs = document.querySelector('.ap-page .fx-tabs')
+      if (tabs) window.scrollTo({ top: Math.max(0, window.scrollY + tabs.getBoundingClientRect().top - 100), behavior: 'smooth' })
+    } catch (error) { fail(error, '저장하지') }
+  })
+
+  const saveAndLeave = async () => {
+    setBusy('leave'); setLeaveError('')
+    try {
+      await saveIfNeeded()
+      blocker.proceed()
+    } catch (error) {
+      if (error.code === 'CONSENT_REQUIRED') {
+        blocker.reset()
+        fail(error, '저장하지')
+      } else setLeaveError(errorMessage(error, '저장하지 못했어요. 입력 내용을 확인하고 다시 시도해 주세요.'))
+    } finally { setBusy(null) }
+  }
 
   const makeLink = () => run('link', async () => {
     let saved = null
@@ -247,6 +291,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
   const remove = () => run('delete', async () => {
     try {
       await deleteMyApplication()
+      try { if (app.applicationId != null) localStorage.removeItem(draftTabKey(app.applicationId)) } catch { /* 저장된 위치가 없어도 지원서는 지운다. */ }
       setTab(0)
       resetAfterDelete()
       setNotice({ tone: 'ok', text: '지원서를 지웠어요. 담은 지망과 프로필은 그대로예요.' })
@@ -275,10 +320,9 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
 
   const checklist = app.checklist ?? []
   const doneCount = checklist.filter((c) => c.done).length
-  const practice = round?.stages?.find((s) => s.code === 'PRACTICE')
 
   return <main className="fx-page ap-page"><div className="fx-shell">
-    <Link className="fx-back" to="/internship">← 내 현장실습</Link>
+    <Link className="ap-back-fixed" to="/internship" state={{ internshipStage: 'APPLY' }} aria-label="내 현장실습으로 돌아가기">← 뒤로가기</Link>
 
     {fixing && <section className="ap-fix" role="alert">
       <span>센터 보완 요청</span>
@@ -301,7 +345,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
     </nav>
 
     <div className="fx-split">
-      <section className="fx-card">
+      <section className="fx-card ap-form-card"><div className="ap-tab-content" key={tab}>
         {tab === 0 && <>
           <div className="ap-sec"><h3>기본정보</h3><dl className="fx-rows ap-rows">
             {[['nameKo', '성명(한글)', '예: 홍길동'], ['nameEn', '성명(영문)', '예: Hong Gildong']].map(([key, text, holder]) => <FieldRow key={key} label={text} value={form.applicant[key]} onChange={setApplicant(key)} placeholder={holder} readOnly={locked} error={fieldErrors[`applicant.${key}`]} />)}
@@ -323,7 +367,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
           </dl></div>
 
           <div className="ap-sec">
-            <div className="fx-row between"><h3>이 신청서에 들어가는 지망</h3><span className="fx-src blue">{locked ? '낸 날 기준' : '읽기 전용 · 내 현장실습에서 정함'}</span></div>
+            <div className="fx-row between"><h3>내 지망</h3>{locked && <span className="fx-src blue">낸 날 기준</span>}</div>
             <div className="ap-picks">
               {[1, 2, 3].map((rank) => {
                 const pick = picks.find((p) => p.rank === rank)
@@ -332,7 +376,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
               })}
             </div>
             <div className="ap-pick-foot">
-              <p className="fx-small" style={{ margin: 0 }}>{practice ? `실습 ${fmtDate(practice.startsOn)} ~ ${fmtDate(practice.endsOn)} · ` : ''}{locked ? '낸 지망은 바꿀 수 없어요' : '지망은 내 현장실습 > 지망 정하기 한 곳에서만 바꿔요'}</p>
+              {locked && <p className="fx-small" style={{ margin: 0 }}>낸 지망은 바꿀 수 없어요</p>}
               {!locked && <Link className="fx-btn sm" to="/internship?step=pick">지망 바꾸기 →</Link>}
             </div>
           </div>
@@ -385,16 +429,18 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
             </>}
           </div>
           <ApprovalBlock app={app} approval={approval} codes={codes} locked={locked} dirty={dirty} busy={busy} refreshing={refreshing} copied={copied} makeLink={makeLink} reload={reload} copyLink={copyLink} signed={signed} />
+          {!locked && approval.status === 'APPROVED' && <div className="ap-submit-after-approval"><b>학과(부)장 승인이 완료됐어요</b><p>{dirty ? '수정한 내용을 저장하면 승인을 다시 받아야 해요.' : doneCount < checklist.length ? '내기 전 확인에서 남은 항목을 채워 주세요.' : !app.period?.open && !fixing ? '신청 기간이 아니에요.' : '확인할 항목을 모두 채웠다면 지원서를 낼 수 있어요.'}</p><button type="button" className="fx-btn primary" disabled={Boolean(busy) || dirty || doneCount < checklist.length || (!app.period?.open && !fixing)} onClick={() => setConfirm('submit')}>{busy === 'submit' ? '내는 중…' : fixing ? '고쳐서 다시 내기' : '지원서 내기'}</button></div>}
+          {!locked && app.status === 'DRAFT' && <button type="button" className="fx-btn sm ghost ap-danger ap-delete-draft" disabled={Boolean(busy)} onClick={() => setConfirm('delete')}>{busy === 'delete' ? '지우는 중…' : '지원서 지우기'}</button>}
         </>}
-      </section>
+        {(tab > 0 || tab < TABS.length - 1) && <div className="ap-next-actions">{tab > 0 && <button type="button" className="fx-btn" disabled={Boolean(busy)} onClick={() => { setTab(tab - 1); const tabs = document.querySelector('.ap-page .fx-tabs'); if (tabs) window.scrollTo({ top: Math.max(0, window.scrollY + tabs.getBoundingClientRect().top - 100), behavior: 'smooth' }) }}>← 이전</button>}{tab < TABS.length - 1 && <button type="button" className="fx-btn primary" disabled={Boolean(busy)} onClick={nextTab}>{busy === 'next' ? '저장 중…' : '다음 →'}</button>}</div>}
+      </div></section>
 
       <aside className="fx-aside">
         <section className="fx-card tight">
           <div className="ap-aside-head"><h3 className="fx-h3">{locked ? '낸 지원서' : '내기 전 확인'}</h3><small>{doneCount} / {checklist.length}</small></div>
           <div className="ap-checks">
-            {checklist.map((c) => <CheckRow key={c.item} check={c} app={app} codes={codes} missing={missing.includes(c.item)} go={() => (c.item in ITEM_TAB ? setTab(ITEM_TAB[c.item]) : null)} />)}
+            {checklist.map((c) => <CheckRow key={c.item} check={c} app={app} codes={codes} missing={missing.includes(c.item)} go={() => { if (!(c.item in ITEM_TAB)) return; setTab(ITEM_TAB[c.item]); const tabs = document.querySelector('.ap-page .fx-tabs'); if (tabs) window.scrollTo({ top: Math.max(0, window.scrollY + tabs.getBoundingClientRect().top - 100), behavior: 'smooth' }) }} />)}
           </div>
-          {dirty && <p className="ap-dirty">저장하지 않은 변경이 있어요. 체크는 저장한 내용 기준이에요.{approval.status === 'APPROVED' || approval.status === 'REQUESTED' ? ' 저장하면 승인을 다시 받아야 해요.' : ''}</p>}
 
           {locked
             ? <div className="ap-done" style={{ marginTop: 14 }}>
@@ -403,10 +449,7 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
               <div className="fx-row"><Link className="fx-btn sm" to="/internship">진행 상황 보기</Link></div>
             </div>
             : <div className="ap-actions">
-              <button type="button" className="fx-btn primary lg block" disabled={Boolean(busy) || (!app.period?.open && !fixing)} onClick={() => setConfirm('submit')}>{busy === 'submit' ? '내는 중…' : !app.period?.open && !fixing ? '신청 기간이 아니에요' : fixing ? '고쳐서 다시 내기' : '지원서 내기'}</button>
-              <button type="button" className="fx-btn block" disabled={Boolean(busy)} onClick={save}>{busy === 'save' ? '저장 중…' : dirty || app.status === 'NONE' ? '임시 저장' : '임시 저장됨'}</button>
-              {app.status === 'DRAFT' && <button type="button" className="fx-btn sm ghost block ap-danger" disabled={Boolean(busy)} onClick={() => setConfirm('delete')}>{busy === 'delete' ? '지우는 중…' : '지원서 지우기'}</button>}
-              {doneCount < checklist.length && <p className="ap-hint">빠진 항목을 채우고 승인을 받으면 낼 수 있어요.</p>}
+              <button type="button" className="fx-btn primary block" disabled={Boolean(busy)} onClick={save}>{busy === 'save' ? '저장 중…' : dirty || app.status === 'NONE' ? '임시 저장' : '임시 저장됨'}</button>
             </div>}
 
           {notice && <div className={`ap-msg ${notice.tone}`} role={notice.tone === 'error' ? 'alert' : 'status'}>
@@ -423,6 +466,12 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, roun
       </aside>
     </div>
 
+    {blocker.state === 'blocked' && <Modal close={() => { if (!busy) { setLeaveError(''); blocker.reset() } }}>{(dismiss) => <>
+      <h2 style={{ margin: '0 0 6px', fontSize: 19 }}>저장하지 않은 내용이 있어요</h2>
+      <p>계속 작성하거나 임시 저장한 뒤 이동해 주세요.</p>
+      {leaveError && <p className="ap-err" role="alert">{leaveError}</p>}
+      <div className="button-row center"><button type="button" className="fx-btn" disabled={Boolean(busy)} onClick={dismiss}>계속 작성하기</button><button type="button" className="fx-btn dark" disabled={Boolean(busy)} onClick={saveAndLeave}>{busy === 'leave' ? '저장 중…' : '저장하고 나가기'}</button></div>
+    </>}</Modal>}
     {confirm && <Modal close={() => setConfirm(null)}>{(dismiss) => confirm === 'delete'
       ? <>
         <h2 style={{ margin: '0 0 6px', fontSize: 19 }}>지원서를 지울까요?</h2>
@@ -491,7 +540,7 @@ function ResumeTable({ group, title, rows, locked, codes, setRow, addRow, remove
     </div>
   }
   return <div className="ap-sec"><h3>{title}</h3>
-    {rows.length === 0 ? <p className="fx-small" style={{ margin: 0 }}>없으면 비워 두세요.</p> : <>
+    {rows.length > 0 && <>
       <div className="ap-table edit head">{head.map((h) => <span key={h}>{h}</span>)}<span /></div>
       {rows.map((row, i) => <div key={i} className="ap-table edit">
         {isCert && <select className="fx-input" aria-label={`${title} ${i + 1} 구분`} value={row.kind} onChange={(e) => setRow(group, i, 'kind', e.target.value)}>{Object.entries(kinds).map(([code, text]) => <option key={code} value={code}>{text}</option>)}</select>}
@@ -499,7 +548,7 @@ function ResumeTable({ group, title, rows, locked, codes, setRow, addRow, remove
         <button type="button" className="ap-del" aria-label={`${title} ${i + 1}번째 줄 지우기`} onClick={() => removeRow(group, i)}>×</button>
       </div>)}
     </>}
-    {rows.length < RESUME_MAX && <button type="button" className="fx-btn sm ghost ap-add" onClick={() => addRow(group)}>＋ 줄 더하기</button>}
+    {rows.length < RESUME_MAX && <button type="button" className="ap-add" aria-label={`${title} 입력 줄 추가`} onClick={() => addRow(group)}>＋</button>}
   </div>
 }
 
@@ -516,20 +565,8 @@ function Consent({ title, rows, value, onPick, locked, need = false }) {
 
 function CheckRow({ check, app, codes, missing, go }) {
   const approval = app.approval?.status ?? 'NONE'
-  const academic = app.academic
-  const sub = {
-    PROFILE: academic ? `${academic.department?.name ?? ''} · ${academic.grade}학년` : '프로필(학과 · 학년 · 평점)을 저장해 주세요',
-    PICKS: check.done ? `1~${Math.max(...(app.picks ?? []).map((p) => p.rank), 1)}지망 · 지원 불가 · 마감 없음` : !(app.picks ?? []).some((p) => p.rank === 1) ? '1지망을 정해 주세요' : '지원 불가 · 마감 지망이 있어요',
-    APPLICANT: check.done ? '모두 채움' : '성명 · 생년월일 · 성별 · 연락처 · 주소 · 학번',
-    PLEDGE: check.done ? '서약함' : '신청서 탭 맨 아래',
-    ESSAYS: `4문항 ${ESSAY_MIN}자 이상`,
-    CONSENTS: '수집 · 이용 / 제3자 제공 모두 예',
-    SIGNATURE: check.done ? `‘${app.signature}’` : '신청서 성명(한글)과 같은 이름',
-    APPROVAL: approval === 'APPROVED' ? `${fmtDate(app.approval.approvedAt)} 승인됨` : approval === 'REQUESTED' ? '링크를 만들었어요 · 승인 기다리는 중' : approval === 'STALE' ? '내용이 바뀌어 다시 요청해야 해요' : '승인을 받아야 낼 수 있어요',
-  }[check.item]
   const [text, tone] = check.done ? ['완료', 'green'] : check.item === 'APPROVAL' && approval === 'REQUESTED' ? ['승인 대기', 'blue'] : check.item === 'APPROVAL' && approval === 'STALE' ? ['다시 요청', 'orange'] : ['남음', 'orange']
-  const inner = <><span>{label(codes, 'applicationItem', check.item)}<small>{sub}</small></span><span className={`badge ${tone}`}>{text}</span></>
-  if (check.item === 'PROFILE' && !check.done) return <Link className={`ap-check${missing ? ' is-missing' : ''}`} to="/profile">{inner}</Link>
+  const inner = <><span>{label(codes, 'applicationItem', check.item)}</span><span className={`badge ${tone}`}>{text}</span></>
   return <button type="button" className={`ap-check${missing ? ' is-missing' : ''}`} onClick={go}>{inner}</button>
 }
 

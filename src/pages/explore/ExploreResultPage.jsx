@@ -5,7 +5,7 @@ import { deleteMyExplore, getMyExplore } from '../../api/explore'
 import { getJobCareer } from '../../api/jobs'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
 import { label } from '../../api/reference'
-import { Modal } from '../../components/Shell'
+import { Modal, Toast } from '../../components/Shell'
 import { ReasonSheet } from '../jobs/JobsPage'
 import { ErrorBox, InstitutionLogo, Loading, NeedLogin, VerdictBadge } from '../../components/v2'
 import { useRequest } from '../../hooks/useRequest'
@@ -71,7 +71,8 @@ function ResultScreen() {
   }
   const [reasonJob, setReasonJob] = useState(null)
   const [busyJob, setBusyJob] = useState(null)
-  const [planMessage, setPlanMessage] = useState('')
+  const [toast, setToast] = useState(null)
+  const toastId = useRef(0)
   const [askDelete, setAskDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
@@ -86,7 +87,7 @@ function ResultScreen() {
   const togglePlan = async (item) => {
     if (busyJob) return
     const saved = plannedIds.has(item.jobId)
-    setBusyJob(item.jobId); setPlanMessage('')
+    setBusyJob(item.jobId)
     try {
       const current = plan.data?.items ?? []
       if (saved) {
@@ -96,8 +97,9 @@ function ResultScreen() {
         await addPlanItem(item.jobId)
         plan.mutate({ ...(plan.data ?? {}), items: [...current, { jobId: item.jobId, title: item.title, institution: item.institution, rank: null }] })
       }
+      setToast({ id: ++toastId.current, type: saved ? 'removed' : 'added', message: saved ? '담기를 취소했어요' : '직무를 담았어요' })
     } catch (error) {
-      setPlanMessage(planErrorMessage(error, saved ? '빼기' : '담기'))
+      setToast({ id: ++toastId.current, type: 'error', message: planErrorMessage(error, saved ? '빼기' : '담기') })
     } finally {
       setBusyJob(null)
     }
@@ -147,7 +149,6 @@ function ResultScreen() {
     {items.length === 0
       ? <EmptyResult data={data} rule={rule} />
       : <>
-        {planMessage && <p className="rs-msg" role="alert" style={{ marginBottom: 10 }}>{planMessage}</p>}
         <section className="rs-seats">
           {items.map((item) => <div className={`rs-seat-group ${item.jobId === pathJobId ? 'is-open' : ''}`} key={item.jobId}>
             <SeatCard item={item} codes={codes} input={input} rule={rule}
@@ -168,6 +169,7 @@ function ResultScreen() {
     <div className="fx-row rs-bottom-actions"><button type="button" className="v2-btn sm gray" onClick={() => setAskDelete(true)}>결과 지우기</button><Link className="v2-btn sm gray" to="/explore">다시 탐색하기</Link><Link className="v2-btn sm" to="/jobs">직무 찾기에서 보기 →</Link></div>
 
     {items.find((item) => item.jobId === reasonJob) && <ReasonSheet item={items.find((item) => item.jobId === reasonJob)} codes={codes} explore={data} close={() => setReasonJob(null)} />}
+    {toast && <Toast key={toast.id} className="first-save-toast" onAnimationEnd={() => setToast((current) => current?.id === toast.id ? null : current)}><span className={`first-save-toast-icon ${toast.type}`} aria-hidden="true">{toast.type === 'removed' ? '−' : toast.type === 'error' ? '!' : '✓'}</span><div><b>{toast.message}</b><small>{toast.type === 'error' ? '잠시 뒤 다시 눌러 주세요.' : '담은 직무와 지망 순위는 내 현장실습 > 지망 정하기에서 봐요.'}</small></div><Link to="/internship?step=pick">담은 직무 보기</Link></Toast>}
 
     {askDelete && <Modal close={() => setAskDelete(false)} className="rs-modal">{(dismiss) => <>
       <h2>탐색 결과를 지울까요?</h2>
