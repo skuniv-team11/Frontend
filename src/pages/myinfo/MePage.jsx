@@ -33,11 +33,11 @@ function SavedSummary({ plan }) {
   const items = plan.data?.items ?? []
   const ranked = items.filter((it) => it.rank)
   return <section className="me-panel-section me-saved-panel">
-    <div className="me-section-heading"><div><span>SAVED</span><h2>담은 직무 {items.length}개</h2></div><Link to="/internship?step=pick">지망 순서 바꾸기 →</Link></div>
+    <div className="me-section-heading"><div><span>SAVED</span><h2>담은 직무 {items.length}개</h2></div><Link className="me-saved-action" to="/internship?step=pick">지망 순서 바꾸기</Link></div>
     {items.length === 0
       ? <div className="me-saved-empty"><b>아직 담은 직무가 없어요</b><span>직무 찾기나 직무 탐색에서 지원할 직무를 담아 주세요</span><Link to="/jobs">직무 찾기 →</Link></div>
       : <div className="me-saved-practices">{items.map((it) => <Link key={it.jobId} className="me-saved-practice" to={`/jobs/${it.jobId}`}>
-        <div><span className={`badge ${it.rank ? 'blue' : ''}`}>{it.rank ? `${it.rank}지망` : '후보'}</span><small>{it.institution?.name}</small><h3>{it.title}</h3></div><span>직무 보기 →</span>
+        <div><span className={`badge ${it.rank ? 'blue' : ''}`}>{it.rank ? `${it.rank}지망` : '후보'}</span><small>{it.institution?.name}</small><h3>{it.title}</h3></div><span className="me-saved-action">직무 보기</span>
       </Link>)}</div>}
     {items.length > 0 && <p className="me-muted" style={{ marginTop: 14 }}>{ranked.length ? '위에서 3개가 1~3지망으로 지원서에 들어가요. 순서는 내 현장실습 > 지망 정하기에서만 바꿔요.' : '아직 1~3지망을 정하지 않았어요. 내 현장실습 > 지망 정하기에서 순서를 정해요.'}</p>}
   </section>

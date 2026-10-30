@@ -26,7 +26,7 @@
 @keyframes ex-card-enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @media (prefers-reduced-motion: reduce){.ex-card,.ex-side,.ex-w{animation:none}}
 .ex-tag{display:inline-flex;margin-left:8px;padding:3px 8px;border-radius:6px;color:#c25700;background:#fff3e4;font-size:11px;font-weight:900;vertical-align:4px}
-.ex-tag.opt{color:#5b6472;background:#f1f3f6}
+.ex-want-count{margin:32px 0 0;color:#68717e;font-size:12px;font-weight:800}
 .ex-side h3{display:flex;margin:0;align-items:center;justify-content:space-between;font-size:14px}
 .ex-side h3 small{color:#89929f;font-size:11px;font-weight:800}
 .ex-department{margin:12px 0 0;color:#20242b;font-size:16px;font-weight:800;line-height:1.5}
@@ -38,7 +38,8 @@
 .ex-chip{display:inline-flex;min-height:30px;padding:5px 11px;align-items:center;border:1px solid #c9d4ff;border-radius:99px;color:#2440c8;background:#f5f7ff;font-size:12px;font-weight:800;line-height:1.4}
 .ex-chip.major{border-color:#cfe9db;color:#16734c;background:#f2fbf6}
 .ex-chip.empty{border-style:dashed;border-color:#cfd5df;color:#7b8491;background:#fff}
-.ex-run-layout{width:min(760px,100%)}
+.fx-shell.ex-run-layout{width:min(760px,100%);margin-inline:auto;opacity:1;transform:translateY(0);transition:opacity .45s ease,transform .45s ease}
+.fx-shell.ex-run-layout.is-leaving{opacity:0;transform:translateY(-12px)}
 .ex-run-layout .ex-head{margin-bottom:28px}
 .ex-run-layout .ex-head .page-title{margin-left:0}
 .ex-run{width:100%;max-width:none;margin:0;padding:34px 38px;animation:ex-card-enter .55s cubic-bezier(.22,1,.36,1) both}
@@ -50,13 +51,13 @@
 .ex-step-spinner{width:20px;height:20px;border:2px solid #dce3ff;border-top-color:#3154f4;border-radius:50%;animation:ex-spin .8s linear infinite}
 .ex-step-check{color:#3154f4;font-size:20px;font-weight:800}
 @keyframes ex-spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion: reduce){.ex-run,.ex-step.now i,.ex-step-spinner{animation:none}}
+@media (prefers-reduced-motion: reduce){.ex-run,.ex-step.now i,.ex-step-spinner{animation:none}.fx-shell.ex-run-layout{transition:none}.fx-shell.ex-run-layout.is-leaving{transform:none}}
 .ex-step b{display:block;font-size:15px;letter-spacing:-.3px}
 .ex-step.wait b{color:#8a929e}
 .ex-step small{display:block;margin-top:3px;color:#7b8491;font-size:12px;line-height:1.55}
 @keyframes ex-pulse{50%{box-shadow:0 0 0 10px rgb(49 84 244 / 6%)}}
 .ex-want{display:grid;margin-top:14px;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.ex-wish + .ex-want{margin-top:52px}
+.ex-want-count + .ex-want{margin-top:10px}
 .ex-w{display:flex;min-height:86px;padding:12px 14px;flex-direction:column;gap:8px;border:1px solid #e1e6ee;border-radius:12px;color:#20242b;background:#fff;font-family:inherit;text-align:left;cursor:pointer;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
 .ex-w:not(:disabled):hover{transform:translateY(-3px);border-color:#aabaff;box-shadow:0 8px 18px rgb(49 84 244 / 10%)}
 .ex-w:focus-visible{outline:2px solid #3154f4;outline-offset:2px}

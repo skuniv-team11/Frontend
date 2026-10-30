@@ -103,6 +103,12 @@ html {
 }
 
 /* 기본 스크롤바는 전역에서 숨긴다. 스크롤 UI는 화면별 단일 막대 컨트롤을 사용한다. */
+.page-scroll-track { position: fixed; z-index: 15; top: 82px; right: 6px; bottom: 12px; width: 8px; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+.page-scroll-track.is-visible { opacity: 1; }
+.page-scroll-thumb { display: block; width: 8px; min-height: 42px; border-radius: 999px; background: #606976; box-shadow: 0 1px 4px rgb(25 30 40 / 18%); cursor: grab; pointer-events: auto; touch-action: none; }
+.page-scroll-thumb:active { cursor: grabbing; }
+.page-scroll-thumb:focus-visible { outline: 2px solid #3154f4; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .page-scroll-track { transition: none; } }
 * {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -153,6 +159,10 @@ html {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+.center-home-link { position: fixed; bottom: 24px; left: 24px; z-index: 20; display: inline-flex; min-height: 48px; padding: 0 20px; align-items: center; justify-content: center; border: 1px solid #e1e6ee; border-radius: 14px; color: #475263; background: #fff; box-shadow: 0 8px 24px rgb(35 45 65 / 12%); font-size: 14px; font-weight: 800; text-decoration: none; transition: color .2s, transform .2s, box-shadow .2s; }
+.center-home-link:hover { color: #3154f4; box-shadow: 0 12px 28px rgb(35 45 65 / 16%); transform: translateY(-2px); }
+.center-home-link:focus-visible { outline: 2px solid #3154f4; outline-offset: 3px; }
 
 @keyframes home-shell-reveal {
   from { opacity: 0; }

@@ -74,6 +74,7 @@ function ExploreScreen() {
   // 직접 적은 관심 분야는 이번 탐색에만 사용한다.
   const [wish, setWish] = useState('')
   const [run, setRun] = useState(null) // { startedAt, now, finishedAt }
+  const [runLeaving, setRunLeaving] = useState(false)
   const [runError, setRunError] = useState(null)
   const splitRef = useRef(null)
   const [asideTop, setAsideTop] = useState(null)
@@ -98,8 +99,10 @@ function ExploreScreen() {
   // 끝나면 잠깐 4단계 완료를 보여 주고 결과로
   useEffect(() => {
     if (!run?.finishedAt) return undefined
-    const timer = window.setTimeout(() => navigate('/explore/result'), 1400)
-    return () => window.clearTimeout(timer)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const leaveTimer = window.setTimeout(() => setRunLeaving(true), 900)
+    const navigateTimer = window.setTimeout(() => navigate('/explore/result'), reducedMotion ? 900 : 1350)
+    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(navigateTimer) }
   }, [run?.finishedAt, navigate])
 
   const lastResult = last.data
@@ -140,6 +143,7 @@ function ExploreScreen() {
     const profileBody = typed !== savedWish.trim() ? { ...toProfileBody(profile.data), interestText: typed || null } : undefined
     setRunError(null)
     const startedAt = clock()
+    setRunLeaving(false)
     setRun({ startedAt, now: startedAt, finishedAt: null })
     try {
       await runExplore({ experiences: validExps, cardIds: picked, profile: profileBody })
@@ -171,17 +175,16 @@ function ExploreScreen() {
   if (run) {
     const seconds = ((run.finishedAt ?? run.now) - run.startedAt) / 1000
     const current = run.finishedAt ? 4 : stepAt(seconds)
-    return <main className="fx-page"><div className="fx-shell ex-run-layout">{head}
+    return <main className="fx-page"><div className={`fx-shell ex-run-layout ${runLeaving ? 'is-leaving' : ''}`}>{head}
       <section className="fx-card ex-run" aria-live="polite">
         <span className="fx-kicker">{run.finishedAt ? '탐색 끝' : '탐색 중'}</span>
-        <h2 className="fx-h2">{run.finishedAt ? '결과를 저장했어요. 결과 화면으로 넘어가요' : '지원할 수 있는 자리와 내 글을 맞춰 보고 있어요'}</h2>
+        <h2 className="fx-h2">{run.finishedAt ? '탐색을 완료했어요' : '지원할 수 있는 자리와 내 글을 맞춰 보고 있어요'}</h2>
         <div style={{ marginTop: 14 }}>{runSteps.map((label, i) => {
           const state = i < current ? 'done' : i === current ? 'now' : 'wait'
           return <div key={label} className={`ex-step ${state}`}><i>{i + 1}</i><b>{label}</b>{state === 'now' ? <span className="ex-step-spinner" role="status" aria-label="진행 중" /> : state === 'done' ? <span className="ex-step-check" aria-label="완료">✓</span> : null}</div>
         })}</div>
         <div className="ex-run-foot">
           <span className="fx-small">{run.finishedAt ? `${seconds.toFixed(1)}초 · 인용 구절이 원문에 그대로 있는 짝만 남겼어요` : seconds < 20 ? `${Math.floor(seconds)}초 지났어요 · 보통 5~15초 걸려요` : `${Math.floor(seconds)}초 지났어요 · 서버가 잠들어 있었거나 AI 응답이 늦으면 1~2분 걸릴 수 있어요. 조금만 기다려 주세요`}</span>
-          {run.finishedAt && <Link className="fx-btn primary" to="/explore/result">결과 보기 →</Link>}
         </div>
       </section>
     </div></main>
@@ -219,7 +222,7 @@ function ExploreScreen() {
         </section>
 
         <section className="fx-card ex-card">
-          <div className="fx-row between"><h2 className="fx-h2" style={{ margin: 0 }}>해 보고 싶은 일<span className="ex-tag opt">{picked.length} / {MAX_CARDS} 고름</span></h2></div>
+          <h2 className="fx-h2" style={{ margin: 0 }}>해 보고 싶은 일</h2>
           {cards.loading && !cards.data && <Loading text="하고 싶은 일 카드를 불러오는 중…" />}
           {cards.error && <ErrorBox error={cards.error} retry={cards.reload} />}
           {cards.data && <>
@@ -230,6 +233,7 @@ function ExploreScreen() {
             {cardList.length === 0
               ? <p className="rs-empty-why" style={{ marginTop: 14 }}>지원 조건을 맞춘 자리가 없어 고를 카드가 없어요. 프로필의 학년 · 이수 학기 · 평점 · 자격증을 확인해 주세요.</p>
               : <>
+                <p className="ex-want-count">{picked.length} / {MAX_CARDS} 고름</p>
                 <div className="ex-want">{availableCards.map(cardButton)}</div>
                 {visibleCardCount < cardList.length && <button type="button" className="ex-more" onClick={() => setVisibleCardCount((count) => count + CARD_PAGE_SIZE)}>더 보기</button>}
                 <p className="fx-small" style={{ margin: '8px 0 0' }}>회사 이름은 가리고, 겹치는 일은 하나로 묶었어요. 찾는 일이 없으면 위 칸에 직접 적어 주세요.</p>

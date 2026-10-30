@@ -22,7 +22,9 @@
 .ap-page .ap-table select.fx-input{padding:0 6px}
 .ap-page .ap-table .ap-del{width:30px;height:30px;border:0;border-radius:8px;color:#9aa2ad;background:transparent;font:inherit;font-size:18px;cursor:pointer}
 .ap-page .ap-table .ap-del:hover{color:var(--fx-red);background:var(--fx-red-weak)}
-.ap-page .ap-add{margin-top:6px}
+.ap-page .ap-add{display:grid;width:100%;min-height:72px;margin:14px 0 0;padding:0;place-items:center;border:1px dashed #d5dff4;border-radius:14px;color:#3154f4;background:#f8faff;font-size:27px;line-height:1;cursor:pointer;transition:border-color .2s,background .2s,transform .2s,box-shadow .2s}
+.ap-page .ap-add:hover{border-color:#9bafff;background:#f1f4ff;box-shadow:0 8px 20px rgb(49 84 244 / 8%);transform:translateY(-2px)}
+.ap-page .ap-add:focus-visible{outline:2px solid #3154f4;outline-offset:3px}
 .ap-page .ap-none{margin:4px 0 0;color:#a0a7b2;font-size:13px}
 .ap-page .ap-q+.ap-q{margin-top:20px}
 .ap-page .ap-q header{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
@@ -78,6 +80,11 @@
 .ap-page .ap-aside-head small{color:var(--fx-muted);font-size:12px;font-weight:800}
 .ap-page .ap-checks{margin-top:8px}
 .ap-page .ap-actions{display:flex;margin-top:14px;flex-direction:column;gap:6px}
+.ap-page .ap-submit-after-approval{display:flex;margin-top:24px;padding:20px;flex-wrap:wrap;align-items:center;gap:8px 18px;border:1px solid #cfe9db;border-radius:14px;background:#f6fbf8}
+.ap-page .ap-submit-after-approval>b{flex:1 1 100%;color:#1d5c3f;font-size:14px}
+.ap-page .ap-submit-after-approval>p{min-width:0;margin:0;flex:1;color:#5b6472;font-size:12px;line-height:1.6}
+.ap-page .ap-submit-after-approval>.fx-btn{flex-shrink:0}
+.ap-page .ap-delete-draft{margin-top:20px}
 .ap-page .ap-actions .ap-hint{margin:2px 0 0;color:var(--fx-muted);font-size:12px;line-height:1.6;text-align:center}
 .ap-page .ap-dirty{margin:10px 0 0;color:var(--fx-orange);font-size:12px;font-weight:700;line-height:1.6}
 .ap-page .fx-btn.ap-danger{color:var(--fx-red)}
@@ -119,3 +126,13 @@
 .ap-public .ap-done{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border:1px solid #cfe9db;border-radius:14px;background:#f2fbf6;color:#1d5c3f;font-size:14px;font-weight:800}
 .ap-public .ap-done small{color:#3f7a5c;font-size:12px;font-weight:600}
 .ap-public .ap-public-foot{margin:16px 4px 0}
+.ap-back-fixed{position:fixed;left:28px;bottom:26px;z-index:30;display:inline-flex;min-width:126px;min-height:48px;padding:0 19px;align-items:center;justify-content:center;border:1px solid #d7dce5;border-radius:999px;color:#434c59;background:rgb(255 255 255 / 96%);box-shadow:0 16px 38px rgb(30 39 60 / 18%);font-size:13px;font-weight:850;letter-spacing:-.3px;backdrop-filter:blur(12px);transition:color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.ap-back-fixed:hover{border-color:#bfc8d8;color:#20242b;box-shadow:0 19px 42px rgb(30 39 60 / 23%);transform:translateY(-3px)}
+.ap-back-fixed:focus-visible{outline:2px solid #3154f4;outline-offset:3px}
+@media (prefers-reduced-motion:reduce){.ap-back-fixed{transition:none}.ap-back-fixed:hover{transform:none}}
+.ap-next-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 28px; }
+.ap-next-actions .fx-btn { min-width: 120px; }
+.ap-form-card { overflow: hidden; }
+.ap-tab-content { animation: ap-tab-slide-in .38s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes ap-tab-slide-in { from { opacity: 0; transform: translateX(36px); } to { opacity: 1; transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .ap-tab-content { animation: none; } }
