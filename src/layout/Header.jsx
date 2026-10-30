@@ -98,7 +98,7 @@ export function Header({ center = false, hidden = false }) {
     <span style={{ display: 'inline-flex', alignItems: 'baseline' }}><Link className="brand" to="/">현장뛰자<span>.</span></Link>{center && <Link to="/center" style={{ marginLeft: 8, color: '#626b78', fontSize: 12, fontWeight: 800 }}>현장실습지원센터</Link>}</span>
     <nav>{nav.map(([to, text, end]) => <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive || (to === '/internship' && /^\/(apply|career)/.test(location.pathname)) || (to === '/explore' && location.pathname.startsWith('/explore')) || (to === '/center/inbox' && location.pathname.startsWith('/center/inbox')) ? 'active' : '')}>{text}</NavLink>)}</nav>
     {center ? <div className="v2-top-actions"><DemoMenu /><Link className="v2-switch" to="/">학생 화면 →</Link></div>
-      : loggedIn ? <div className="v2-top-actions"><Link className="v2-switch" to="/center">센터 화면 →</Link><div className="profile-menu" ref={profileMenuRef}>
+      : loggedIn ? <div className="v2-top-actions"><div className="profile-menu" ref={profileMenuRef}>
         <button className="profile-menu-trigger" type="button" aria-label="내 정보 메뉴" aria-expanded={profileOpen} onClick={() => setProfileOpen((open) => !open)}>
           <span className="profile-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.2" /><path d="M5.5 19c.4-4 2.5-6 6.5-6s6.1 2 6.5 6" /></svg></span>
         </button>
@@ -111,7 +111,7 @@ export function Header({ center = false, hidden = false }) {
           {ME_MENU.map(([to, text]) => <Link key={to} to={to} onClick={() => setProfileOpen(false)}><span>{text}</span><b>›</b></Link>)}
           <button className="profile-popover-logout" type="button" onClick={logout}>로그아웃</button>
         </div>}
-      </div></div> : <div className="v2-top-actions"><Link className="v2-switch" to="/center">센터 화면 →</Link><Link className="top-action" to="/login">로그인</Link></div>}
+      </div></div> : <div className="v2-top-actions"><Link className="top-action" to="/login">로그인</Link></div>}
   </header>
 }
 

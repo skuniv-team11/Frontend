@@ -6,7 +6,7 @@ import jobAnimationFrame from './job-animation-frame.webp'
 import { getMyExplore } from '../../api/explore'
 import { getMyInternship } from '../../api/internship'
 import { addPlanItem, getMyPlan, planErrorMessage, removePlanItem } from '../../api/plan'
-import { getCurrentRound, label } from '../../api/reference'
+import { label } from '../../api/reference'
 import { Modal } from '../../components/Shell'
 import { ErrorBox, InstitutionLogo, Loading, VirtualTag } from '../../components/v2'
 import { useGuestStart } from '../../hooks/useGuestStart'
@@ -26,10 +26,9 @@ import story6 from '../../assets/images/story/story-6.jpg'
 import story7 from '../../assets/images/story/story-7.jpg'
 import story8 from '../../assets/images/story/story-8.jpg'
 
-const loadInternship = (signal) => getMyInternship(signal)
 const loadExplore = (signal) => getMyExplore(signal)
+const loadInternship = (signal) => getMyInternship(signal)
 const loadPlan = (signal) => getMyPlan(signal)
-const loadRound = (signal) => getCurrentRound(signal)
 
 const heroMessages = [
   <>내가 갈 수 있는 현장실습,<br /><em>한눈에 찾다.</em></>,
@@ -120,14 +119,14 @@ function Hero({ mode, guest, openStages, onScroll }) {
       {error && <p className="guest-error" role="alert">{error}</p>}
       {loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}
     </>}
-    {mode === 'student' && <div className="button-row"><Link className="button hero-jobs-button" to="/jobs">직무 찾아보기</Link><Link className="button glass-button" to="/explore">직무 탐색하기</Link></div>}
+    {mode === 'student' && <div className="button-row"><Link className="button hero-jobs-button" to="/jobs">직무 찾아보기</Link><Link className="button glass-button hero-explore-button" to="/explore">직무 탐색하기</Link></div>}
     {mode === 'center' && <>
       <div className="button-row"><Link className="button hero-jobs-button" to="/center">현황판으로 가기</Link></div>
       <p className="home-hero-note">현장실습지원센터 담당자 계정이에요. 접수 · 매칭 · 마무리는 센터 화면에서 봐요.</p>
     </>}
   </div></div>
-    {mode === 'guest' && <button type="button" className="center-link" disabled={loadingRole !== null} onClick={() => start('CENTER')}>{loadingRole === 'CENTER' ? '센터 체험 계정 만드는 중…' : '센터 담당자로 보기 →'}</button>}
-    {mode === 'student' && <Link className="center-link" to="/center">센터 담당자로 보기 →</Link>}
+    {mode === 'guest' && <button type="button" className="center-link" disabled={loadingRole !== null} onClick={() => start('CENTER')}>{loadingRole === 'CENTER' ? '센터 체험 계정 만드는 중…' : '센터 화면 →'}</button>}
+    {mode === 'student' && <Link className="center-link" to="/center">센터 화면 →</Link>}
     {mode !== 'center' && <button type="button" className="scroll-cue" onClick={onScroll}><span>아래로 살펴보기</span><b>↓</b></button>}
   </section>
 }
@@ -150,22 +149,17 @@ function StageChooser({ guest, close }) {
 }
 
 function GuestProcess() {
-  // 일정은 #13 현재 회차(공개)에서 — 못 받으면 날짜 없이
-  const round = useRequest(loadRound).data
-  const practice = round?.stages?.find((stage) => stage.code === 'PRACTICE')
-  const applyWhen = round?.recruitStart ? `${fmtDate(round.recruitStart)} ~ ${fmtDate(round.recruitEnd)}` : ''
-  const practiceText = practice ? `${fmtDate(practice.startsOn)} ~ ${fmtDate(practice.endsOn)} · 이번 주 할 일과 중간점검` : '이번 주 할 일과 중간점검'
   return <section className="home-process is-visible"><div className="process-layout">
     <div className="process-copy">
       <div className="process-intro">
         <p className="process-kicker">현장실습을 시작하는 가장 가까운 곳</p>
-        <p>현장뛰자는 학과 · 학년 · 이수 학기로 지원할 수 있는 현장실습을 먼저 가리고, 해 본 일과 하고 싶은 일로 나에게 이어지는 자리를 공고 원문 근거와 함께 찾아 줘요. 지원서부터 학점 인정, 실습 뒤 커리어까지 한곳에서 이어서 챙겨요.</p>
+        <p>현장뛰자는 전공과 학년을 바탕으로 지원할 수 있는 현장실습을 찾고, 공고 원문 근거를 확인하며, 관심 있는 직무를 1~3지망으로 정리할 수 있도록 돕는 서비스입니다. 복잡하게 흩어진 현장실습 준비를 한곳에서 더 분명하게 시작해 보세요.</p>
       </div>
       <div className="process-guide">
         <div className="process-heading"><h3>네 단계를 한곳에서 이어서 챙겨요</h3></div>
-        <div className="steps v2-journey">
-          {[['직무 탐색', '해 본 일 · 하고 싶은 일로 맞는 현장실습 찾기', 'AI + 규칙'], ['지원하기', '1~3지망 · 지원서 · 학과장 승인 → 마감 뒤 매칭 · 면접', applyWhen], ['실습하기', practiceText, ''], ['커리어 잇기', '실습으로 채운 NCS 역량과 넓혀 갈 직무', '실습 뒤']].map(([title, desc, when], i) =>
-            <article key={title} className="process-step"><b>{i + 1}</b><div><h4>{title}</h4><p>{desc}</p></div><small>{when}</small></article>)}
+        <div className="steps home-process-steps">
+          {[['01', '직무 탐색', '해 본 일 · 하고 싶은 일로 맞는 현장실습 찾기'], ['02', '지원하기', '1~3지망 · 지원서 · 학과장 승인 → 마감 뒤 매칭 · 면접'], ['03', '실습하기', '이번 주 할 일과 중간점검'], ['04', '커리어 잇기', '실습으로 채운 역량과 펼쳐 갈 직무']].map(([n, title, desc]) =>
+            <div key={n} className="process-step"><b>{n}</b><h4>{title}</h4><p>{desc}</p></div>)}
         </div>
       </div>
     </div>
@@ -210,6 +204,46 @@ function Stories() {
   const [selected, setSelected] = useState(null)
   const listRef = useRef(null)
   const drag = useRef({ active: false, startX: 0, startLeft: 0, moved: false })
+  const barDrag = useRef(null)
+  const direction = useRef(1)
+  const [bar, setBar] = useState({ width: 0, left: 0 })
+  const updateBar = () => {
+    const list = listRef.current
+    if (!list) return
+    const trackWidth = list.clientWidth * 0.6
+    const width = Math.max(42, trackWidth * list.clientWidth / list.scrollWidth * 0.7)
+    const max = list.scrollWidth - list.clientWidth
+    setBar({ width, left: max > 0 ? (trackWidth - width) * list.scrollLeft / max : 0 })
+  }
+  useEffect(() => {
+    const list = listRef.current
+    if (!list) return undefined
+    const observer = new ResizeObserver(updateBar)
+    observer.observe(list)
+    updateBar()
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    if (selected || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    let frame, previous, remainder = 0
+    const tick = (time) => {
+      const list = listRef.current
+      if (list && previous !== undefined && !drag.current.active && !barDrag.current) {
+        const max = list.scrollWidth - list.clientWidth
+        remainder += Math.min(time - previous, 32) * 0.04
+        const distance = Math.floor(remainder)
+        remainder -= distance
+        const next = list.scrollLeft + direction.current * distance
+        if (next >= max) direction.current = -1
+        if (next <= 0) direction.current = 1
+        list.scrollLeft = Math.max(0, Math.min(max, next))
+      }
+      previous = time
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frame)
+  }, [selected])
   const down = (event) => { drag.current = { active: true, startX: event.clientX, startLeft: listRef.current?.scrollLeft ?? 0, moved: false } }
   const move = (event) => {
     if (!drag.current.active || !listRef.current) return
@@ -223,13 +257,13 @@ function Stories() {
     <div className="story-film" aria-hidden="true">{storyFilm.map((row, r) => <div key={r} className={`story-film-row ${r === 0 ? 'story-film-row-top' : 'story-film-row-bottom'}`}><div className="story-film-track">{[...row, ...row, ...row, ...row].map((src, i) => <img key={i} src={src} alt="" />)}</div></div>)}</div>
     <div className="home-stories-inner">
       <div className="home-section-heading story-heading"><div><h2>현장실습은 어떤 하루일까요?</h2><p className="story-subtitle">먼저 다녀온 선배들의 이야기를 들어보세요</p></div><span>우수 참여수기(학교가 고른 수기) 기준이에요. 기관을 평가하는 자료가 아니에요.</span></div>
-      <div className="story-carousel"><div ref={listRef} className="story-list" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}>
+      <div className="story-carousel"><div ref={listRef} className="story-list" onScroll={updateBar} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up}>
         {seniorStories.map((story) => <article key={story.key} className="story-card" role="button" tabIndex={0} onClick={() => open(story)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(story) } }}>
           <span>{story.category}</span><h3>{story.title}</h3>
           <ul className="story-card-preview">{story.activities.slice(0, 2).map((activity) => <li key={activity}>{activity}</li>)}</ul>
           <p className="story-card-meta">{story.meta}</p>
         </article>)}
-      </div></div>
+      </div><div className="story-scrollbar" aria-hidden="true"><span style={{ width: bar.width, transform: `translateX(${bar.left}px)` }} onPointerDown={(event) => { barDrag.current = { x: event.clientX, left: listRef.current.scrollLeft }; event.currentTarget.setPointerCapture(event.pointerId) }} onPointerMove={(event) => { if (!barDrag.current) return; const list = listRef.current; const travel = list.clientWidth * 0.6 - bar.width; if (travel > 0) list.scrollLeft = barDrag.current.left + (event.clientX - barDrag.current.x) * (list.scrollWidth - list.clientWidth) / travel }} onPointerUp={() => { barDrag.current = null }} onPointerCancel={() => { barDrag.current = null }} /></div></div>
     </div>
     {selected && <Modal close={() => setSelected(null)} className="home-story-modal">{(dismiss) => <>
       <button type="button" className="home-story-close" aria-label="닫기" onClick={dismiss}>×</button>
@@ -252,12 +286,12 @@ function StudentHome() {
   const internship = useRequest(loadInternship)
   const explore = useRequest(loadExplore)
   const exploreMissing = explore.error?.code === 'EXPLORE_NOT_FOUND'
-  // 탐색 없이 지원 단계를 지난 학생에게는 '탐색 결과' 빈 칸을 보여 주지 않는다
   const hideExplore = exploreMissing && exploreSkipped(internship.data)
   return <>
-    <Journey codes={codes} internship={internship} explore={explore.data} exploreReady={!explore.loading} />
+    <GuestProcess />
     {!hideExplore && <ExploreJobs codes={codes} explore={explore} missing={exploreMissing} />}
     <Stories />
+    <section className="home-cta is-visible"><div className="home-cta-content"><h2>지금 바로 신청하세요</h2><Link className="button primary" to="/jobs">직무 찾아보기</Link></div></section>
   </>
 }
 
