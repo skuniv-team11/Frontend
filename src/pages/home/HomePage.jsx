@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import jobAnimation from '../../assets/images/job-animation.mp4'
 import processMascot from '../../assets/images/process-mascot.png'
+import soserBanner from '../../assets/images/job-banners/soser.png'
+import sejungBanner from '../../assets/images/job-banners/sejung.png'
+import theSmcBanner from '../../assets/images/job-banners/the-smc.png'
+import champstudyBanner from '../../assets/images/job-banners/champstudy.png'
 import jobAnimationFrame from './job-animation-frame.webp'
 import { getMyExplore } from '../../api/explore'
 import { getMyInternship } from '../../api/internship'
@@ -31,6 +35,12 @@ import story8 from '../../assets/images/story/story-8.jpg'
 const loadExplore = (signal) => getMyExplore(signal)
 const loadInternship = (signal) => getMyInternship(signal)
 const loadPlan = (signal) => getMyPlan(signal)
+const guestCompanies = [
+  { jobId: 122, image: soserBanner, institution: { name: '소서', logoPath: '/logos/7.png' } },
+  { jobId: 102, image: sejungBanner, institution: { name: '세정', logoPath: '/logos/2.png' } },
+  { jobId: 101, image: theSmcBanner, institution: { name: '더에스엠씨', logoPath: '/logos/1.png' } },
+  { jobId: 115, image: champstudyBanner, institution: { name: '챔프스터디', logoPath: '/logos/4.png' } },
+]
 
 const heroMessages = [
   <>내가 갈 수 있는 현장실습,<br /><em>한눈에 찾다.</em></>,
@@ -95,7 +105,7 @@ export function HomePage() {
   return <main className="landing home-landing">
     <Hero mode={mode} guest={guest} openStages={() => setChoosing(true)} onScroll={() => nextRef.current?.scrollIntoView({ behavior: 'smooth' })} />
     <div ref={nextRef} />
-    {mode === 'guest' && <><GuestProcess /><GuestExplore openStages={() => setChoosing(true)} /><Stories /><GuestCta openStages={() => setChoosing(true)} /></>}
+    {mode === 'guest' && <><GuestProcess /><GuestExplore /><Stories /><GuestCta openStages={() => setChoosing(true)} /></>}
     {mode === 'loading' && <section className="home-process is-visible"><div className="process-layout home-single">{session.error ? <ErrorBox error={session.error} retry={session.reload} /> : <Loading text="내 정보를 불러오는 중…" note="서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요." />}</div></section>}
     {mode === 'student' && <StudentHome />}
     {choosing && <StageChooser guest={guest} close={() => setChoosing(false)} />}
@@ -123,7 +133,6 @@ function Hero({ mode, guest, openStages, onScroll }) {
         <Link className="button primary" to="/login">로그인 · 가입</Link>
         <button type="button" className="button glass-button" disabled={loadingRole !== null} onClick={openStages}>{loadingRole === 'STUDENT' ? '체험 계정 만드는 중…' : '체험 학생으로 시작'}</button>
       </div>
-      <p className="home-hero-note">체험 계정은 가입 없이 예시 프로필(메이크업디자인학과 3학년)로 시작해요. 24시간 뒤 지워져요.</p>
       {error && <p className="guest-error" role="alert">{error}</p>}
       {loadingRole && <p className="guest-wait">서버를 깨우는 중이면 1분 가까이 걸릴 수 있어요.</p>}
     </>}
@@ -191,21 +200,26 @@ function MascotVideo() {
   </div>
 }
 
-function GuestExplore({ openStages }) {
+function GuestExplore() {
+  const [selected, setSelected] = useState(null)
+  const navigate = useNavigate()
+  const guest = useGuestStart(() => navigate(`/jobs/${selected.jobId}`))
   return <section className="home-jobs is-visible is-settled"><div className="home-jobs-layout">
     <MascotVideo />
     <div className="home-jobs-content">
-      <div className="home-section-heading"><h2 className="job-title-message">해 본 일로 나에게 맞는<br />현장실습을 찾아요</h2></div>
-      <div className="home-how">
-        {[['지원 조건 확인', '학년 · 이수 학기 · 평점 · 자격증을 못 맞춘 자리와 마감된 자리는 처음부터 빼요', '규칙', 'rule'],
-          ['내 글과 업무의 짝 찾기', '해 본 일 · 고른 하고 싶은 일을 운영계획서의 하는 일과 맞춰 봐요', 'AI', 'ai'],
-          ['근거 확인 · 순서', '인용 구절이 내 글과 공고 원문에 그대로 있는지 확인하고, 순서는 규칙이 정해요', '코드 · 규칙', 'rule'],
-          ['실습 뒤 길', '맞는 자리마다 NCS 능력단위와 넓혀 갈 직무 · 일자리를 보여 줘요', 'NCS', 'rule']].map(([title, desc, who, cls], i) =>
-          <article key={title}><span className={`fx-who ${cls}`}>{who}</span><b>{i + 1}. {title}</b><p>{desc}</p></article>)}
-      </div>
-      <div className="home-how-foot"><button type="button" className="v2-btn" onClick={openStages}>체험 학생으로 해 보기</button><span>학과 · 학년 · 평점은 AI에 보내지 않아요</span></div>
+      <div className="home-section-heading"><h2 className="job-title-message">현장실습 직무를 만나보세요</h2></div>
+      <div className="home-job-list home-guest-companies">{guestCompanies.map((company) => <article className="home-job-row home-guest-company" key={company.jobId} role="button" tabIndex={0} aria-label={`${company.institution.name} 직무 보기`} onClick={() => setSelected(company)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(company) } }} style={{ '--company-image': `url("${company.image}")` }}>
+        <InstitutionLogo institution={company.institution} className="home-institution-logo" />
+        <h3>{company.institution.name}</h3>
+      </article>)}</div>
     </div>
-  </div></section>
+  </div>{selected && <Modal className="home-guest-login-modal" close={() => setSelected(null)}>{(dismiss) => <>
+    <h2>로그인 후 확인할 수 있어요</h2>
+    <p>로그인하거나 체험 학생으로 시작해 직무를 확인해 보세요.</p>
+    {guest.error && <p className="danger" role="alert">{guest.error}</p>}
+    <div className="home-guest-login-actions"><Link className="fx-btn" to="/login">로그인하러 가기</Link><button className="fx-btn primary" type="button" disabled={Boolean(guest.loadingRole)} onClick={() => guest.start('STUDENT')}>{guest.loadingRole ? '준비 중…' : '체험 학생으로 시작'}</button></div>
+    <button className="home-guest-login-close" type="button" disabled={Boolean(guest.loadingRole)} onClick={dismiss} aria-label="닫기">×</button>
+  </>}</Modal>}</section>
 }
 
 function Stories() {

@@ -6,6 +6,7 @@ import { getExploreCards, getMyExplore, runExplore } from '../../api/explore'
 import { getMyProfile, toProfileBody } from '../../api/me'
 import { getCertificates } from '../../api/reference'
 import { ErrorBox, Loading, NeedLogin } from '../../components/v2'
+import { LoginRequired } from '../../components/LoginRequired'
 import { useRequest } from '../../hooks/useRequest'
 import { useSession } from '../../hooks/useSession'
 import './Explore.css'
@@ -39,7 +40,7 @@ function ExperienceRow({ children, closing }) {
 
 export function ExplorePage() {
   const session = useSession()
-  if (!session.loggedIn) return <NeedLogin />
+  if (!session.loggedIn) return <LoginRequired title="나에게 맞는 현장실습을 탐색해 보세요" destination="/explore" />
   if (session.me && !session.isStudent) return <NeedLogin />
   return <ExploreScreen />
 }
