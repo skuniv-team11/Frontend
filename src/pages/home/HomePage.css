@@ -37,6 +37,19 @@
 /* 기관 로고 — 직무 찾기 화면의 전역 .institution-logo(테두리 상자)를 덮는다 */
 .home-job-row .institution-logo.home-institution-logo{width:76px;height:54px;flex:0 0 76px;overflow:visible;border:0;border-radius:0;background:transparent}
 .home-job-row .institution-logo.home-institution-logo img{width:auto;height:auto;max-width:62px;max-height:42px;object-fit:scale-down}
+.home-jobs .home-guest-company{isolation:isolate;flex-direction:column;align-items:flex-start;border:1px solid #dbe2f0;cursor:pointer;background:#fff;box-shadow:0 16px 36px rgb(39 52 83 / 12%),0 3px 9px rgb(39 52 83 / 5%)}
+.home-guest-company:focus-visible{outline:3px solid #3154f4;outline-offset:3px}
+.home-jobs.is-visible .home-guest-company:hover{border-color:#b7c6f6;box-shadow:0 22px 48px rgb(39 52 83 / 17%),0 4px 12px rgb(39 52 83 / 7%)}
+.home-guest-company::before{position:absolute;inset:0;z-index:-1;background-image:linear-gradient(90deg,rgb(255 255 255 / 90%),rgb(255 255 255 / 68%)),var(--company-image);background-position:center;background-size:cover;content:''}
+.home-guest-company .institution-logo.home-institution-logo{width:132px;height:76px;flex:0 0 76px;justify-content:flex-start}
+.home-guest-company .institution-logo.home-institution-logo img{max-width:120px;max-height:64px}
+.home-guest-company h3{margin:auto 0 0;color:#20242b}
+.modal.home-guest-login-modal{position:relative;width:min(440px,calc(100vw - 48px));padding:36px 30px 30px;text-align:center}
+.home-guest-login-modal h2{margin:0;font-size:22px;letter-spacing:-.6px}
+.home-guest-login-modal p{margin:12px 0 24px;color:#697586;line-height:1.6}
+.home-guest-login-actions{display:flex;justify-content:center;gap:10px}
+.home-guest-login-actions .fx-btn{min-height:44px}
+.home-guest-login-close{position:absolute;top:12px;right:16px;border:0;color:#8a94a3;background:transparent;font-size:25px;cursor:pointer}
 
 /* 로그인 전 — 직무 탐색이 하는 일 */
 .home-how{display:grid;width:calc(100% - 16px);margin:0 0 0 8px;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}

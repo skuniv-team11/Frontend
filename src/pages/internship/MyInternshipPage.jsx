@@ -8,7 +8,8 @@ import { getJob } from '../../api/jobs'
 import { getMyPlan, removePlanItem, saveRanks } from '../../api/plan'
 import { label } from '../../api/reference'
 import { Modal, SidePanel } from '../../components/Shell'
-import { ErrorBox, InstitutionLogo, Loading, NeedLogin, VerdictBadge, VirtualTag } from '../../components/v2'
+import { ErrorBox, InstitutionLogo, Loading, VerdictBadge, VirtualTag } from '../../components/v2'
+import { LoginRequired } from '../../components/LoginRequired'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
 import { fmtDate, fmtDateTime, PROGRAM, studentAppStatus, won } from '../../lib/format'
@@ -446,7 +447,7 @@ export function MyInternshipPage() {
   const needApplication = Boolean(data) && ((stage?.code === 'APPLY' && !submitted) || (stage?.code === 'PICK' && submitted))
   const app37 = useRequest(getMyApplication, loggedIn && needApplication)
 
-  if (!loggedIn) return <NeedLogin />
+  if (!loggedIn) return <LoginRequired title="내 현장실습을 확인해 보세요" destination="/internship" />
   if (!data) return <main className="fx-page"><div className="fx-shell">
     {internship.error ? <ErrorBox error={internship.error} retry={internship.reload} /> : <Loading text="내 현장실습을 불러오는 중…" note="서버가 잠들어 있으면 첫 요청이 1분 가까이 걸려요." />}
   </div></main>

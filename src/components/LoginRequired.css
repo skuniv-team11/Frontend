@@ -1,0 +1,16 @@
+.jobs-login-page { display: grid; min-height: calc(100vh - 66px); padding: 64px 24px; place-items: center; color: #20242b; background: #fff; }
+.jobs-login-content { display: flex; align-items: center; flex-direction: column; text-align: center; animation: jobs-login-content-in .72s cubic-bezier(.22, 1, .36, 1) both; }
+.jobs-login-icon { display: grid; width: 62px; height: 62px; margin-bottom: 23px; border-radius: 50%; color: #3154f4; background: #f0f3ff; place-items: center; }
+.jobs-login-icon svg { width: 29px; height: 29px; fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+.jobs-login-kicker { color: #20242b; font-size: 29px; font-weight: 800; line-height: 1.35; letter-spacing: -1.6px; }
+.jobs-login-content h1 { margin: 0; font-size: 29px; line-height: 1.35; letter-spacing: -1.6px; }
+.jobs-login-actions { display: flex; margin-top: 28px; align-items: center; justify-content: center; gap: 10px; }
+.jobs-login-button, .jobs-example-button { display: grid; min-width: 190px; min-height: 49px; padding: 0 23px; border-radius: 999px; font-size: 14px; font-weight: 800; place-items: center; cursor: pointer; transition: box-shadow .22s ease, transform .22s ease; }
+.jobs-login-button { color: #fff; background: #3154f4; box-shadow: 0 10px 21px rgb(49 84 244 / 21%); }
+.jobs-login-button:hover { box-shadow: 0 17px 32px rgb(49 84 244 / 30%); transform: translateY(-3px); }
+.jobs-example-button { border: 1px solid #bcc5d6; color: #3154f4; background: #fff; box-shadow: 0 8px 18px rgb(42 51 78 / 8%); }
+.jobs-example-button:hover { border-color: #aebaf0; box-shadow: 0 13px 24px rgb(42 51 78 / 12%); transform: translateY(-3px); }
+.jobs-example-button:disabled { opacity: .58; cursor: wait; transform: none; }
+.jobs-login-error { margin: 15px 0 0; color: #c53535; font-size: 12px; font-weight: 700; }
+@keyframes jobs-login-content-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .jobs-login-content { animation: none; } }
