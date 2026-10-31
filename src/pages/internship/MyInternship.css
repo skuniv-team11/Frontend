@@ -41,7 +41,6 @@
 .mi-node i{position:relative;z-index:1;display:grid;width:28px;height:28px;border:2px solid #d5dbe6;border-radius:50%;color:#fff;background:#fff;font-size:13px;font-style:normal;font-weight:900;place-items:center}
 .mi-nodes li.done .mi-node i{border-color:#3154f4;background:#3154f4}
 .mi-nodes li.now .mi-node i{border-color:transparent;background:#eef2ff;box-shadow:0 0 0 5px rgb(49 84 244 / 10%)}
-.mi-runner-source{display:none}
 .mi-runner{position:absolute;bottom:1px;left:50%;width:56px;height:auto;max-width:none;transform:translateX(-50%)}
 .mi-node b{color:#30353d;font-size:14px;letter-spacing:-.3px}
 .mi-nodes li.now .mi-node b{color:#3154f4}

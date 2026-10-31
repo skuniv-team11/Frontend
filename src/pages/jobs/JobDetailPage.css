@@ -162,6 +162,15 @@
 .job-detail-back-to-top:hover { box-shadow: 0 19px 42px rgb(30 39 60 / 23%); transform: translateY(-3px); }
 .job-detail-back-to-top span { font-size: 17px; line-height: 1; }
 
+/* 1280px PC 화면에서는 양쪽 고정 버튼이 본문 위로 올라오지 않도록 전용 여백을 둔다. */
+@media (max-width: 1480px) {
+  .job-detail-page { padding-right: 24px; padding-left: 24px; }
+  .job-detail-shell { width: min(1180px, calc(100% - 288px)); }
+  .job-detail-fixed-back, .job-detail-back-to-top { min-width: 108px; min-height: 46px; padding-right: 16px; padding-left: 16px; }
+  .job-detail-fixed-back { left: 20px; }
+  .job-detail-back-to-top { right: 20px; }
+}
+
 .job-detail-loading-page { display: grid; min-height: calc(100vh - 66px); place-items: center; background: #f7f8fa; }
 .job-detail-skeleton-page { position: relative; min-height: calc(100vh - 66px); padding: 42px 44px 100px; background: #f7f8fa; overflow: hidden; }
 .job-detail-skeleton-shell { width: min(1180px, 100%); margin: 0 auto; opacity: .72; }
