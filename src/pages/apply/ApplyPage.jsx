@@ -5,6 +5,7 @@ import { errorMessage, getToken } from '../../api/client'
 import { label } from '../../api/reference'
 import { ErrorBox, Loading, NeedLogin, VerdictBadge, VirtualTag } from '../../components/v2'
 import { Modal } from '../../components/Shell'
+import { TimelineRunner } from '../../components/TimelineRunner'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
 import { fmtDate, fmtDateTime, studentAppStatus } from '../../lib/format'
@@ -320,6 +321,12 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, code
 
   const checklist = app.checklist ?? []
   const doneCount = checklist.filter((c) => c.done).length
+  const submitBlockers = [
+    ...(!dirty ? [] : ['변경한 내용 임시 저장']),
+    ...checklist.filter((c) => !c.done && c.item !== 'APPROVAL').map((c) => label(codes, 'applicationItem', c.item)),
+    ...(approval.status === 'APPROVED' ? [] : [approval.status === 'STALE' ? '학과(부)장 재승인' : '학과(부)장 승인']),
+    ...(!app.period?.open && !fixing ? ['지원서 신청 기간 확인'] : []),
+  ].filter((item, index, items) => items.indexOf(item) === index)
 
   return <main className="fx-page ap-page"><div className="fx-shell">
     <Link className="ap-back-fixed" to="/internship" state={{ internshipStage: 'APPLY' }} aria-label="내 현장실습으로 돌아가기">← 뒤로가기</Link>
@@ -340,8 +347,15 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, code
       <HeroSide app={app} locked={locked} fixing={fixing} />
     </section>
 
-    <nav className="fx-tabs" aria-label="지원서 단계">
-      {TABS.map((text, i) => <button key={text} type="button" className={`fx-tab${tab === i ? ' on' : ''}`} aria-current={tab === i ? 'step' : undefined} onClick={() => setTab(i)}>{text}<i className={tabBadges[i].cls}>{tabBadges[i].text}</i></button>)}
+    <nav className="fx-tabs" aria-label="지원서 단계" style={{ '--ap-progress': `${tab * 20}%` }}>
+      {TABS.map((text, i) => {
+        const current = tab === i
+        const done = tabBadges[i].cls === 'ok'
+        return <button key={text} type="button" className={`fx-tab${current ? ' on' : ''}${done ? ' is-done' : ''}`} aria-current={current ? 'step' : undefined} onClick={() => setTab(i)}>
+          <span className="ap-tab-node" aria-hidden="true">{current ? <TimelineRunner className="ap-tab-runner" /> : done ? '✓' : ''}</span>
+          <span className="ap-tab-copy"><small>STEP {String(i + 1).padStart(2, '0')}</small><span>{text}<i className={tabBadges[i].cls}>{tabBadges[i].text}</i></span></span>
+        </button>
+      })}
     </nav>
 
     <div className="fx-split">
@@ -429,10 +443,16 @@ function Editor({ app, refreshing, reload, applyResponse, resetAfterDelete, code
             </>}
           </div>
           <ApprovalBlock app={app} approval={approval} codes={codes} locked={locked} dirty={dirty} busy={busy} refreshing={refreshing} copied={copied} makeLink={makeLink} reload={reload} copyLink={copyLink} signed={signed} />
-          {!locked && approval.status === 'APPROVED' && <div className="ap-submit-after-approval"><b>학과(부)장 승인이 완료됐어요</b><p>{dirty ? '수정한 내용을 저장하면 승인을 다시 받아야 해요.' : doneCount < checklist.length ? '내기 전 확인에서 남은 항목을 채워 주세요.' : !app.period?.open && !fixing ? '신청 기간이 아니에요.' : '확인할 항목을 모두 채웠다면 지원서를 낼 수 있어요.'}</p><button type="button" className="fx-btn primary" disabled={Boolean(busy) || dirty || doneCount < checklist.length || (!app.period?.open && !fixing)} onClick={() => setConfirm('submit')}>{busy === 'submit' ? '내는 중…' : fixing ? '고쳐서 다시 내기' : '지원서 내기'}</button></div>}
           {!locked && app.status === 'DRAFT' && <button type="button" className="fx-btn sm ghost ap-danger ap-delete-draft" disabled={Boolean(busy)} onClick={() => setConfirm('delete')}>{busy === 'delete' ? '지우는 중…' : '지원서 지우기'}</button>}
         </>}
-        {(tab > 0 || tab < TABS.length - 1) && <div className="ap-next-actions">{tab > 0 && <button type="button" className="fx-btn" disabled={Boolean(busy)} onClick={() => { setTab(tab - 1); const tabs = document.querySelector('.ap-page .fx-tabs'); if (tabs) window.scrollTo({ top: Math.max(0, window.scrollY + tabs.getBoundingClientRect().top - 100), behavior: 'smooth' }) }}>← 이전</button>}{tab < TABS.length - 1 && <button type="button" className="fx-btn primary" disabled={Boolean(busy)} onClick={nextTab}>{busy === 'next' ? '저장 중…' : '다음 →'}</button>}</div>}
+        {(tab > 0 || tab < TABS.length - 1) && <div className="ap-next-actions">
+          {tab > 0 && <button type="button" className="fx-btn" disabled={Boolean(busy)} onClick={() => { setTab(tab - 1); const tabs = document.querySelector('.ap-page .fx-tabs'); if (tabs) window.scrollTo({ top: Math.max(0, window.scrollY + tabs.getBoundingClientRect().top - 100), behavior: 'smooth' }) }}>← 이전</button>}
+          {tab < TABS.length - 1 && <button type="button" className="fx-btn primary" disabled={Boolean(busy)} onClick={nextTab}>{busy === 'next' ? '저장 중…' : '다음 →'}</button>}
+          {tab === TABS.length - 1 && !locked && <span className="ap-submit-wrap" tabIndex={submitBlockers.length ? 0 : undefined}>
+            <button type="button" className="fx-btn primary" disabled={Boolean(busy) || submitBlockers.length > 0} onClick={() => setConfirm('submit')}>{busy === 'submit' ? '내는 중…' : fixing ? '고쳐서 다시 내기' : '지원서 내기'}</button>
+            {submitBlockers.length > 0 && <span className="ap-submit-tooltip" role="tooltip"><b>아직 확인할 항목이 있어요</b>{submitBlockers.map((item) => <small key={item}>• {item}</small>)}</span>}
+          </span>}
+        </div>}
       </div></section>
 
       <aside className="fx-aside">

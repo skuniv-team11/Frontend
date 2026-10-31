@@ -10,10 +10,10 @@ import { label } from '../../api/reference'
 import { Modal, SidePanel } from '../../components/Shell'
 import { ErrorBox, InstitutionLogo, Loading, VerdictBadge, VirtualTag } from '../../components/v2'
 import { LoginRequired } from '../../components/LoginRequired'
+import { TimelineRunner } from '../../components/TimelineRunner'
 import { useRequest } from '../../hooks/useRequest'
 import { useCodes } from '../../hooks/useSession'
 import { fmtDate, fmtDateTime, PROGRAM, studentAppStatus, won } from '../../lib/format'
-import internshipRunner from '../../assets/images/internship-runner.webm'
 import '../plan/PlanPage.css'
 import './MyInternship.css'
 
@@ -28,57 +28,6 @@ const when = (s) => {
   return s.startsOn === s.endsOn ? md(s.startsOn) : `${md(s.startsOn)} ~ ${md(s.endsOn)}`
 }
 const STATE_TONE = { DONE: 'green', NOW: 'blue', NEXT: 'gray' }
-
-function TimelineRunner() {
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
-  useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const context = canvas?.getContext('2d', { willReadFrequently: true })
-    if (!video || !canvas || !context) return undefined
-    let frame = 0
-    const draw = () => {
-      if (video.readyState < 2) return
-      context.clearRect(0, 0, canvas.width, canvas.height)
-      context.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const image = context.getImageData(0, 0, canvas.width, canvas.height)
-      for (let index = 0; index < image.data.length; index += 4) {
-        const brightness = Math.max(image.data[index], image.data[index + 1], image.data[index + 2])
-        image.data[index + 3] = Math.round(image.data[index + 3] * Math.min(1, Math.max(0, (brightness - 8) / 32)))
-      }
-      context.putImageData(image, 0, 0)
-    }
-    const tick = () => { draw(); frame = window.requestAnimationFrame(tick) }
-    const startDrawing = () => { window.cancelAnimationFrame(frame); frame = window.requestAnimationFrame(tick) }
-    const stopDrawing = () => { window.cancelAnimationFrame(frame); draw() }
-    const prepareFrame = () => {
-      if (video.currentTime === 0 && Number.isFinite(video.duration) && video.duration > 0.15) video.currentTime = 0.15
-      else draw()
-    }
-    const updatePlayback = () => {
-      if (preference.matches) video.pause()
-      else video.play().catch(() => {})
-    }
-    video.addEventListener('loadeddata', prepareFrame)
-    video.addEventListener('seeked', draw)
-    video.addEventListener('play', startDrawing)
-    video.addEventListener('pause', stopDrawing)
-    if (video.readyState >= 2) prepareFrame()
-    updatePlayback()
-    preference.addEventListener('change', updatePlayback)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      preference.removeEventListener('change', updatePlayback)
-      video.removeEventListener('loadeddata', prepareFrame)
-      video.removeEventListener('seeked', draw)
-      video.removeEventListener('play', startDrawing)
-      video.removeEventListener('pause', stopDrawing)
-    }
-  }, [])
-  return <><video ref={videoRef} className="mi-runner-source" src={internshipRunner} muted loop playsInline preload="auto" aria-hidden="true" /><canvas ref={canvasRef} className="mi-runner" width="128" height="72" aria-hidden="true" /></>
-}
 
 // 지망 정하기와 지원서는 학교 일정이 같은 기간(7/13~7/24)이라 날짜만 보면 지망 정하기가 늘 '완료'로 보인다.
 // 신청 기간 중 1지망이 없고 아직 안 냈으면 지망 정하기를 '지금', 지원서를 '다음'으로 본다(내 상태 기준).
@@ -628,7 +577,7 @@ export function MyInternshipPage() {
       <div className={`mi-timeline-layout ${timelinePage === 0 ? 'is-first' : 'is-last'}`}>{timelinePage === 1 && <button className="mi-timeline-arrow" type="button" disabled={Boolean(timelineMotion)} onClick={() => turnTimeline(0)} aria-label="이전 단계: 지원 · 준비" title="지원 · 준비"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7" /></svg></button>}<div className={`mi-timeline-content ${timelineMotion ? `is-${timelineMotion}` : ''}`}>
       <div className="mi-phases" style={{ gridTemplateColumns: phases.map((p) => `${p.n}fr`).join(' ') }}>{phases.map((p) => <span key={p.code} className={p.code === nowPhase ? 'on' : ''}>{L('stagePhase', p.code)}</span>)}</div>
       <ol className="mi-nodes" start={visibleStart + 1} style={{ gridTemplateColumns: `repeat(${visibleStages.length}, minmax(0, 1fr))` }}>{visibleStages.map((x, i) => <li key={x.code} className={`${x.state === 'DONE' ? 'done' : x.state === 'NOW' ? 'now' : ''} ${i === 0 && visibleStart > 0 ? 'has-previous' : ''} ${i === visibleStages.length - 1 && visibleStart + visibleStages.length < stages.length ? 'has-next' : ''} ${i === visibleStages.length - 1 && ['DONE', 'NOW'].includes(stages[visibleStart + visibleStages.length]?.state) ? 'next-progressed' : ''}`}>
-        <button type="button" className={`mi-node ${i + visibleStart === selIndex ? 'sel' : ''}`} aria-pressed={i + visibleStart === selIndex} onClick={() => { choose(i + visibleStart); setDocError('') }}><i aria-hidden="true">{x.state === 'DONE' ? '✓' : x.state === 'NOW' ? <TimelineRunner /> : ''}</i><b>{L('stage', x.code)}</b><small>{when(x)}</small></button>
+        <button type="button" className={`mi-node ${i + visibleStart === selIndex ? 'sel' : ''}`} aria-pressed={i + visibleStart === selIndex} onClick={() => { choose(i + visibleStart); setDocError('') }}><i aria-hidden="true">{x.state === 'DONE' ? '✓' : x.state === 'NOW' ? <TimelineRunner className="mi-runner" /> : ''}</i><b>{L('stage', x.code)}</b><small>{when(x)}</small></button>
       </li>)}</ol>
       </div>{timelinePage === 0 && <button className="mi-timeline-arrow" type="button" disabled={Boolean(timelineMotion)} onClick={() => turnTimeline(1)} aria-label="다음 단계: 실습 · 마무리" title="실습 · 마무리"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></button>}</div>
     </section>
