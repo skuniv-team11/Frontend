@@ -1,0 +1,83 @@
+/* 커리어 리포트 — 프로토타입 Career.dc.html의 cr-* + 작성 화면 */
+.cr-done{display:flex;flex-direction:column;gap:8px;min-width:250px}
+.cr-done div{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;font-weight:750}
+.cr-done .badge{margin:0}
+.cr-done a{color:#3154f4;font-size:12px;font-weight:800}
+.cr-hero h1{max-width:760px}
+.cr-path{margin:8px 0 0;color:#89929f;font-size:12px;font-weight:700}
+.cr-units{display:flex;margin:16px 0 0;padding:0;flex-direction:column;list-style:none}
+.cr-unit{padding:14px 0;border-top:1px solid #edf0f4}
+.cr-unit:first-child{border-top:0;padding-top:4px}
+.cr-unit>div{display:flex;align-items:center;gap:8px}
+.cr-unit>div b{font-size:15px;letter-spacing:-.4px}
+.cr-unit>div .badge{margin:0}
+.cr-unit q{display:block;margin-top:8px;padding:10px 12px;border-radius:10px;color:#30353d;background:#fff8e6;font-size:13px;line-height:1.6;quotes:none}
+.cr-unit q small{display:block;margin-bottom:2px;color:#a07b18;font-size:10px;font-weight:900;letter-spacing:.04em}
+.cr-unit p{margin:8px 0 0;color:#5b6472;font-size:13px;line-height:1.65}
+.cr-list{display:flex;margin:10px 0 0;padding:0;flex-direction:column;list-style:none}
+.cr-list li{display:flex;min-height:36px;padding:7px 0;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #edf0f4;font-size:13px;font-weight:700;letter-spacing:-.3px}
+.cr-list li:first-child{border-top:0}
+.cr-list li small{flex-shrink:0;color:#89929f;font-size:11px;font-weight:700}
+.cr-more{margin-top:8px;padding:0;border:0;color:#3154f4;background:transparent;font-family:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.cr-draft{display:inline-flex;margin-left:6px;padding:1px 6px;border-radius:5px;color:#8a4b0b;background:#fff3e4;font-size:10px;font-weight:800;vertical-align:1px}
+.cr-rel{color:#89929f;font-size:11px;font-weight:800}
+.cr-occ{display:flex;margin-top:12px;flex-wrap:wrap;gap:8px}
+.cr-occ span{display:inline-flex;height:32px;padding:0 12px;align-items:center;gap:6px;border:1px solid #e1e6ee;border-radius:99px;color:#30353d;background:#fff;font-size:13px;font-weight:750}
+.cr-occ span small{color:#89929f;font-size:10px;font-weight:800}
+.cr-actions{display:flex;margin-top:22px;align-items:center;gap:8px}
+.cr-actions .fx-btn.danger-line{border-color:#f0d2d2;color:#c53535}
+.cr-paths article .v2-next{margin-top:auto}
+
+/* 작성 화면 */
+.cr-jobs{display:grid;margin-top:12px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cr-job{display:flex;min-width:0;padding:12px 14px;align-items:center;gap:12px;border:1px solid #e1e6ee;border-radius:14px;background:#fff;font-family:inherit;text-align:left;cursor:pointer}
+.cr-job.on{border-color:#3154f4;background:#f5f7ff;box-shadow:inset 0 0 0 1px #3154f4}
+.cr-job .institution-logo{display:grid;width:40px;height:40px;flex:0 0 40px;overflow:visible;border:0;border-radius:0;background:transparent;place-items:center}
+.cr-job .institution-logo img{width:auto;height:auto;max-width:90%;max-height:90%;object-fit:scale-down}
+.cr-job div{min-width:0}
+.cr-job small{display:block;color:#6678bf;font-size:11px;font-weight:800}
+.cr-job b{display:block;overflow:hidden;color:#20242b;font-size:14px;letter-spacing:-.3px;text-overflow:ellipsis;white-space:nowrap}
+.cr-job em{display:block;margin-top:2px;color:#89929f;font-size:11px;font-style:normal;font-weight:700}
+.cr-step{margin-top:22px}
+.cr-step:first-of-type{margin-top:0}
+.cr-step h3{margin:0;font-size:15px;letter-spacing:-.3px}
+.cr-step>p{margin:4px 0 0;color:#5b6472;font-size:12px;line-height:1.65}
+.cr-step .fx-textarea{margin-top:10px;min-height:220px}
+.cr-consent{display:flex;margin-top:18px;padding:14px 16px;align-items:flex-start;gap:10px;border:1px solid #e1e6ee;border-radius:12px;background:#fafbfc;color:#3e4651;font-size:13px;line-height:1.65;cursor:pointer}
+.cr-consent input{width:17px;height:17px;margin-top:3px;accent-color:#3154f4}
+.cr-error{margin:12px 0 0;color:#c53535;font-size:13px;font-weight:700;line-height:1.6}
+
+/* ── 결과(10/11 다시 설계): 찾은 능력 → 다음 일 · 넓혀 갈 직무 → 접어 둔 나머지 ── */
+.cr2-hero{display:flex;margin-bottom:18px;padding:30px 34px;align-items:flex-end;justify-content:space-between;gap:28px;border:1px solid #e1e6ee;border-radius:22px;background:#fff}
+.cr2-hero .fx-h1{margin-top:10px}
+.cr2-hero .fx-lead{margin:10px 0 0;color:#626b78;font-size:14px;line-height:1.7}
+.cr2-block{padding:26px 28px}
+.cr2-head{display:flex;align-items:center;gap:8px}
+.cr2-head h2{margin:0;font-size:19px;letter-spacing:-.6px}
+.cr2-sub{margin:6px 0 0;color:#7b8491;font-size:13px;line-height:1.6}
+.cr2-empty{margin:14px 0 0;color:#626b78;font-size:14px}
+.cr2-units{display:grid;margin:18px 0 0;padding:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;list-style:none}
+.cr2-units li{display:flex;padding:14px 16px;flex-direction:column;gap:8px;border:1px solid #e1e6ee;border-radius:14px;background:#fff}
+.cr2-units b{color:#20242b;font-size:15px;line-height:1.4;letter-spacing:-.3px}
+.cr2-units q{display:block;color:#3e4a7a;font-size:13px;font-weight:600;line-height:1.6;quotes:'“' '”'}
+.cr2-two{display:grid;margin-top:18px;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:18px;align-items:start}
+.cr2-next{display:flex;margin:16px 0 0;padding:0;flex-direction:column;gap:8px;counter-reset:n;list-style:none}
+.cr2-next li{display:flex;padding:12px 14px;align-items:center;gap:10px;border:1px solid #e1e6ee;border-radius:12px;font-size:14px;font-weight:700;counter-increment:n}
+.cr2-next li::before{display:grid;width:22px;height:22px;flex:0 0 22px;border-radius:50%;color:#fff;background:#3154f4;font-size:11px;font-weight:900;place-items:center;content:counter(n)}
+.cr2-paths{display:flex;margin-top:16px;flex-direction:column;gap:10px}
+.cr2-paths article{padding:14px 16px;border:1px solid #e1e6ee;border-radius:14px}
+.cr2-path-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.cr2-path-top b{font-size:15px;letter-spacing:-.3px}
+.cr2-path-top small{color:#7b8491;font-size:11px;font-weight:800;white-space:nowrap}
+.cr2-link{margin:8px 0 0;color:#3e4651;font-size:13px;line-height:1.6}
+.cr2-link em{color:#2440c8;font-style:normal;font-weight:800}
+.cr2-link.muted{color:#89929f}
+.cr2-occ{margin:6px 0 0;color:#626b78;font-size:12px;font-weight:700}
+.cr2-occ-now{margin-top:14px;padding-top:12px;border-top:1px dashed #e1e6ee}
+.cr2-fold{margin-top:18px;padding:18px 24px}
+.cr2-fold summary{display:flex;align-items:center;justify-content:space-between;color:#3e4651;font-size:15px;font-weight:800;cursor:pointer;list-style:none}
+.cr2-fold summary::-webkit-details-marker{display:none}
+.cr2-fold summary small{color:#3154f4;font-size:12px}
+.cr2-fold[open] summary small{visibility:hidden}
+.cr2-chips{display:flex;margin-top:12px;flex-wrap:wrap;gap:6px}
+.cr2-chips span{padding:6px 10px;border:1px dashed #cfd5df;border-radius:99px;color:#5b6472;font-size:12px;font-weight:700}

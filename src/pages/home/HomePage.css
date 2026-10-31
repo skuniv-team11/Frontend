@@ -1,0 +1,86 @@
+/* 홈(/) — 옛 랜딩(StartPage.css · StartPageProcess.css) 위에 v2 홈(Main.dc.html)에서 더한 것만 */
+
+.home-hero .home-hero-note{margin:16px 0 0;color:rgb(255 255 255 / 76%);font-size:13px;line-height:1.6;text-align:center}
+.home-hero .button-row .button{align-items:center}
+
+.home-process:has(.home-process-steps){box-sizing:border-box;min-height:100vh;margin-top:0;padding-top:40px;padding-bottom:40px}
+.home-process:has(.home-process-steps) .process-image{height:min(590px,calc(100vh - 80px))}
+.home-process .process-guide:has(.home-process-steps){margin-top:36px}
+.home-process .home-process-steps{gap:14px}
+.home-process .home-process-steps > .process-step{padding-bottom:10px}
+
+.story-carousel .story-scrollbar{width:60%;height:6px;margin:0 auto 10px;opacity:0;transition:opacity .2s ease}
+.story-carousel:hover .story-scrollbar,.story-carousel:focus-within .story-scrollbar{opacity:1}
+.story-scrollbar span{display:block;height:6px;border-radius:999px;background:#c9d0db;box-shadow:0 1px 4px rgb(25 30 40 / 18%);cursor:grab;touch-action:none}
+.story-scrollbar span:active{cursor:grabbing}
+
+/* 여정 — 단계 줄 전체가 링크 */
+.home-process .v2-journey a.process-step{color:inherit;transition:background-color .2s ease}
+.home-process .v2-journey a.process-step:hover h4{color:#3154f4}
+.home-process .v2-journey .process-step p{word-break:keep-all}
+.home-process .v2-journey .process-step small:empty{display:none}
+.home-process .process-guide .v2-state{min-height:220px}
+.home-process .v2-todo strong .v2-virtual{margin-left:4px}
+.home-process .v2-todo>div{min-width:0}
+.home-process .v2-todo>div>span{display:block;margin-top:3px;line-height:1.5;word-break:keep-all}
+.home-process .home-single{display:block}
+
+/* 직무 탐색으로 찾은 현장실습 */
+.home-jobs .home-section-heading .home-jobs-sub{margin:8px 0 0;color:#6b7380;font-size:13px;font-weight:700}
+.home-jobs .home-job-row .job-description{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+.home-explore-empty{display:flex;width:calc(100% - 16px);margin:0 0 0 8px;padding:30px 32px;flex-direction:column;align-items:flex-start;gap:12px;border:1px solid #dfe5f3;border-radius:24px;background:rgb(255 255 255 / 94%);box-shadow:0 18px 42px rgb(45 52 76 / 10%)}
+.home-explore-empty b{color:#20242b;font-size:20px;letter-spacing:-.6px}
+.home-explore-empty p{margin:0;color:#5b6472;font-size:14px;line-height:1.7;word-break:keep-all}
+.home-explore-empty .v2-btn{text-decoration:none}
+.home-jobs .v2-state{width:calc(100% - 16px);margin-left:8px}
+
+/* 기관 로고 — 직무 찾기 화면의 전역 .institution-logo(테두리 상자)를 덮는다 */
+.home-job-row .institution-logo.home-institution-logo{width:76px;height:54px;flex:0 0 76px;overflow:visible;border:0;border-radius:0;background:transparent}
+.home-job-row .institution-logo.home-institution-logo img{width:auto;height:auto;max-width:62px;max-height:42px;object-fit:scale-down}
+.home-jobs .home-guest-company{isolation:isolate;flex-direction:column;align-items:flex-start;border:1px solid #dbe2f0;cursor:pointer;background:#fff;box-shadow:0 16px 36px rgb(39 52 83 / 12%),0 3px 9px rgb(39 52 83 / 5%)}
+.home-guest-company:focus-visible{outline:3px solid #3154f4;outline-offset:3px}
+.home-jobs.is-visible .home-guest-company:hover{border-color:#b7c6f6;box-shadow:0 22px 48px rgb(39 52 83 / 17%),0 4px 12px rgb(39 52 83 / 7%)}
+.home-guest-company::before{position:absolute;inset:0;z-index:-1;background-image:linear-gradient(90deg,rgb(255 255 255 / 90%),rgb(255 255 255 / 68%)),var(--company-image);background-position:center;background-size:cover;content:''}
+.home-guest-company .institution-logo.home-institution-logo{width:132px;height:76px;flex:0 0 76px;justify-content:flex-start}
+.home-guest-company .institution-logo.home-institution-logo img{max-width:120px;max-height:64px}
+.home-guest-company h3{margin:auto 0 0;color:#20242b}
+.modal.home-guest-login-modal{position:relative;width:min(440px,calc(100vw - 48px));padding:36px 30px 30px;text-align:center}
+.home-guest-login-modal h2{margin:0;font-size:22px;letter-spacing:-.6px}
+.home-guest-login-modal p{margin:12px 0 24px;color:#697586;line-height:1.6}
+.home-guest-login-actions{display:flex;justify-content:center;gap:10px}
+.home-guest-login-actions .fx-btn{min-height:44px}
+.home-guest-login-close{position:absolute;top:12px;right:16px;border:0;color:#8a94a3;background:transparent;font-size:25px;cursor:pointer}
+
+/* 로그인 전 — 직무 탐색이 하는 일 */
+.home-how{display:grid;width:calc(100% - 16px);margin:0 0 0 8px;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.home-how article{display:flex;min-height:170px;padding:22px;flex-direction:column;align-items:flex-start;gap:10px;border:1px solid rgb(224 228 237 / 82%);border-radius:24px;background:rgb(255 255 255 / 94%);box-shadow:0 18px 42px rgb(45 52 76 / 10%)}
+.home-how article b{color:#20242b;font-size:17px;letter-spacing:-.6px}
+.home-how article p{margin:0;color:#6b7380;font-size:13px;line-height:1.65;word-break:keep-all}
+.home-how-foot{display:flex;margin:22px 0 0 8px;align-items:center;gap:14px}
+.home-how-foot span{color:#7b8491;font-size:12px;font-weight:700}
+
+/* 체험 시점 고르기 */
+.modal.home-stage-modal{width:min(460px,calc(100vw - 48px));padding:32px 30px 22px;text-align:left}
+.home-stage-modal h2{margin:0 0 8px;font-size:21px;letter-spacing:-.6px}
+.home-stage-modal>p{margin:0 0 18px}
+.home-stage-list{display:flex;flex-direction:column;gap:8px}
+.home-stage-list button{position:relative;display:flex;padding:14px 44px 14px 18px;flex-direction:column;align-items:flex-start;gap:4px;border:1px solid #dfe3ea;border-radius:14px;color:#20242b;background:#fff;font-family:inherit;text-align:left;cursor:pointer;transition:border-color .2s ease,background-color .2s ease}
+.home-stage-list button:hover{border-color:#3154f4;background:#f5f7ff}
+.home-stage-list button:disabled{cursor:wait;opacity:.7}
+.home-stage-list b{font-size:15px;letter-spacing:-.3px}
+.home-stage-list small{color:#7b8491;font-size:12px;font-weight:600}
+.home-stage-list i{position:absolute;top:50%;right:18px;color:#3154f4;font-style:normal;font-weight:900;transform:translateY(-50%)}
+.home-stage-wait{margin:12px 0 0 !important;color:#7b8491 !important;font-size:12px !important}
+.home-stage-modal .fx-btn.ghost{display:flex;margin:12px auto 0}
+
+/* 선배 이야기 상세 */
+.modal.home-story-modal{position:relative;width:min(760px,calc(100vw - 48px));padding:44px 46px 40px;border-radius:24px;text-align:left}
+.home-story-close{position:absolute;top:18px;right:20px;display:grid;width:36px;height:36px;padding:0;border:0;border-radius:50%;color:#6d7582;background:#f2f4f7;font-size:22px;cursor:pointer;place-items:center}
+.home-story-modal .story-detail-heading h2{margin-right:40px}
+.home-story-modal .story-detail-heading p{text-align:left}
+
+.home-cta-content .home-cta-sub{margin:18px 0 0}
+.home-cta-content .home-cta-sub a{color:rgb(255 255 255 / 82%);font-size:14px;font-weight:700;text-decoration:underline}
+
+/* 마스코트 그림이 오른쪽으로 밀려 나와도 가로 스크롤이 생기지 않게 */
+.home-landing{overflow-x:clip}

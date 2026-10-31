@@ -1,0 +1,29 @@
+// 표기 도우미(화면 공통)
+export const VERDICT_LABEL = { ELIGIBLE: '지원 가능', NEEDS_CHECK: '확인 필요', INELIGIBLE: '지원 불가' }
+
+// 날짜 표기 2026-07-23 → 7월 23일(목)
+const DAYS = ['일', '월', '화', '수', '목', '금', '토']
+export const fmtDate = (iso, withDay = false) => {
+  if (!iso) return ''
+  const d = new Date(`${String(iso).slice(0, 10)}T00:00:00+09:00`)
+  if (Number.isNaN(d.getTime())) return iso
+  return `${d.getMonth() + 1}월 ${d.getDate()}일${withDay ? `(${DAYS[d.getDay()]})` : ''}`
+}
+export const fmtDateTime = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Seoul' })
+}
+export const won = (n) => (n == null ? '' : `${Number(n).toLocaleString('ko-KR')}원`)
+
+// 선호 전공(판정에 넣지 않는 참고) — 목록·상세가 같은 말을 쓴다
+export const MAJOR_LABEL = { MATCH: '선호 전공 안', NEAR: '가까운 전공', OPEN: '전공 무관', NOT_LISTED: '선호 전공 밖' }
+export const MAJOR_NOTE = '지원 판정에는 넣지 않아요. 지난 매칭 73명 중 18명은 선호 전공 밖이어도 매칭됐어요. 직무 탐색 추천에서는 같은 근거 단계 안에서 선호 전공 자리를 앞에 둬요.'
+
+// 학생 화면의 지원서 상태 — codes.applicationStatus는 센터 말(SUBMITTED '새로 들어옴')이라 학생 화면은 이 표기를 쓴다
+export const STUDENT_APP_STATUS = { NONE: '작성 전', DRAFT: '작성 중', SUBMITTED: '접수 대기', RECEIVED: '접수 완료', FIX_REQUESTED: '보완 요청', MATCHED: '매칭' }
+export const studentAppStatus = (status) => STUDENT_APP_STATUS[status] ?? status ?? ''
+
+// 표준 현장실습학기제 규칙(2026-2 학생 모집안내 · 백엔드 app.internship과 같은 값). 응답(practice.courseName·credits)이 없는 곳에서만 쓴다
+export const PROGRAM = { course: '표준 현장실습 D', credits: 12, scholarship: '월 20만 원 × 최대 3개월' }
